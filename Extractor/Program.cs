@@ -79,7 +79,7 @@ namespace Extractor
 Extractor scs_file [output_dir] [params]
 
 Parameters:
-  -p dir    Extract partially, starting from the given directory; 
+  -p path    Only extract the given file or directory, 
                 e.g. ""-p /map"".
 ");
         }
