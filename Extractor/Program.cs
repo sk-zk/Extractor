@@ -43,7 +43,7 @@ namespace Extractor
 
         private static void ExtractSingleFile(string path, HashFsReader reader)
         {
-            var outputPath = Path.Combine(outDir, path.Substring(1));
+            var outputPath = Path.Combine(outDir, path[1..]);
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
             Console.WriteLine($"Extracting {path} ...");
             reader.ExtractToFile(path, outputPath);
@@ -89,7 +89,7 @@ Parameters:
             Console.Out.WriteLine($"Extracting {dir} ...");
 
             var (subdirs, files) = r.GetDirectoryListing(dir); 
-            Directory.CreateDirectory(Path.Combine(outDir, dir.Substring(1)));
+            Directory.CreateDirectory(Path.Combine(outDir, dir[1..]));
             ExtractFiles(r, files);
 
             foreach (var subdir in subdirs)
@@ -100,7 +100,7 @@ Parameters:
         {
             foreach (var file in files)
             {
-                var path = Path.Combine(outDir, file.Substring(1));
+                var path = Path.Combine(outDir, file[1..]);
                 r.ExtractToFile(file, path);
             }
         }
