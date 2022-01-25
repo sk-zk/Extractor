@@ -30,7 +30,7 @@ namespace Extractor
                     $"The output directory.\nDefault: {destination}",
                     x => { destination = x; } },
                 { "p=",
-                    $"Partial extraction, e.g. \"-p /map\".",
+                    $"Partial extraction, e.g. \"-p=/map\".",
                     x => { start = x; } },
                 { "?|h|help",
                     $"Prints this message.",

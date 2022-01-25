@@ -8,7 +8,7 @@ Options:
   -a, --all                  Extracts every .scs file in the directory.
   -d=VALUE                   The output directory.
                                Default: ./extracted/
-  -p=VALUE                   Partial extraction, e.g. "-p /map".
+  -p=VALUE                   Partial extraction, e.g. "-p=/map".
   -?, -h, --help             Prints this message.
 ```
 
