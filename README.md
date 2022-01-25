@@ -1,4 +1,17 @@
-An alternative .scs extractor with the ability to do partial extraction (e.g. the map folder only).
+An alternative .scs extractor written in C#. Supports partial extraction as well as extracting all .scs files at once.
+
+## Usage
+```
+extractor path [options]
+
+Options:
+  -a, --all                  Extracts every .scs file in the directory.
+  -d=VALUE                   The output directory.
+                               Default: ./extracted/
+  -p=VALUE                   Partial extraction, e.g. "-p /map".
+  -?, -h, --help             Prints this message.
+```
 
 ## Dependencies
+* [Mono.Options](https://www.nuget.org/packages/Mono.Options/)
 * [TruckLib](https://github.com/sk-zk/TruckLib/)
