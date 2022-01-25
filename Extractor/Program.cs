@@ -17,6 +17,7 @@ namespace Extractor
             string path = ".";
             bool all = false;
             string start = "/";
+            bool help = false;
             var p = new OptionSet()
             {
                 { "<>",
@@ -31,16 +32,18 @@ namespace Extractor
                 { "p=",
                     $"Partial extraction, e.g. \"-p /map\".",
                     x => { start = x; } },
-
+                { "?|h|help",
+                    $"Prints this message.",
+                    x => { help = true; } },
             };
-            if (args.Length == 0)
+            p.Parse(args);
+            if (help || args.Length == 0)
             {
                 Console.WriteLine("extractor path [options]\n");
                 Console.WriteLine("Options:");
                 p.WriteOptionDescriptions(Console.Out);
-                Environment.Exit(-1);
+                return;
             }
-            p.Parse(args);
 
             if (all)
             {
