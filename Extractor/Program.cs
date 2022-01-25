@@ -51,6 +51,11 @@ namespace Extractor
             }
             else
             {
+                if (!File.Exists(path))
+                {
+                    Console.Error.WriteLine($"\"{path}\" is not a file or does not exist.");
+                    Environment.Exit(-1);
+                }
                 ExtractScsFile(path, start);
             }
         }
@@ -59,7 +64,7 @@ namespace Extractor
         {
             if (!Directory.Exists(path))
             {
-                Console.Error.WriteLine($"{path} is not a directory or does not exist.");
+                Console.Error.WriteLine($"\"{path}\" is not a directory or does not exist.");
                 Environment.Exit(-1);
             }
             foreach (var scsPath in Directory.EnumerateFiles(path, "*.scs"))
