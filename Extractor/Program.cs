@@ -14,7 +14,7 @@ namespace Extractor
 
         static void Main(string[] args)
         {
-            string path = "";
+            string path = ".";
             bool all = false;
             string start = "/";
             var p = new OptionSet()
@@ -22,6 +22,9 @@ namespace Extractor
                 { "<>",
                     "Path",
                     x => { path = x; } },
+                { "a|all",
+                    "Extracts every .scs file in the directory.",
+                    x => { all = true; } },
                 { "d=",
                     $"The output directory.\nDefault: {destination}",
                     x => { destination = x; } },
@@ -39,40 +42,56 @@ namespace Extractor
             }
             p.Parse(args);
 
-            var reader = HashFsReader.Open(path);
+            if (all)
+            {
+                ExtractAllInDirectory(path, start);
+            }
+            else
+            {
+                ExtractScsFile(path, start);
+            }
+        }
+
+        private static void ExtractAllInDirectory(string path, string start)
+        {
+            if (!Directory.Exists(path))
+            {
+                Console.Error.WriteLine($"{path} is not a directory or does not exist.");
+                Environment.Exit(-1);
+            }
+            foreach (var scsPath in Directory.EnumerateFiles(path, "*.scs"))
+            {
+                ExtractScsFile(scsPath, start);
+            }
+        }
+
+        private static void ExtractScsFile(string scsPath, string start)
+        {
+            var reader = HashFsReader.Open(scsPath);
 
             switch (reader.EntryExists(start))
             {
                 case EntryType.Directory:
-                    Extract(reader, start);
+                    Extract(reader, start, Path.GetFileName(scsPath));
                     break;
                 case EntryType.File:
                     ExtractSingleFile(start, reader);
                     break;
                 case EntryType.NotFound:
-                    Console.Error.WriteLine("The specified path does not exist.");
                     break;
             }
         }
 
-        private static void ExtractSingleFile(string path, HashFsReader reader)
+        private static void Extract(HashFsReader r, string directory, string scsName)
         {
-            var outputPath = Path.Combine(destination, path[1..]);
-            Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-            Console.WriteLine($"Extracting {path} ...");
-            reader.ExtractToFile(path, outputPath);
-        }
+            Console.Out.WriteLine($"Extracting {scsName}{directory} ...");
 
-        private static void Extract(HashFsReader r, string dir)
-        {
-            Console.Out.WriteLine($"Extracting {dir} ...");
-
-            var (subdirs, files) = r.GetDirectoryListing(dir); 
-            Directory.CreateDirectory(Path.Combine(destination, dir[1..]));
+            var (subdirs, files) = r.GetDirectoryListing(directory); 
+            Directory.CreateDirectory(Path.Combine(destination, directory[1..]));
             ExtractFiles(r, files);
 
             foreach (var subdir in subdirs)
-                Extract(r, subdir);
+                Extract(r, subdir, scsName);
         }
 
         private static void ExtractFiles(HashFsReader r, List<string> files)
@@ -82,6 +101,14 @@ namespace Extractor
                 var path = Path.Combine(destination, file[1..]);
                 r.ExtractToFile(file, path);
             }
+        }
+
+        private static void ExtractSingleFile(string path, HashFsReader reader)
+        {
+            var outputPath = Path.Combine(destination, path[1..]);
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
+            Console.WriteLine($"Extracting {path} ...");
+            reader.ExtractToFile(path, outputPath);
         }
 
     }
