@@ -76,7 +76,7 @@ namespace Extractor
         private static void PrintUsage()
         {
             Console.WriteLine(@"Usage:
-Extractor scs_file [output_dir] [params]
+extractor scs_file [output_dir] [params]
 
 Parameters:
   -p path    Only extract the given file or directory, 
