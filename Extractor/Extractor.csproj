@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\TruckLib\TruckLib\TruckLib.csproj" />
+    <ProjectReference Include="..\..\TruckLib\TruckLib.HashFs\TruckLib.HashFs.csproj" />
   </ItemGroup>
 
 </Project>
