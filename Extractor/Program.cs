@@ -94,7 +94,7 @@ namespace Extractor
         {
             Console.Out.WriteLine($"Extracting {scsName}{directory} ...");
 
-            var (subdirs, files) = r.GetDirectoryListing(directory); 
+            var (subdirs, files) = r.GetDirectoryListing(directory);
             Directory.CreateDirectory(Path.Combine(destination, directory[1..]));
             ExtractFiles(r, files);
 
@@ -106,6 +106,11 @@ namespace Extractor
         {
             foreach (var file in files)
             {
+                // The directory listing of core.scs only lists itself, but as a file, breaking everything
+                if (file == "/")
+                {
+                    continue;
+                }
                 var path = Path.Combine(destination, file[1..]);
                 r.ExtractToFile(file, path);
             }
