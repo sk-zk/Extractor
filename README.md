@@ -15,6 +15,7 @@ Options:
                                extraction of base_cfg.scs, core.scs and
                                locale.scs, which do not include a top level
                                directory listing.
+  -s, --skip-existing        Don't overwrite existing files.
   -?, -h, --help             Prints this message.
 ```
 

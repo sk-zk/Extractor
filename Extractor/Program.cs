@@ -11,6 +11,8 @@ namespace Extractor
     class Program
     {
         static string destination = "./extracted/";
+        static bool skipIfExists = false;
+
 
         static void Main(string[] args)
         {
@@ -39,6 +41,9 @@ namespace Extractor
                     "This allows for the extraction of base_cfg.scs, core.scs " +
                     "and\nlocale.scs, which do not include a top level directory listing.",
                     x => { raw = true; } },
+                { "s|skip-existing",
+                    "Don't overwrite existing files.",
+                    x => { skipIfExists = true; } },
                 { "?|h|help",
                     $"Prints this message.",
                     x => { help = true; } },
@@ -104,7 +109,7 @@ namespace Extractor
                     ExtractDirectory(reader, start, Path.GetFileName(scsPath));
                     break;
                 case EntryType.File:
-                    ExtractSingleFile(start, reader);
+                    ExtractSingleFile(reader, start);
                     break;
                 case EntryType.NotFound:
                     break;
@@ -114,12 +119,12 @@ namespace Extractor
         private static void ExtractScsWithoutTopLevel(string scsPath)
         {
             var scsName = Path.GetFileName(scsPath);
+            Console.Out.WriteLine($"Extracting {scsName} ...");
             var outputDir = Path.Combine(destination, scsName);
             Directory.CreateDirectory(outputDir);
 
             var reader = HashFsReader.Open(scsPath);
 
-            var associatedToDirectories = new HashSet<string>();
             foreach (var (key, entry) in reader.GetEntries())
             {
                 if (entry.IsDirectory)
@@ -128,7 +133,12 @@ namespace Extractor
                     // but they're useless because the file names are relative
                     continue;
                 }
-                reader.ExtractToFile(entry, Path.Combine(outputDir, key.ToString("x")));
+                var outputPath = Path.Combine(outputDir, key.ToString("x"));
+                if (skipIfExists && File.Exists(outputPath))
+                {
+                    return;
+                }
+                reader.ExtractToFile(entry, outputPath);
             }
         }
 
@@ -141,10 +151,12 @@ namespace Extractor
             ExtractFiles(r, files);
 
             foreach (var subdir in subdirs)
+            {
                 ExtractDirectory(r, subdir, scsName);
+            }
         }
 
-        private static void ExtractFiles(HashFsReader r, List<string> files)
+        private static void ExtractFiles(HashFsReader reader, List<string> files)
         {
             foreach (var file in files)
             {
@@ -153,14 +165,22 @@ namespace Extractor
                 {
                     continue;
                 }
-                var path = Path.Combine(destination, file[1..]);
-                r.ExtractToFile(file, path);
+                var outputPath = Path.Combine(destination, file[1..]);
+                if (skipIfExists && File.Exists(outputPath))
+                {
+                    return;
+                }
+                reader.ExtractToFile(file, outputPath);
             }
         }
 
-        private static void ExtractSingleFile(string path, HashFsReader reader)
+        private static void ExtractSingleFile(HashFsReader reader, string path)
         {
             var outputPath = Path.Combine(destination, path[1..]);
+            if (skipIfExists && File.Exists(outputPath))
+            {
+                return;
+            }
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
             Console.WriteLine($"Extracting {path} ...");
             reader.ExtractToFile(path, outputPath);
