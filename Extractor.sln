@@ -5,7 +5,7 @@ VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Extractor", "Extractor\Extractor.csproj", "{DBB39D88-212D-4901-8B84-D6D5C3D18311}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TruckLib.HashFs", "..\TruckLib\TruckLib.HashFs\TruckLib.HashFs.csproj", "{506E73A5-E31E-4B02-81A0-E16981E47D7E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TruckLib.HashFs", "TruckLib\TruckLib.HashFs\TruckLib.HashFs.csproj", "{80EFD55F-DA8F-404A-BCE0-CF2103C4335E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{DBB39D88-212D-4901-8B84-D6D5C3D18311}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DBB39D88-212D-4901-8B84-D6D5C3D18311}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DBB39D88-212D-4901-8B84-D6D5C3D18311}.Release|Any CPU.Build.0 = Release|Any CPU
-		{506E73A5-E31E-4B02-81A0-E16981E47D7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{506E73A5-E31E-4B02-81A0-E16981E47D7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{506E73A5-E31E-4B02-81A0-E16981E47D7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{506E73A5-E31E-4B02-81A0-E16981E47D7E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{80EFD55F-DA8F-404A-BCE0-CF2103C4335E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80EFD55F-DA8F-404A-BCE0-CF2103C4335E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80EFD55F-DA8F-404A-BCE0-CF2103C4335E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80EFD55F-DA8F-404A-BCE0-CF2103C4335E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -14,4 +14,4 @@ Options:
 
 ## Dependencies
 * [Mono.Options](https://www.nuget.org/packages/Mono.Options/)
-* [TruckLib](https://github.com/sk-zk/TruckLib/)
+* [TruckLib.HashFs](https://github.com/sk-zk/TruckLib/)
