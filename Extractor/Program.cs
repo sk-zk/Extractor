@@ -12,6 +12,7 @@ namespace Extractor
     {
         static string destination = "./extracted/";
         static bool skipIfExists = false;
+        static bool forceEntryHeadersAtEnd = false;
 
 
         static void Main(string[] args)
@@ -29,10 +30,13 @@ namespace Extractor
                 { "a|all",
                     "Extracts every .scs archive in the directory.",
                     x => { all = true; } },
-                { "d=",
+                { "d=|dest=",
                     $"The output directory.\nDefault: {destination}",
                     x => { destination = x; } },
-                { "p=",
+                { "headers-at-end",
+                    "Ignores what the archive header says and reads entry headers from the end of the file.",
+                    x => { forceEntryHeadersAtEnd = true; } },
+                { "p=|partial=",
                     $"Partial extraction, e.g. \"-p=/map\".",
                     x => { start = x; } },
                 { "r|raw",
@@ -45,7 +49,7 @@ namespace Extractor
                     "Don't overwrite existing files.",
                     x => { skipIfExists = true; } },
                 { "?|h|help",
-                    $"Prints this message.",
+                    $"Prints this message and exits.",
                     x => { help = true; } },
             };
             p.Parse(args);
@@ -101,7 +105,7 @@ namespace Extractor
 
         private static void ExtractScs(string scsPath, string start)
         {
-            var reader = HashFsReader.Open(scsPath);
+            var reader = HashFsReader.Open(scsPath, forceEntryHeadersAtEnd);
 
             switch (reader.EntryExists(start))
             {
@@ -123,7 +127,7 @@ namespace Extractor
             var outputDir = Path.Combine(destination, scsName);
             Directory.CreateDirectory(outputDir);
 
-            var reader = HashFsReader.Open(scsPath);
+            var reader = HashFsReader.Open(scsPath, forceEntryHeadersAtEnd);
 
             foreach (var (key, entry) in reader.GetEntries())
             {
