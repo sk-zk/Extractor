@@ -13,23 +13,23 @@ namespace Extractor
         static string destination = "./extracted/";
         static bool skipIfExists = false;
         static bool forceEntryHeadersAtEnd = false;
-
+        static string inputPath = ".";
+        static bool extractAll = false;
+        static string startPath = "/";
+        static bool printHelp = false;
+        static bool rawMode = false;
 
         static void Main(string[] args)
         {
-            string path = ".";
-            bool all = false;
-            string start = "/";
-            bool help = false;
-            bool raw = false;
+
             var p = new OptionSet()
             {
                 { "<>",
                     "Path",
-                    x => { path = x; } },
+                    x => { inputPath = x; } },
                 { "a|all",
                     "Extracts every .scs archive in the directory.",
-                    x => { all = true; } },
+                    x => { extractAll = true; } },
                 { "d=|dest=",
                     $"The output directory.\nDefault: {destination}",
                     x => { destination = x; } },
@@ -38,22 +38,22 @@ namespace Extractor
                     x => { forceEntryHeadersAtEnd = true; } },
                 { "p=|partial=",
                     $"Partial extraction, e.g. \"-p=/map\".",
-                    x => { start = x; } },
+                    x => { startPath = x; } },
                 { "r|raw",
                     "Directly dumps the contained files with their hashed filenames rather than " +
                     "traversing the archive's directory tree." + 
                     "This allows for the extraction of base_cfg.scs, core.scs " +
                     "and\nlocale.scs, which do not include a top level directory listing.",
-                    x => { raw = true; } },
+                    x => { rawMode = true; } },
                 { "s|skip-existing",
                     "Don't overwrite existing files.",
                     x => { skipIfExists = true; } },
                 { "?|h|help",
                     $"Prints this message and exits.",
-                    x => { help = true; } },
+                    x => { printHelp = true; } },
             };
             p.Parse(args);
-            if (help || args.Length == 0)
+            if (printHelp || args.Length == 0)
             {
                 Console.WriteLine("extractor path [options]\n");
                 Console.WriteLine("Options:");
@@ -61,29 +61,29 @@ namespace Extractor
                 return;
             }
 
-            if (all)
+            if (extractAll)
             {
-                ExtractAllInDirectory(path, start, raw);
+                ExtractAllInDirectory(inputPath, startPath);
             }
             else
             {
-                if (!File.Exists(path))
+                if (!File.Exists(inputPath))
                 {
-                    Console.Error.WriteLine($"\"{path}\" is not a file or does not exist.");
+                    Console.Error.WriteLine($"\"{inputPath}\" is not a file or does not exist.");
                     Environment.Exit(-1);
                 }
-                if (raw)
+                if (rawMode)
                 {
-                    ExtractScsWithoutTopLevel(path);
+                    ExtractScsWithoutTopLevel(inputPath);
                 }
                 else
                 {
-                    ExtractScs(path, start);
+                    ExtractScs(inputPath, startPath);
                 }
             }
         }
 
-        private static void ExtractAllInDirectory(string directory, string start, bool raw = false)
+        private static void ExtractAllInDirectory(string directory, string start)
         {
             if (!Directory.Exists(directory))
             {
@@ -92,7 +92,7 @@ namespace Extractor
             }
             foreach (var scsPath in Directory.EnumerateFiles(directory, "*.scs"))
             {
-                if (raw)
+                if (rawMode)
                 {
                     ExtractScsWithoutTopLevel(directory);
                 }
@@ -146,17 +146,17 @@ namespace Extractor
             }
         }
 
-        private static void ExtractDirectory(HashFsReader r, string directory, string scsName)
+        private static void ExtractDirectory(HashFsReader reader, string directory, string scsName)
         {
             Console.Out.WriteLine($"Extracting {scsName}{directory} ...");
 
-            var (subdirs, files) = r.GetDirectoryListing(directory);
+            var (subdirs, files) = reader.GetDirectoryListing(directory);
             Directory.CreateDirectory(Path.Combine(destination, directory[1..]));
-            ExtractFiles(r, files);
+            ExtractFiles(reader, files);
 
             foreach (var subdir in subdirs)
             {
-                ExtractDirectory(r, subdir, scsName);
+                ExtractDirectory(reader, subdir, scsName);
             }
         }
 
