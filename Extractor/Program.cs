@@ -18,6 +18,7 @@ namespace Extractor
         static string[] startPaths = new[] { "/" };
         static bool printHelp = false;
         static bool rawMode = false;
+        static ushort? salt = null;
 
         static void Main(string[] args)
         {
@@ -48,6 +49,9 @@ namespace Extractor
                     "This allows for the extraction of base_cfg.scs, core.scs " +
                     "and\nlocale.scs, which do not include a top level directory listing.",
                     x => { rawMode = true; } },
+                { "salt=",
+                    "Ignores the salt in the archive header and uses this one instead.",
+                    x => { salt = ushort.Parse(x); } },
                 { "s|skip-existing",
                     "Don't overwrite existing files.",
                     x => { skipIfExists = true; } },
@@ -110,6 +114,10 @@ namespace Extractor
         private static void ExtractScs(string scsPath, string[] startPaths)
         {
             var reader = HashFsReader.Open(scsPath, forceEntryHeadersAtEnd);
+            if (salt is not null)
+            {
+                reader.Salt = salt.Value;
+            }
 
             foreach (var startPath in startPaths)
             {
@@ -144,8 +152,12 @@ namespace Extractor
             Directory.CreateDirectory(outputDir);
 
             var reader = HashFsReader.Open(scsPath, forceEntryHeadersAtEnd);
+            if (salt is not null)
+            {
+                reader.Salt = salt.Value;
+            }
 
-            foreach (var (key, entry) in reader.GetEntries())
+            foreach (var (key, entry) in reader.Entries)
             {
                 if (entry.IsDirectory)
                 {
@@ -169,9 +181,24 @@ namespace Extractor
             var (subdirs, files) = reader.GetDirectoryListing(directory);
             Directory.CreateDirectory(Path.Combine(destination, directory[1..]));
             ExtractFiles(reader, files);
+            ExtractSubdirectories(reader, subdirs, scsName);
+        }
 
+        private static void ExtractSubdirectories(HashFsReader reader, List<string> subdirs, string scsName)
+        {
             foreach (var subdir in subdirs)
             {
+                var type = reader.EntryExists(subdir);
+                switch (type)
+                {
+                    case EntryType.File:
+                        // TODO
+                        throw new NotImplementedException();
+                    case EntryType.NotFound:
+                        Console.WriteLine($"Directory {subdir} is referenced in a directory listing " +
+                            $"but could not be found in the archive");
+                        continue;
+                }
                 ExtractDirectory(reader, subdir, scsName);
             }
         }
@@ -184,9 +211,11 @@ namespace Extractor
                 switch (type)
                 {
                     case EntryType.NotFound:
-                        Console.WriteLine($"File {file} is referenced in a directory listing but could not be found in the archive");
-                        break;
+                        Console.WriteLine($"File {file} is referenced in a directory listing" +
+                            $" but could not be found in the archive");
+                        continue;
                     case EntryType.Directory:
+                        // usually safe to ignore because it just points to the directory itself again
                         continue;
                 }
 
