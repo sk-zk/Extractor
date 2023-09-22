@@ -15,7 +15,7 @@ namespace Extractor
         static bool forceEntryHeadersAtEnd = false;
         static string inputPath = ".";
         static bool extractAll = false;
-        static string startPath = "/";
+        static string[] startPaths = new[] { "/" };
         static bool printHelp = false;
         static bool rawMode = false;
 
@@ -37,11 +37,14 @@ namespace Extractor
                     "Ignores what the archive header says and reads entry headers from the end of the file.",
                     x => { forceEntryHeadersAtEnd = true; } },
                 { "p=|partial=",
-                    $"Partial extraction, e.g. \"-p=/map\".",
-                    x => { startPath = x; } },
+                    "Partial extraction, e.g.:\n" +
+                    "-p=/map\n" +
+                    "-p=/def,/map\n" +
+                    "-p=/def/world/road.sii",
+                    x => { startPaths = x.Split(","); } },
                 { "r|raw",
                     "Directly dumps the contained files with their hashed filenames rather than " +
-                    "traversing the archive's directory tree." + 
+                    "traversing the archive's directory tree. " + 
                     "This allows for the extraction of base_cfg.scs, core.scs " +
                     "and\nlocale.scs, which do not include a top level directory listing.",
                     x => { rawMode = true; } },
@@ -63,7 +66,7 @@ namespace Extractor
 
             if (extractAll)
             {
-                ExtractAllInDirectory(inputPath, startPath);
+                ExtractAllInDirectory(inputPath, startPaths);
             }
             else
             {
@@ -78,18 +81,19 @@ namespace Extractor
                 }
                 else
                 {
-                    ExtractScs(inputPath, startPath);
+                    ExtractScs(inputPath, startPaths);
                 }
             }
         }
 
-        private static void ExtractAllInDirectory(string directory, string start)
+        private static void ExtractAllInDirectory(string directory, string[] startPaths)
         {
             if (!Directory.Exists(directory))
             {
                 Console.Error.WriteLine($"\"{directory}\" is not a directory or does not exist.");
                 Environment.Exit(-1);
             }
+
             foreach (var scsPath in Directory.EnumerateFiles(directory, "*.scs"))
             {
                 if (rawMode)
@@ -98,25 +102,37 @@ namespace Extractor
                 }
                 else
                 {
-                    ExtractScs(scsPath, start);
+                    ExtractScs(scsPath, startPaths);
                 }
             }
         }
 
-        private static void ExtractScs(string scsPath, string start)
+        private static void ExtractScs(string scsPath, string[] startPaths)
         {
             var reader = HashFsReader.Open(scsPath, forceEntryHeadersAtEnd);
 
-            switch (reader.EntryExists(start))
+            foreach (var startPath in startPaths)
             {
-                case EntryType.Directory:
-                    ExtractDirectory(reader, start, Path.GetFileName(scsPath));
-                    break;
-                case EntryType.File:
-                    ExtractSingleFile(reader, start);
-                    break;
-                case EntryType.NotFound:
-                    break;
+                switch (reader.EntryExists(startPath))
+                {
+                    case EntryType.Directory:
+                        ExtractDirectory(reader, startPath, Path.GetFileName(scsPath));
+                        break;
+                    case EntryType.File:
+                        ExtractSingleFile(reader, startPath);
+                        break;
+                    case EntryType.NotFound:
+                        if (startPath == "/")
+                        {
+                            Console.WriteLine("Top level directory is missing; " +
+                                "try a partial extraction or use --raw to dump entries");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"File or directory listing {startPath} does not exist");
+                        }
+                        break;
+                }
             }
         }
 
@@ -164,23 +180,39 @@ namespace Extractor
         {
             foreach (var file in files)
             {
+                var type = reader.EntryExists(file);
+                switch (type)
+                {
+                    case EntryType.NotFound:
+                        Console.WriteLine($"File {file} is referenced in a directory listing but could not be found in the archive");
+                        break;
+                    case EntryType.Directory:
+                        continue;
+                }
+
                 // The directory listing of core.scs only lists itself, but as a file, breaking everything
                 if (file == "/")
                 {
                     continue;
                 }
+
                 var outputPath = Path.Combine(destination, file[1..]);
                 if (skipIfExists && File.Exists(outputPath))
                 {
                     return;
                 }
+
                 reader.ExtractToFile(file, outputPath);
             }
         }
 
         private static void ExtractSingleFile(HashFsReader reader, string path)
         {
-            var outputPath = Path.Combine(destination, path[1..]);
+            if (path.StartsWith("/"))
+            {
+                path = path[1..];
+            }
+            var outputPath = Path.Combine(destination, path);
             if (skipIfExists && File.Exists(outputPath))
             {
                 return;
