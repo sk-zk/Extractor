@@ -14,17 +14,24 @@ extractor path [options]
 
 Options:
   -a, --all                  Extracts every .scs archive in the directory.
-  -d=VALUE                   The output directory.
+  -d, --dest=VALUE           The output directory.
                                Default: ./extracted/
-  -p=VALUE                   Partial extraction, e.g. "-p=/map".
+      --headers-at-end       Ignores what the archive header says and reads
+                               entry headers from the end of the file.
+  -p, --partial=VALUE        Partial extraction, e.g.:
+                               -p=/map
+                               -p=/def,/map
+                               -p=/def/world/road.sii
   -r, --raw                  Directly dumps the contained files with their
                                hashed filenames rather than traversing the
-                               archive's directory tree.This allows for the
+                               archive's directory tree. This allows for the
                                extraction of base_cfg.scs, core.scs and
                                locale.scs, which do not include a top level
                                directory listing.
+      --salt=VALUE           Ignores the salt in the archive header and uses
+                               this one instead.
   -s, --skip-existing        Don't overwrite existing files.
-  -?, -h, --help             Prints this message.
+  -?, -h, --help             Prints this message and exits.
 ```
 
 ## Dependencies
