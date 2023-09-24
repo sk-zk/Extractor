@@ -22,6 +22,9 @@ Options:
                                -p=/map
                                -p=/def,/map
                                -p=/def/world/road.sii
+      --paths=VALUE          Same as --partial, but expects a text file
+                               containing paths to extract, separated by
+                               newlines.
   -r, --raw                  Directly dumps the contained files with their
                                hashed filenames rather than traversing the
                                archive's directory tree. This allows for the

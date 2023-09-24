@@ -35,7 +35,8 @@ namespace Extractor
                     $"The output directory.\nDefault: {destination}",
                     x => { destination = x; } },
                 { "headers-at-end",
-                    "Ignores what the archive header says and reads entry headers from the end of the file.",
+                    "Ignores what the archive header says and reads entry headers " +
+                    "from the end of the file.",
                     x => { forceEntryHeadersAtEnd = true; } },
                 { "p=|partial=",
                     "Partial extraction, e.g.:\n" +
@@ -43,6 +44,10 @@ namespace Extractor
                     "-p=/def,/map\n" +
                     "-p=/def/world/road.sii",
                     x => { startPaths = x.Split(","); } },
+                 { "paths=",
+                    "Same as --partial, but expects a text file containing paths to extract, " +
+                    "separated by newlines.",
+                    x => { startPaths = LoadStartPathsFromFile(x); } },
                 { "r|raw",
                     "Directly dumps the contained files with their hashed filenames rather than " +
                     "traversing the archive's directory tree. " + 
@@ -88,6 +93,14 @@ namespace Extractor
                     ExtractScs(inputPath, startPaths);
                 }
             }
+        }
+
+        private static string[] LoadStartPathsFromFile(string file)
+        {
+            if (!File.Exists(file)) {
+                Console.WriteLine($"File {file} does not exist");
+            }
+            return File.ReadAllLines(file).Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
         }
 
         private static void ExtractAllInDirectory(string directory, string[] startPaths)
