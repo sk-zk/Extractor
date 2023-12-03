@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using TruckLib.HashFs;
 using Mono.Options;
+using Ionic.Zlib;
 
 namespace Extractor
 {
@@ -119,7 +120,8 @@ namespace Extractor
 
         private static string[] LoadStartPathsFromFile(string file)
         {
-            if (!File.Exists(file)) {
+            if (!File.Exists(file))
+            {
                 Console.WriteLine($"File {file} does not exist");
             }
             return File.ReadAllLines(file).Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
@@ -192,20 +194,28 @@ namespace Extractor
                 reader.Salt = salt.Value;
             }
 
+            var seenOffsets = new HashSet<ulong>();
+
             foreach (var (key, entry) in reader.Entries)
             {
-                if (entry.IsDirectory)
-                {
-                    // locale.scs contains subdirectory listings,
-                    // but they're useless because the file names are relative
-                    continue;
-                }
+                if (seenOffsets.Contains(entry.Offset)) continue;
+                seenOffsets.Add(entry.Offset);
+
+                // subdirectory listings are useless because the file names are relative
+                if (entry.IsDirectory) continue;
+
                 var outputPath = Path.Combine(outputDir, key.ToString("x"));
-                if (skipIfExists && File.Exists(outputPath))
+                if (skipIfExists && File.Exists(outputPath)) return;
+
+                try
                 {
-                    return;
+                    reader.ExtractToFile(entry, outputPath);
+                } 
+                catch (ZlibException zlex)
+                {
+                    Console.WriteLine($"Unable to extract entry at offset {entry.Offset}:");
+                    Console.WriteLine(zlex.Message);
                 }
-                reader.ExtractToFile(entry, outputPath);
             }
         }
 
@@ -255,18 +265,20 @@ namespace Extractor
                 }
 
                 // The directory listing of core.scs only lists itself, but as a file, breaking everything
-                if (file == "/")
-                {
-                    continue;
-                }
+                if (file == "/") continue;
 
                 var outputPath = Path.Combine(destination, file[1..]);
-                if (skipIfExists && File.Exists(outputPath))
-                {
-                    return;
-                }
+                if (skipIfExists && File.Exists(outputPath)) return;
 
-                reader.ExtractToFile(file, outputPath);
+                try
+                {
+                    reader.ExtractToFile(file, outputPath);
+                }
+                catch (ZlibException zlex)
+                {
+                    Console.WriteLine($"Unable to extract entry {file}:");
+                    Console.WriteLine(zlex.Message);
+                }
             }
         }
 
@@ -276,14 +288,21 @@ namespace Extractor
             {
                 path = path[1..];
             }
+
             var outputPath = Path.Combine(destination, path);
-            if (skipIfExists && File.Exists(outputPath))
-            {
-                return;
-            }
+            if (skipIfExists && File.Exists(outputPath)) return;
+
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
             Console.WriteLine($"Extracting {path} ...");
-            reader.ExtractToFile(path, outputPath);
+            try
+            {
+                reader.ExtractToFile(path, outputPath);
+            }
+            catch (ZlibException zlex)
+            {
+                Console.WriteLine($"Unable to extract {path}:");
+                Console.WriteLine(zlex.Message);
+            }
         }
 
     }

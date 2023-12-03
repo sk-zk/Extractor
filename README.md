@@ -18,6 +18,7 @@ Options:
                                Default: ./extracted/
       --headers-at-end       Ignores what the archive header says and reads
                                entry headers from the end of the file.
+      --list                 Lists entry headers and exits.
   -p, --partial=VALUE        Partial extraction, e.g.:
                                -p=/map
                                -p=/def,/map
