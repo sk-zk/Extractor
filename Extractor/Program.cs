@@ -13,6 +13,7 @@ namespace Extractor
         static string destination = "./extracted/";
         static bool skipIfExists = false;
         static bool forceEntryHeadersAtEnd = false;
+        static bool listEntryHeaders = false;
         static string inputPath = ".";
         static bool extractAll = false;
         static string[] startPaths = new[] { "/" };
@@ -38,6 +39,9 @@ namespace Extractor
                     "Ignores what the archive header says and reads entry headers " +
                     "from the end of the file.",
                     x => { forceEntryHeadersAtEnd = true; } },
+                { "list",
+                    "Lists entry headers and exits.",
+                    x => { listEntryHeaders = true; } },
                 { "p=|partial=",
                     "Partial extraction, e.g.:\n" +
                     "-p=/map\n" +
@@ -65,11 +69,18 @@ namespace Extractor
                     x => { printHelp = true; } },
             };
             p.Parse(args);
+
             if (printHelp || args.Length == 0)
             {
                 Console.WriteLine("extractor path [options]\n");
                 Console.WriteLine("Options:");
                 p.WriteOptionDescriptions(Console.Out);
+                return;
+            }
+
+            if (listEntryHeaders)
+            {
+                ListEntryHeaders(inputPath);
                 return;
             }
 
@@ -92,6 +103,17 @@ namespace Extractor
                 {
                     ExtractScs(inputPath, startPaths);
                 }
+            }
+        }
+
+        private static void ListEntryHeaders(string scsPath)
+        {
+            var reader = HashFsReader.Open(scsPath, forceEntryHeadersAtEnd);
+            Console.WriteLine($"  {"Offset",-10}  {"Hash",-16}  {"Cmp. Size",-10}  {"Uncmp.Size",-10}  {"CRC",-8}");
+            foreach (var (_, entry) in reader.Entries)
+            {
+                Console.WriteLine($"{(entry.IsDirectory ? "*" : " ")} " +
+                    $"{entry.Offset,10}  {entry.Hash,16:x}  {entry.CompressedSize,10}  {entry.Size,10}  {entry.Crc,8:X}");
             }
         }
 
