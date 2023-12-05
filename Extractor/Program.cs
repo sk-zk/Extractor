@@ -24,7 +24,6 @@ namespace Extractor
 
         static void Main(string[] args)
         {
-
             var p = new OptionSet()
             {
                 { "<>",
@@ -98,7 +97,7 @@ namespace Extractor
                 }
                 if (rawMode)
                 {
-                    ExtractScsWithoutTopLevel(inputPath);
+                    ExtractRaw(inputPath);
                 }
                 else
                 {
@@ -139,7 +138,7 @@ namespace Extractor
             {
                 if (rawMode)
                 {
-                    ExtractScsWithoutTopLevel(directory);
+                    ExtractRaw(directory);
                 }
                 else
                 {
@@ -181,7 +180,7 @@ namespace Extractor
             }
         }
 
-        private static void ExtractScsWithoutTopLevel(string scsPath)
+        private static void ExtractRaw(string scsPath)
         {
             var scsName = Path.GetFileName(scsPath);
             Console.Out.WriteLine($"Extracting {scsName} ...");
