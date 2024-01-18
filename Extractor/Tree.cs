@@ -1,0 +1,112 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using TruckLib.HashFs;
+
+namespace Extractor
+{
+    internal static class Tree
+    {
+        public static void PrintTree(string scsPath, string[] startPaths, bool forceEntryHeadersAtEnd)
+        {
+            var reader = HashFsReader.Open(scsPath, forceEntryHeadersAtEnd);
+            foreach (var startPath in startPaths)
+            {
+                var entryType = reader.EntryExists(startPath);
+                var parts = startPath.Split("/", StringSplitOptions.RemoveEmptyEntries);
+                switch (entryType)
+                {
+                    case EntryType.Directory:
+                        PrintWithColor(Path.GetFileName(scsPath), ConsoleColor.White);
+                        if (startPath == "/")
+                        {
+                            PrintDirectory(reader, startPath, 1);
+                        }
+                        else
+                        {
+                            PrintPathParts(parts);
+                            PrintDirectory(reader, startPath, parts.Length + 1);
+                        }
+                        break;
+                    case EntryType.File:
+                        PrintWithColor(Path.GetFileName(scsPath), ConsoleColor.White);
+                        PrintPathParts(parts[..^1]);
+                        WriteIndent(parts.Length + 1, true);
+                        Console.WriteLine(parts[^1]);
+                        break;
+                    case EntryType.NotFound:
+                        if (startPath == "/")
+                        {
+                            Console.WriteLine("Top level directory listing is missing.");
+                        }
+                        break;
+                }
+            }
+        }
+
+        private static void PrintPathParts(string[] parts)
+        {
+            for (int i = 0; i < parts.Length; i++)
+            {
+                WriteIndent(i + 1);
+                PrintDirectoryName(parts[i]);
+            }
+        }
+
+        private static void PrintDirectoryName(string name)
+        {
+            PrintWithColor($"[{name}]", ConsoleColor.Yellow);
+        }
+
+        private static void PrintDirectory(HashFsReader reader, string path, int indent)
+        {
+            var (subdirs, files) = reader.GetDirectoryListing(path);
+            foreach (var subdir in subdirs)
+            {
+                WriteIndent(indent);
+                var withoutLastSlash = subdir[..^1];
+                PrintDirectoryName(withoutLastSlash[(withoutLastSlash.LastIndexOf("/") + 1)..]);
+                PrintDirectory(reader, subdir, indent + 1);
+            }
+            for (int i = 0; i < files.Count; i++)
+            {
+                var file = files[i];
+                WriteIndent(indent, i == files.Count - 1);
+                Console.WriteLine(file[(file.LastIndexOf("/") + 1)..]);
+            }
+        }
+
+        private static void PrintWithColor(string str, ConsoleColor color)
+        {
+            var prevConsoleColor = Console.ForegroundColor;
+            Console.ForegroundColor = color;
+            Console.WriteLine(str);
+            Console.ForegroundColor = prevConsoleColor;
+        }
+
+        private static void WriteIndent(int indent, bool isLast = false)
+        {
+            for (int i = 0; i < indent; i++)
+            {
+                if (i == indent - 1)
+                {
+                    if (isLast)
+                    {
+                        Console.Write(" └╴");
+                    }
+                    else
+                    {
+                        Console.Write(" ├╴");
+                    }
+                }
+                else
+                {
+                    Console.Write(" │ ");
+                }
+            }
+        }
+    }
+}

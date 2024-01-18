@@ -20,10 +20,13 @@ namespace Extractor
         static string[] startPaths = new[] { "/" };
         static bool printHelp = false;
         static bool rawMode = false;
+        static bool tree = false;
         static ushort? salt = null;
 
         static void Main(string[] args)
         {
+            Console.OutputEncoding = Encoding.UTF8;
+
             var p = new OptionSet()
             {
                 { "<>",
@@ -64,6 +67,10 @@ namespace Extractor
                 { "s|skip-existing",
                     "Don't overwrite existing files.",
                     x => { skipIfExists = true; } },
+                { "tree",
+                    "Prins the directory tree and exits. Can be combined with --partial, " +
+                    "--paths, and --all.",
+                    x => { tree = true; } },
                 { "?|h|help",
                     $"Prints this message and exits.",
                     x => { printHelp = true; } },
@@ -78,9 +85,36 @@ namespace Extractor
                 return;
             }
 
+            if (!extractAll && !File.Exists(inputPath))
+            {
+                Console.Error.WriteLine($"{inputPath} is not a file or does not exist.");
+                Environment.Exit(-1);
+            }
+            else if (extractAll & !Directory.Exists(inputPath))
+            {
+                Console.Error.WriteLine($"{inputPath} is not a directory or does not exist.");
+                Environment.Exit(-1);
+            }
+
             if (listEntryHeaders)
             {
                 ListEntryHeaders(inputPath);
+                return;
+            }
+
+            if (tree)
+            {
+                if (extractAll)
+                {
+                    foreach (var scsPath in GetAllScsFiles(inputPath))
+                    {
+                        Tree.PrintTree(scsPath, startPaths, forceEntryHeadersAtEnd);
+                    }
+                }
+                else
+                {
+                    Tree.PrintTree(inputPath, startPaths, forceEntryHeadersAtEnd);
+                }
                 return;
             }
 
@@ -90,11 +124,6 @@ namespace Extractor
             }
             else
             {
-                if (!File.Exists(inputPath))
-                {
-                    Console.Error.WriteLine($"\"{inputPath}\" is not a file or does not exist.");
-                    Environment.Exit(-1);
-                }
                 if (rawMode)
                 {
                     ExtractRaw(inputPath);
@@ -128,13 +157,7 @@ namespace Extractor
 
         private static void ExtractAllInDirectory(string directory, string[] startPaths)
         {
-            if (!Directory.Exists(directory))
-            {
-                Console.Error.WriteLine($"\"{directory}\" is not a directory or does not exist.");
-                Environment.Exit(-1);
-            }
-
-            foreach (var scsPath in Directory.EnumerateFiles(directory, "*.scs"))
+            foreach (var scsPath in GetAllScsFiles(directory))
             {
                 if (rawMode)
                 {
@@ -146,6 +169,9 @@ namespace Extractor
                 }
             }
         }
+
+        private static IEnumerable<string> GetAllScsFiles(string directory) => 
+            Directory.EnumerateFiles(directory, "*.scs");
 
         private static void ExtractScs(string scsPath, string[] startPaths, 
             bool printNotFoundMessage = true)
