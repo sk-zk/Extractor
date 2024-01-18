@@ -15,7 +15,7 @@ namespace Extractor
         static bool skipIfExists = false;
         static bool forceEntryHeadersAtEnd = false;
         static bool listEntryHeaders = false;
-        static string inputPath = ".";
+        static List<string> inputPaths;
         static bool extractAll = false;
         static string[] startPaths = new[] { "/" };
         static bool printHelp = false;
@@ -29,9 +29,6 @@ namespace Extractor
 
             var p = new OptionSet()
             {
-                { "<>",
-                    "Path",
-                    x => { inputPath = x; } },
                 { "a|all",
                     "Extracts every .scs archive in the directory.",
                     x => { extractAll = true; } },
@@ -75,62 +72,69 @@ namespace Extractor
                     $"Prints this message and exits.",
                     x => { printHelp = true; } },
             };
-            p.Parse(args);
+            inputPaths = p.Parse(args);
+            if (inputPaths.Count == 0)
+            {
+                inputPaths.Add(".");
+            }
 
             if (printHelp || args.Length == 0)
             {
-                Console.WriteLine("extractor path [options]\n");
+                Console.WriteLine("extractor path... [options]\n");
                 Console.WriteLine("Options:");
                 p.WriteOptionDescriptions(Console.Out);
                 return;
             }
 
-            if (!extractAll && !File.Exists(inputPath))
+            foreach (var inputPath in inputPaths)
             {
-                Console.Error.WriteLine($"{inputPath} is not a file or does not exist.");
-                Environment.Exit(-1);
-            }
-            else if (extractAll & !Directory.Exists(inputPath))
-            {
-                Console.Error.WriteLine($"{inputPath} is not a directory or does not exist.");
-                Environment.Exit(-1);
-            }
+                if (!extractAll && !File.Exists(inputPath))
+                {
+                    Console.Error.WriteLine($"{inputPath} is not a file or does not exist.");
+                    continue;
+                }
+                else if (extractAll & !Directory.Exists(inputPath))
+                {
+                    Console.Error.WriteLine($"{inputPath} is not a directory or does not exist.");
+                    continue;
+                }
 
-            if (listEntryHeaders)
-            {
-                ListEntryHeaders(inputPath);
-                return;
-            }
+                if (listEntryHeaders)
+                {
+                    ListEntryHeaders(inputPath);
+                    continue;
+                }
 
-            if (tree)
-            {
+                if (tree)
+                {
+                    if (extractAll)
+                    {
+                        foreach (var scsPath in GetAllScsFiles(inputPath))
+                        {
+                            Tree.PrintTree(scsPath, startPaths, forceEntryHeadersAtEnd);
+                        }
+                    }
+                    else
+                    {
+                        Tree.PrintTree(inputPath, startPaths, forceEntryHeadersAtEnd);
+                    }
+                    continue;
+                }
+
                 if (extractAll)
                 {
-                    foreach (var scsPath in GetAllScsFiles(inputPath))
+                    ExtractAllInDirectory(inputPath, startPaths);
+                }
+                else
+                {
+                    if (rawMode)
                     {
-                        Tree.PrintTree(scsPath, startPaths, forceEntryHeadersAtEnd);
+                        ExtractRaw(inputPath);
                     }
-                }
-                else
-                {
-                    Tree.PrintTree(inputPath, startPaths, forceEntryHeadersAtEnd);
-                }
-                return;
-            }
-
-            if (extractAll)
-            {
-                ExtractAllInDirectory(inputPath, startPaths);
-            }
-            else
-            {
-                if (rawMode)
-                {
-                    ExtractRaw(inputPath);
-                }
-                else
-                {
-                    ExtractScs(inputPath, startPaths);
+                    else
+                    {
+                        ExtractScs(inputPath, startPaths);
+                    }
                 }
             }
         }

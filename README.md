@@ -10,7 +10,7 @@ dotnet publish -c Release
 
 ## Usage
 ```
-extractor path [options]
+extractor path... [options]
 
 Options:
   -a, --all                  Extracts every .scs archive in the directory.
