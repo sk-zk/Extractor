@@ -35,7 +35,7 @@ Options:
       --salt=VALUE           Ignores the salt in the archive header and uses
                                this one instead.
   -s, --skip-existing        Don't overwrite existing files.
-      --tree                 Prins the directory tree and exits. Can be
+      --tree                 Prints the directory tree and exits. Can be
                                combined with --partial, --paths, and --all.
   -?, -h, --help             Prints this message and exits.
 ```

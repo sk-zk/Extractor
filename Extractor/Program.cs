@@ -68,7 +68,7 @@ namespace Extractor
                     "Don't overwrite existing files.",
                     x => { skipIfExists = true; } },
                 { "tree",
-                    "Prins the directory tree and exits. Can be combined with --partial, " +
+                    "Prints the directory tree and exits. Can be combined with --partial, " +
                     "--paths, and --all.",
                     x => { tree = true; } },
                 { "?|h|help",
