@@ -6,6 +6,7 @@
     <AssemblyName>extractor</AssemblyName>
     <RootNamespace>Extractor</RootNamespace>
     <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>
