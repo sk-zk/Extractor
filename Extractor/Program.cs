@@ -142,12 +142,13 @@ namespace Extractor
                 }
                 else
                 {
-                    ExtractScs(scsPath, startPaths);
+                    ExtractScs(scsPath, startPaths, false);
                 }
             }
         }
 
-        private static void ExtractScs(string scsPath, string[] startPaths)
+        private static void ExtractScs(string scsPath, string[] startPaths, 
+            bool printNotFoundMessage = true)
         {
             var reader = HashFsReader.Open(scsPath, forceEntryHeadersAtEnd);
             if (salt is not null)
@@ -171,7 +172,7 @@ namespace Extractor
                             Console.WriteLine("Top level directory is missing; " +
                                 "try a partial extraction or use --raw to dump entries");
                         }
-                        else
+                        else if (printNotFoundMessage)
                         {
                             Console.WriteLine($"File or directory listing {startPath} does not exist");
                         }
