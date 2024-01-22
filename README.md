@@ -1,3 +1,5 @@
+## Extractor
+
 An alternative .scs extractor written in C#. Supports partial extraction as well as extracting all .scs files at once.
 
 ## Build
