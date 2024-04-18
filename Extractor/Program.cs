@@ -13,8 +13,8 @@ namespace Extractor
     {
         static string destination = "./extracted/";
         static bool skipIfExists = false;
-        static bool forceEntryHeadersAtEnd = false;
-        static bool listEntryHeaders = false;
+        static bool forceEntryTableAtEnd = false;
+        static bool listEntries = false;
         static List<string> inputPaths;
         static bool extractAll = false;
         static string[] startPaths = new[] { "/" };
@@ -30,18 +30,14 @@ namespace Extractor
             var p = new OptionSet()
             {
                 { "a|all",
-                    "Extracts every .scs archive in the directory.",
+                    "Extracts all .scs archives in the specified directory.",
                     x => { extractAll = true; } },
                 { "d=|dest=",
                     $"The output directory.\nDefault: {destination}",
                     x => { destination = x; } },
-                { "headers-at-end",
-                    "Ignores what the archive header says and reads entry headers " +
-                    "from the end of the file.",
-                    x => { forceEntryHeadersAtEnd = true; } },
                 { "list",
-                    "Lists entry headers and exits.",
-                    x => { listEntryHeaders = true; } },
+                    "Lists entries and exits.",
+                    x => { listEntries = true; } },
                 { "p=|partial=",
                     "Partial extraction, e.g.:\n" +
                     "-p=/map\n" +
@@ -64,6 +60,10 @@ namespace Extractor
                 { "s|skip-existing",
                     "Don't overwrite existing files.",
                     x => { skipIfExists = true; } },
+                { "table-at-end",
+                    "[HashFS v1 only] Ignores what the archive header says and reads " +
+                    "the entry table from the end of the file.",
+                    x => { forceEntryTableAtEnd = true; } },
                 { "tree",
                     "Prints the directory tree and exits. Can be combined with --partial, " +
                     "--paths, and --all.",
@@ -80,7 +80,8 @@ namespace Extractor
 
             if (printHelp || args.Length == 0)
             {
-                Console.WriteLine("extractor path... [options]\n");
+                Console.WriteLine("Extractor 2024-04-18\n");
+                Console.WriteLine("Usage:\n  extractor path... [options]\n");
                 Console.WriteLine("Options:");
                 p.WriteOptionDescriptions(Console.Out);
                 return;
@@ -99,9 +100,9 @@ namespace Extractor
                     continue;
                 }
 
-                if (listEntryHeaders)
+                if (listEntries)
                 {
-                    ListEntryHeaders(inputPath);
+                    ListEntries(inputPath);
                     continue;
                 }
 
@@ -111,12 +112,12 @@ namespace Extractor
                     {
                         foreach (var scsPath in GetAllScsFiles(inputPath))
                         {
-                            Tree.PrintTree(scsPath, startPaths, forceEntryHeadersAtEnd);
+                            Tree.PrintTree(scsPath, startPaths, forceEntryTableAtEnd);
                         }
                     }
                     else
                     {
-                        Tree.PrintTree(inputPath, startPaths, forceEntryHeadersAtEnd);
+                        Tree.PrintTree(inputPath, startPaths, forceEntryTableAtEnd);
                     }
                     continue;
                 }
@@ -139,14 +140,14 @@ namespace Extractor
             }
         }
 
-        private static void ListEntryHeaders(string scsPath)
+        private static void ListEntries(string scsPath)
         {
-            var reader = HashFsReader.Open(scsPath, forceEntryHeadersAtEnd);
-            Console.WriteLine($"  {"Offset",-10}  {"Hash",-16}  {"Cmp. Size",-10}  {"Uncmp.Size",-10}  {"CRC",-8}");
+            var reader = HashFsReader.Open(scsPath, forceEntryTableAtEnd);
+            Console.WriteLine($"  {"Offset",-10}  {"Hash",-16}  {"Cmp. Size",-10}  {"Uncmp.Size",-10}");
             foreach (var (_, entry) in reader.Entries)
             {
                 Console.WriteLine($"{(entry.IsDirectory ? "*" : " ")} " +
-                    $"{entry.Offset,10}  {entry.Hash,16:x}  {entry.CompressedSize,10}  {entry.Size,10}  {entry.Crc,8:X}");
+                    $"{entry.Offset,10}  {entry.Hash,16:x}  {entry.CompressedSize,10}  {entry.Size,10}");
             }
         }
 
@@ -180,7 +181,8 @@ namespace Extractor
         private static void ExtractScs(string scsPath, string[] startPaths, 
             bool printNotFoundMessage = true)
         {
-            var reader = HashFsReader.Open(scsPath, forceEntryHeadersAtEnd);
+            var reader = HashFsReader.Open(scsPath, forceEntryTableAtEnd);
+
             if (salt is not null)
             {
                 reader.Salt = salt.Value;
@@ -218,7 +220,7 @@ namespace Extractor
             var outputDir = Path.Combine(destination, scsName);
             Directory.CreateDirectory(outputDir);
 
-            var reader = HashFsReader.Open(scsPath, forceEntryHeadersAtEnd);
+            var reader = HashFsReader.Open(scsPath, forceEntryTableAtEnd);
             if (salt is not null)
             {
                 reader.Salt = salt.Value;
@@ -249,7 +251,7 @@ namespace Extractor
             }
         }
 
-        private static void ExtractDirectory(HashFsReader reader, string directory, string scsName)
+        private static void ExtractDirectory(IHashFsReader reader, string directory, string scsName)
         {
             Console.Out.WriteLine($"Extracting {scsName}{directory} ...");
 
@@ -259,7 +261,7 @@ namespace Extractor
             ExtractSubdirectories(reader, subdirs, scsName);
         }
 
-        private static void ExtractSubdirectories(HashFsReader reader, List<string> subdirs, string scsName)
+        private static void ExtractSubdirectories(IHashFsReader reader, List<string> subdirs, string scsName)
         {
             foreach (var subdir in subdirs)
             {
@@ -278,7 +280,7 @@ namespace Extractor
             }
         }
 
-        private static void ExtractFiles(HashFsReader reader, List<string> files)
+        private static void ExtractFiles(IHashFsReader reader, List<string> files)
         {
             foreach (var file in files)
             {
@@ -312,7 +314,7 @@ namespace Extractor
             }
         }
 
-        private static void ExtractSingleFile(HashFsReader reader, string path)
+        private static void ExtractSingleFile(IHashFsReader reader, string path)
         {
             if (path.StartsWith("/"))
             {

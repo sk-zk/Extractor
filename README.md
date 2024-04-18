@@ -1,6 +1,8 @@
 ## Extractor
+A cross-platform .scs (HashFS) extractor written in C#. Supports raw dumps, partial extraction, and extracting all .scs files at once.
 
-An alternative .scs extractor written in C#. Supports partial extraction as well as extracting all .scs files at once.
+HashFS v2, introduced with game version 1.50, is supported, with one limitation: the packed .tobj format, which
+.tobj/.dds pairs are converted to in v2, can be extracted, but not unpacked.
 
 ## Build
 A self-contained binary for Windows is available on the Releases page. On other platforms, install the .NET 6 SDK and run the following:
@@ -15,12 +17,11 @@ dotnet publish -c Release
 extractor path... [options]
 
 Options:
-  -a, --all                  Extracts every .scs archive in the directory.
+  -a, --all                  Extracts all .scs archives in the specified
+                               directory.
   -d, --dest=VALUE           The output directory.
                                Default: ./extracted/
-      --headers-at-end       Ignores what the archive header says and reads
-                               entry headers from the end of the file.
-      --list                 Lists entry headers and exits.
+      --list                 Lists entries and exits.
   -p, --partial=VALUE        Partial extraction, e.g.:
                                -p=/map
                                -p=/def,/map
@@ -37,6 +38,9 @@ Options:
       --salt=VALUE           Ignores the salt in the archive header and uses
                                this one instead.
   -s, --skip-existing        Don't overwrite existing files.
+      --table-at-end         [HashFS v1 only] Ignores what the archive header
+                               says and readsthe entry table from the end of
+                               the file.
       --tree                 Prints the directory tree and exits. Can be
                                combined with --partial, --paths, and --all.
   -?, -h, --help             Prints this message and exits.

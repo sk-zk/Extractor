@@ -61,7 +61,7 @@ namespace Extractor
             PrintWithColor($"[{name}]", ConsoleColor.Yellow);
         }
 
-        private static void PrintDirectory(HashFsReader reader, string path, int indent)
+        private static void PrintDirectory(IHashFsReader reader, string path, int indent)
         {
             var (subdirs, files) = reader.GetDirectoryListing(path);
             foreach (var subdir in subdirs)
