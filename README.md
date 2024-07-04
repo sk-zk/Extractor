@@ -1,11 +1,12 @@
 ## Extractor
-A cross-platform .scs (HashFS) extractor written in C#. Supports raw dumps, partial extraction, and extracting all .scs files at once.
+A cross-platform .scs (HashFS) extractor written in C#. Supports raw dumps, partial extraction,
+and extracting all .scs files at once.
 
-HashFS v2, introduced with game version 1.50, is supported, with one limitation: the packed .tobj format, which
-.tobj/.dds pairs are converted to in v2, can be extracted, but not unpacked.
+HashFS v2, introduced with game version 1.50, is supported.
 
 ## Build
-A self-contained binary for Windows is available on the Releases page. On other platforms, install the .NET 6 SDK and run the following:
+A self-contained binary for Windows is available on the Releases page. On other platforms, install the
+.NET 6 (or higher) SDK and run the following:
 ```sh
 git clone https://github.com/sk-zk/Extractor.git --recursive
 cd Extractor
@@ -14,7 +15,8 @@ dotnet publish -c Release
 
 ## Usage
 ```
-extractor path... [options]
+Usage:
+  extractor path... [options]
 
 Options:
   -a, --all                  Extracts all .scs archives in the specified
@@ -26,7 +28,7 @@ Options:
                                -p=/map
                                -p=/def,/map
                                -p=/def/world/road.sii
-      --paths=VALUE          Same as --partial, but expects a text file
+  -P, --paths=VALUE          Same as --partial, but expects a text file
                                containing paths to extract, separated by
                                newlines.
   -r, --raw                  Directly dumps the contained files with their
@@ -39,13 +41,9 @@ Options:
                                this one instead.
   -s, --skip-existing        Don't overwrite existing files.
       --table-at-end         [HashFS v1 only] Ignores what the archive header
-                               says and readsthe entry table from the end of
+                               says and reads the entry table from the end of
                                the file.
       --tree                 Prints the directory tree and exits. Can be
                                combined with --partial, --paths, and --all.
   -?, -h, --help             Prints this message and exits.
 ```
-
-## Dependencies
-* [Mono.Options](https://www.nuget.org/packages/Mono.Options/)
-* [TruckLib.HashFs](https://github.com/sk-zk/TruckLib/)

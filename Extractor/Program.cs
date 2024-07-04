@@ -11,6 +11,8 @@ namespace Extractor
 {
     class Program
     {
+        const string Version = "2024-07-04";
+
         static string destination = "./extracted/";
         static bool skipIfExists = false;
         static bool forceEntryTableAtEnd = false;
@@ -44,7 +46,7 @@ namespace Extractor
                     "-p=/def,/map\n" +
                     "-p=/def/world/road.sii",
                     x => { startPaths = x.Split(","); } },
-                 { "paths=",
+                 { "P=|paths=",
                     "Same as --partial, but expects a text file containing paths to extract, " +
                     "separated by newlines.",
                     x => { startPaths = LoadStartPathsFromFile(x); } },
@@ -80,7 +82,7 @@ namespace Extractor
 
             if (printHelp || args.Length == 0)
             {
-                Console.WriteLine("Extractor 2024-04-18\n");
+                Console.WriteLine($"Extractor {Version}\n");
                 Console.WriteLine("Usage:\n  extractor path... [options]\n");
                 Console.WriteLine("Options:");
                 p.WriteOptionDescriptions(Console.Out);
@@ -241,7 +243,7 @@ namespace Extractor
 
                 try
                 {
-                    reader.ExtractToFile(entry, outputPath);
+                    reader.ExtractToFile(entry, key.ToString("x"), outputPath);
                 } 
                 catch (ZlibException zlex)
                 {
@@ -308,8 +310,18 @@ namespace Extractor
                 }
                 catch (ZlibException zlex)
                 {
-                    Console.WriteLine($"Unable to extract entry {file}:");
-                    Console.WriteLine(zlex.Message);
+                    Console.Error.WriteLine($"Unable to extract entry {file}:");
+                    Console.Error.WriteLine(zlex.Message);
+                }
+                catch (InvalidDataException idex)
+                {
+                    Console.Error.WriteLine($"Unable to extract entry {file}:");
+                    Console.Error.WriteLine(idex.Message);
+                }
+                catch (AggregateException agex)
+                {
+                    Console.Error.WriteLine($"Unable to extract entry {file}:");
+                    Console.Error.WriteLine(agex.ToString());
                 }
             }
         }

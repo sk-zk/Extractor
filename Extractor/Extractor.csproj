@@ -1,20 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
-    <AssemblyName>extractor</AssemblyName>
-    <RootNamespace>Extractor</RootNamespace>
-    <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net6.0</TargetFramework>
+		<AssemblyName>extractor</AssemblyName>
+		<RootNamespace>Extractor</RootNamespace>
+		<PublishSingleFile>true</PublishSingleFile>
+		<SelfContained>true</SelfContained>
+		<Version>2024.07.04</Version>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Mono.Options" Version="6.12.0.148" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Mono.Options" Version="6.12.0.148" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\TruckLib\TruckLib.HashFs\TruckLib.HashFs.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\TruckLib\TruckLib.HashFs\TruckLib.HashFs.csproj" />
+	</ItemGroup>
 
 </Project>
