@@ -198,6 +198,8 @@ namespace Extractor
                         ExtractDirectory(reader, startPath, Path.GetFileName(scsPath));
                         break;
                     case EntryType.File:
+                        // TODO make sure this is actually a file
+                        // and not a directory falsely labeled as one
                         ExtractSingleFile(reader, startPath);
                         break;
                     case EntryType.NotFound:
@@ -270,15 +272,22 @@ namespace Extractor
                 var type = reader.EntryExists(subdir);
                 switch (type)
                 {
+                    case EntryType.Directory:
+                        ExtractDirectory(reader, subdir, scsName);
+                        break;
                     case EntryType.File:
-                        // TODO
-                        throw new NotImplementedException();
+                        // the subdir list contains a path which has not been
+                        // marked as a directory. it might be one regardless though,
+                        // so let's just attempt to extract it anyway
+                        var e = reader.GetEntry(subdir[..^1]);
+                        e.IsDirectory = true;
+                        ExtractDirectory(reader, subdir[..^1], scsName);
+                        break;
                     case EntryType.NotFound:
                         Console.WriteLine($"Directory {subdir} is referenced in a directory listing " +
                             $"but could not be found in the archive");
                         continue;
                 }
-                ExtractDirectory(reader, subdir, scsName);
             }
         }
 
