@@ -15,8 +15,7 @@ dotnet publish -c Release
 
 ## Usage
 ```
-Usage:
-  extractor path... [options]
+extractor path... [options]
 
 Options:
   -a, --all                  Extracts all .scs archives in the specified
@@ -46,4 +45,30 @@ Options:
       --tree                 Prints the directory tree and exits. Can be
                                combined with --partial, --paths, and --all.
   -?, -h, --help             Prints this message and exits.
+```
+
+### Usage samples
+Normal extraction:
+```
+extractor "path\to\file.scs"
+```
+
+Extract two .scs files at once:
+```
+extractor "path\to\file1.scs" "path\to\file2.scs"
+```
+
+Extract all .scs files in a directory:
+```
+extractor "path\to\directory" -a
+```
+
+Extract `/def` and `manifest.sii` only:
+```
+extractor "path\to\file.scs" -p=/def,manifest.sii
+```
+
+Extract `/map` only for all .scs files in a directory:
+```
+extractor "path\to\directory" -a -p=/map
 ```
