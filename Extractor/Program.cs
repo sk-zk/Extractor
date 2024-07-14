@@ -55,7 +55,7 @@ namespace Extractor
                     x => { listEntries = true; } },
                 { "p=|partial=",
                     "Partial extraction, e.g.:\n" +
-                    "-p=/map\n" +
+                    "-p=/locale\n" +
                     "-p=/def,/map\n" +
                     "-p=/def/world/road.sii",
                     x => { startPaths = x.Split(","); } },
@@ -65,9 +65,7 @@ namespace Extractor
                     x => { startPaths = LoadStartPathsFromFile(x); } },
                 { "r|raw",
                     "Directly dumps the contained files with their hashed filenames rather than " +
-                    "traversing the archive's directory tree. " +
-                    "This allows for the extraction of base_cfg.scs, core.scs " +
-                    "and\nlocale.scs, which do not include a top level directory listing.",
+                    "traversing the archive's directory tree.",
                     x => { rawMode = true; } },
                 { "salt=",
                     "Ignores the salt in the archive header and uses this one instead.",
