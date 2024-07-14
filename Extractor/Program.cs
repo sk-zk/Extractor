@@ -184,7 +184,7 @@ namespace Extractor
         {
             if (!File.Exists(file))
             {
-                Console.WriteLine($"File {file} does not exist");
+                Console.Error.WriteLine($"File {file} does not exist");
             }
             return File.ReadAllLines(file).Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
         }
@@ -232,12 +232,12 @@ namespace Extractor
                     case EntryType.NotFound:
                         if (startPath == "/")
                         {
-                            Console.WriteLine("Top level directory is missing; " +
+                            Console.Error.WriteLine("Top level directory is missing; " +
                                 "try a partial extraction or use --raw to dump entries");
                         }
                         else if (printNotFoundMessage)
                         {
-                            Console.WriteLine($"File or directory listing {startPath} does not exist");
+                            Console.Error.WriteLine($"File or directory listing {startPath} does not exist");
                         }
                         break;
                 }
@@ -276,8 +276,8 @@ namespace Extractor
                 } 
                 catch (ZlibException zlex)
                 {
-                    Console.WriteLine($"Unable to extract entry at offset {entry.Offset}:");
-                    Console.WriteLine(zlex.Message);
+                    Console.Error.WriteLine($"Unable to extract entry at offset {entry.Offset}:");
+                    Console.Error.WriteLine(zlex.Message);
                 }
             }
         }
@@ -311,7 +311,7 @@ namespace Extractor
                         ExtractDirectory(reader, subdir[..^1], scsName);
                         break;
                     case EntryType.NotFound:
-                        Console.WriteLine($"Directory {subdir} is referenced in a directory listing " +
+                        Console.Error.WriteLine($"Directory {subdir} is referenced in a directory listing " +
                             $"but could not be found in the archive");
                         continue;
                 }
@@ -326,7 +326,7 @@ namespace Extractor
                 switch (type)
                 {
                     case EntryType.NotFound:
-                        Console.WriteLine($"File {file} is referenced in a directory listing" +
+                        Console.Error.WriteLine($"File {file} is referenced in a directory listing" +
                             $" but could not be found in the archive");
                         continue;
                     case EntryType.Directory:
@@ -380,8 +380,8 @@ namespace Extractor
             }
             catch (ZlibException zlex)
             {
-                Console.WriteLine($"Unable to extract {path}:");
-                Console.WriteLine(zlex.Message);
+                Console.Error.WriteLine($"Unable to extract {path}:");
+                Console.Error.WriteLine(zlex.Message);
             }
         }
 
