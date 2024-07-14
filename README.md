@@ -73,7 +73,7 @@ Extract `/map` only for all .scs files in a directory:
 extractor "path\to\directory" -a -p=/map
 ```
 
-Extract `locale.scs` in 1.50:
+Extract `locale.scs`:
 ```
 extractor "path\to\locale.scs" -p=/locale
 ```
