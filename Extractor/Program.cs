@@ -13,6 +13,7 @@ namespace Extractor
     {
         const string Version = "2024-07-04";
 
+        static bool launchedByExplorer = false;
         static string destination = "./extracted/";
         static bool skipIfExists = false;
         static bool forceEntryTableAtEnd = false;
@@ -27,6 +28,16 @@ namespace Extractor
 
         static void Main(string[] args)
         {
+            if (OperatingSystem.IsWindows())
+            {
+                // Detect whether the extractor was launched by Explorer to pause at the end
+                // so that people who just want to drag and drop a file onto it can read the
+                // error message if one occurs.
+                // This works for both conhost and Windows Terminal.
+                launchedByExplorer = Path.TrimEndingDirectorySeparator(Path.GetDirectoryName(Console.Title))
+                    == Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
+            }
+
             Console.OutputEncoding = Encoding.UTF8;
 
             var p = new OptionSet()
@@ -52,7 +63,7 @@ namespace Extractor
                     x => { startPaths = LoadStartPathsFromFile(x); } },
                 { "r|raw",
                     "Directly dumps the contained files with their hashed filenames rather than " +
-                    "traversing the archive's directory tree. " + 
+                    "traversing the archive's directory tree. " +
                     "This allows for the extraction of base_cfg.scs, core.scs " +
                     "and\nlocale.scs, which do not include a top level directory listing.",
                     x => { rawMode = true; } },
@@ -86,9 +97,16 @@ namespace Extractor
                 Console.WriteLine("Usage:\n  extractor path... [options]\n");
                 Console.WriteLine("Options:");
                 p.WriteOptionDescriptions(Console.Out);
+                PauseIfNecessary();
                 return;
             }
 
+            Extract();
+            PauseIfNecessary();
+        }
+
+        private static void Extract()
+        {
             foreach (var inputPath in inputPaths)
             {
                 if (!extractAll && !File.Exists(inputPath))
@@ -139,6 +157,15 @@ namespace Extractor
                         ExtractScs(inputPath, startPaths);
                     }
                 }
+            }
+        }
+
+        private static void PauseIfNecessary()
+        {
+            if (launchedByExplorer)
+            {
+                Console.WriteLine("Press any key to continue ...");
+                Console.ReadLine();
             }
         }
 
