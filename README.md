@@ -24,7 +24,7 @@ Options:
                                Default: ./extracted/
       --list                 Lists entries and exits.
   -p, --partial=VALUE        Partial extraction, e.g.:
-                               -p=/map
+                               -p=/locale
                                -p=/def,/map
                                -p=/def/world/road.sii
   -P, --paths=VALUE          Same as --partial, but expects a text file
@@ -32,10 +32,7 @@ Options:
                                newlines.
   -r, --raw                  Directly dumps the contained files with their
                                hashed filenames rather than traversing the
-                               archive's directory tree. This allows for the
-                               extraction of base_cfg.scs, core.scs and
-                               locale.scs, which do not include a top level
-                               directory listing.
+                               archive's directory tree.
       --salt=VALUE           Ignores the salt in the archive header and uses
                                this one instead.
   -s, --skip-existing        Don't overwrite existing files.
@@ -63,12 +60,17 @@ Extract all .scs files in a directory:
 extractor "path\to\directory" -a
 ```
 
-Extract `/def` and `manifest.sii` only:
+Extract `/def` and `/manifest.sii` only:
 ```
-extractor "path\to\file.scs" -p=/def,manifest.sii
+extractor "path\to\file.scs" -p=/def,/manifest.sii
 ```
 
 Extract `/map` only for all .scs files in a directory:
 ```
 extractor "path\to\directory" -a -p=/map
+```
+
+Extract `locale.scs`:
+```
+extractor "path\to\locale.scs" -p=/locale
 ```
