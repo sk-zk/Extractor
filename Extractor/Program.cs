@@ -210,7 +210,16 @@ namespace Extractor
         private static void ExtractScs(string scsPath, string[] startPaths, 
             bool printNotFoundMessage = true)
         {
-            var reader = HashFsReader.Open(scsPath, forceEntryTableAtEnd);
+            IHashFsReader reader;
+            try
+            {
+                reader = HashFsReader.Open(scsPath, forceEntryTableAtEnd);
+            }
+            catch (InvalidDataException idex)
+            {
+                Console.Error.WriteLine($"Unable to open {scsPath}: {idex.Message}");
+                return;
+            }
 
             if (salt is not null)
             {
@@ -251,7 +260,16 @@ namespace Extractor
             var outputDir = Path.Combine(destination, scsName);
             Directory.CreateDirectory(outputDir);
 
-            var reader = HashFsReader.Open(scsPath, forceEntryTableAtEnd);
+            IHashFsReader reader;
+            try
+            {
+                reader = HashFsReader.Open(scsPath, forceEntryTableAtEnd);
+            }
+            catch (InvalidDataException idex)
+            {
+                Console.Error.WriteLine($"Unable to open {scsPath}: {idex.Message}");
+                return;
+            }
             if (salt is not null)
             {
                 reader.Salt = salt.Value;
