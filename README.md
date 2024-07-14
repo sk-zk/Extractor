@@ -63,9 +63,9 @@ Extract all .scs files in a directory:
 extractor "path\to\directory" -a
 ```
 
-Extract `/def` and `manifest.sii` only:
+Extract `/def` and `/manifest.sii` only:
 ```
-extractor "path\to\file.scs" -p=/def,manifest.sii
+extractor "path\to\file.scs" -p=/def,/manifest.sii
 ```
 
 Extract `/map` only for all .scs files in a directory:
