@@ -6,6 +6,7 @@ using System.Text;
 using TruckLib.HashFs;
 using Mono.Options;
 using Ionic.Zlib;
+using System.Diagnostics;
 
 namespace Extractor
 {
@@ -34,8 +35,9 @@ namespace Extractor
                 // so that people who just want to drag and drop a file onto it can read the
                 // error message if one occurs.
                 // This works for both conhost and Windows Terminal.
-                launchedByExplorer = Path.TrimEndingDirectorySeparator(Path.GetDirectoryName(Console.Title))
-                    == Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
+                launchedByExplorer = !Debugger.IsAttached && 
+                    Path.TrimEndingDirectorySeparator(Path.GetDirectoryName(Console.Title)) == 
+                    Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
             }
 
             Console.OutputEncoding = Encoding.UTF8;
@@ -270,6 +272,7 @@ namespace Extractor
                 Console.Error.WriteLine($"Unable to open {scsPath}: {idex.Message}");
                 return;
             }
+
             if (salt is not null)
             {
                 reader.Salt = salt.Value;
