@@ -63,6 +63,21 @@ namespace Extractor
 
         private static void PrintDirectory(IHashFsReader reader, string path, int indent)
         {
+            if (path.EndsWith("/"))
+                path = path[..^1];
+            IEntry entry;
+            try
+            {
+                entry = reader.GetEntry(path);
+            }
+            catch (KeyNotFoundException)
+            {
+                return;
+            }
+            // The subdir list may contain patsh which have not
+            // been marked as a directory.
+            entry.IsDirectory = true;
+
             var (subdirs, files) = reader.GetDirectoryListing(path);
             foreach (var subdir in subdirs)
             {
