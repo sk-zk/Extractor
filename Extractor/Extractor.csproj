@@ -7,7 +7,7 @@
 		<RootNamespace>Extractor</RootNamespace>
 		<PublishSingleFile>true</PublishSingleFile>
 		<SelfContained>true</SelfContained>
-		<Version>2024.07.04</Version>
+		<Version>2024.07.15</Version>
 	</PropertyGroup>
 
 	<ItemGroup>
