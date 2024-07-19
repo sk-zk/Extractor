@@ -6,7 +6,7 @@ HashFS v2, introduced with game version 1.50, is supported.
 
 ## Build
 A self-contained binary for Windows is available on the Releases page. On other platforms, install the
-.NET 6 (or higher) SDK and run the following:
+.NET 8 SDK and run the following:
 ```sh
 git clone https://github.com/sk-zk/Extractor.git --recursive
 cd Extractor
