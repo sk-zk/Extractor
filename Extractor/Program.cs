@@ -236,7 +236,10 @@ namespace Extractor
                     case EntryType.File:
                         // TODO make sure this is actually a file
                         // and not a directory falsely labeled as one
-                        ExtractSingleFile(reader, startPath);
+                        var outputPath = Path.Combine(destination, 
+                            startPath.StartsWith("/") ? startPath[1..] : startPath);
+                        Console.Out.WriteLine($"Extracting {startPath} ...");
+                        ExtractToFile(startPath, outputPath, () => reader.ExtractToFile(startPath, outputPath));
                         break;
                     case EntryType.NotFound:
                         if (startPath == "/")
@@ -287,17 +290,7 @@ namespace Extractor
                 if (entry.IsDirectory) continue;
 
                 var outputPath = Path.Combine(outputDir, key.ToString("x"));
-                if (skipIfExists && File.Exists(outputPath)) return;
-
-                try
-                {
-                    reader.ExtractToFile(entry, key.ToString("x"), outputPath);
-                } 
-                catch (ZlibException zlex)
-                {
-                    Console.Error.WriteLine($"Unable to extract entry at offset {entry.Offset}:");
-                    Console.Error.WriteLine(zlex.Message);
-                }
+                ExtractToFile(key.ToString("x"), outputPath, () => reader.ExtractToFile(entry, "", outputPath));
             }
         }
 
@@ -357,52 +350,43 @@ namespace Extractor
                 if (file == "/") continue;
 
                 var outputPath = Path.Combine(destination, file[1..]);
-                if (skipIfExists && File.Exists(outputPath)) return;
-
-                try
-                {
-                    reader.ExtractToFile(file, outputPath);
-                }
-                catch (ZlibException zlex)
-                {
-                    Console.Error.WriteLine($"Unable to extract entry {file}:");
-                    Console.Error.WriteLine(zlex.Message);
-                }
-                catch (InvalidDataException idex)
-                {
-                    Console.Error.WriteLine($"Unable to extract entry {file}:");
-                    Console.Error.WriteLine(idex.Message);
-                }
-                catch (AggregateException agex)
-                {
-                    Console.Error.WriteLine($"Unable to extract entry {file}:");
-                    Console.Error.WriteLine(agex.ToString());
-                }
+                ExtractToFile(file, outputPath, () => reader.ExtractToFile(file, outputPath));
             }
         }
 
-        private static void ExtractSingleFile(IHashFsReader reader, string path)
+        private static void ExtractToFile(string archivePath, string outputPath, Action extractToFileCall)
         {
-            if (path.StartsWith("/"))
-            {
-                path = path[1..];
-            }
-
-            var outputPath = Path.Combine(destination, path);
             if (skipIfExists && File.Exists(outputPath)) return;
 
-            Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-            Console.WriteLine($"Extracting {path} ...");
+            if (archivePath.StartsWith("/"))
+            {
+                archivePath = archivePath[1..];
+            }
+
             try
             {
-                reader.ExtractToFile(path, outputPath);
+                extractToFileCall();
             }
             catch (ZlibException zlex)
             {
-                Console.Error.WriteLine($"Unable to extract {path}:");
+                Console.Error.WriteLine($"Unable to extract {archivePath}:");
                 Console.Error.WriteLine(zlex.Message);
             }
+            catch (InvalidDataException idex)
+            {
+                Console.Error.WriteLine($"Unable to extract {archivePath}:");
+                Console.Error.WriteLine(idex.Message);
+            }
+            catch (AggregateException agex)
+            {
+                Console.Error.WriteLine($"Unable to extract {archivePath}:");
+                Console.Error.WriteLine(agex.ToString());
+            }
+            catch (IOException ioex)
+            {
+                Console.Error.WriteLine($"Unable to extract {archivePath}:");
+                Console.Error.WriteLine(ioex.Message);
+            }
         }
-
     }
 }
