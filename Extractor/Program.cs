@@ -20,8 +20,8 @@ namespace Extractor
         static bool forceEntryTableAtEnd = false;
         static bool listEntries = false;
         static List<string> inputPaths;
-        static bool extractAll = false;
-        static string[] startPaths = new[] { "/" };
+        static bool extractAllInDir = false;
+        static string[] startPaths = ["/"];
         static bool printHelp = false;
         static bool rawMode = false;
         static bool tree = false;
@@ -46,7 +46,7 @@ namespace Extractor
             {
                 { "a|all",
                     "Extracts all .scs archives in the specified directory.",
-                    x => { extractAll = true; } },
+                    x => { extractAllInDir = true; } },
                 { "d=|dest=",
                     $"The output directory.\nDefault: {destination}",
                     x => { destination = x; } },
@@ -107,57 +107,59 @@ namespace Extractor
 
         private static void Extract()
         {
-            foreach (var inputPath in inputPaths)
+            var scsPaths = GetScsPathsFromArgs();
+            foreach (var scsPath in scsPaths)
             {
-                if (!extractAll && !File.Exists(inputPath))
+                if (!File.Exists(scsPath))
                 {
-                    Console.Error.WriteLine($"{inputPath} is not a file or does not exist.");
-                    continue;
-                }
-                else if (extractAll & !Directory.Exists(inputPath))
-                {
-                    Console.Error.WriteLine($"{inputPath} is not a directory or does not exist.");
+                    Console.Error.WriteLine($"{scsPath} is not a file or does not exist.");
                     continue;
                 }
 
                 if (listEntries)
                 {
-                    ListEntries(inputPath);
+                    ListEntries(scsPath);
                     continue;
                 }
 
                 if (tree)
                 {
-                    if (extractAll)
-                    {
-                        foreach (var scsPath in GetAllScsFiles(inputPath))
-                        {
-                            Tree.PrintTree(scsPath, startPaths, forceEntryTableAtEnd);
-                        }
-                    }
-                    else
-                    {
-                        Tree.PrintTree(inputPath, startPaths, forceEntryTableAtEnd);
-                    }
+                    Tree.PrintTree(scsPath, startPaths, forceEntryTableAtEnd);
                     continue;
                 }
 
-                if (extractAll)
+                if (rawMode)
                 {
-                    ExtractAllInDirectory(inputPath, startPaths);
+                    ExtractRaw(scsPath);
                 }
                 else
                 {
-                    if (rawMode)
-                    {
-                        ExtractRaw(inputPath);
-                    }
-                    else
-                    {
-                        ExtractScs(inputPath, startPaths);
-                    }
+                    ExtractScs(scsPath, startPaths, !extractAllInDir);
                 }
             }
+        }
+
+        private static IEnumerable<string> GetScsPathsFromArgs()
+        {
+            List<string> scsPaths;
+            if (extractAllInDir)
+            {
+                scsPaths = [];
+                foreach (var inputPath in inputPaths)
+                {
+                    if (!Directory.Exists(inputPath))
+                    {
+                        Console.Error.WriteLine($"{inputPath} is not a directory or does not exist.");
+                        continue;
+                    }
+                    scsPaths.AddRange(GetAllScsFiles(inputPath));
+                }
+            }
+            else
+            {
+                scsPaths = inputPaths;
+            }
+            return scsPaths.Distinct();
         }
 
         private static void PauseIfNecessary()
@@ -171,7 +173,7 @@ namespace Extractor
 
         private static void ListEntries(string scsPath)
         {
-            var reader = HashFsReader.Open(scsPath, forceEntryTableAtEnd);
+            using var reader = HashFsReader.Open(scsPath, forceEntryTableAtEnd);
             Console.WriteLine($"  {"Offset",-10}  {"Hash",-16}  {"Cmp. Size",-10}  {"Uncmp.Size",-10}");
             foreach (var (_, entry) in reader.Entries)
             {
@@ -187,21 +189,6 @@ namespace Extractor
                 Console.Error.WriteLine($"File {file} does not exist");
             }
             return File.ReadAllLines(file).Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
-        }
-
-        private static void ExtractAllInDirectory(string directory, string[] startPaths)
-        {
-            foreach (var scsPath in GetAllScsFiles(directory))
-            {
-                if (rawMode)
-                {
-                    ExtractRaw(directory);
-                }
-                else
-                {
-                    ExtractScs(scsPath, startPaths, false);
-                }
-            }
         }
 
         private static IEnumerable<string> GetAllScsFiles(string directory) => 
@@ -237,7 +224,7 @@ namespace Extractor
                         // TODO make sure this is actually a file
                         // and not a directory falsely labeled as one
                         var outputPath = Path.Combine(destination, 
-                            startPath.StartsWith("/") ? startPath[1..] : startPath);
+                            startPath.StartsWith('/') ? startPath[1..] : startPath);
                         Console.Out.WriteLine($"Extracting {startPath} ...");
                         ExtractToFile(startPath, outputPath, () => reader.ExtractToFile(startPath, outputPath));
                         break;
@@ -254,6 +241,8 @@ namespace Extractor
                         break;
                 }
             }
+
+            reader?.Dispose();
         }
 
         private static void ExtractRaw(string scsPath)
@@ -292,6 +281,8 @@ namespace Extractor
                 var outputPath = Path.Combine(outputDir, key.ToString("x"));
                 ExtractToFile(key.ToString("x"), outputPath, () => reader.ExtractToFile(entry, "", outputPath));
             }
+
+            reader?.Dispose();
         }
 
         private static void ExtractDirectory(IHashFsReader reader, string directory, string scsName)
@@ -358,7 +349,7 @@ namespace Extractor
         {
             if (skipIfExists && File.Exists(outputPath)) return;
 
-            if (archivePath.StartsWith("/"))
+            if (archivePath.StartsWith('/'))
             {
                 archivePath = archivePath[1..];
             }

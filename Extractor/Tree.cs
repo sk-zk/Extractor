@@ -12,7 +12,7 @@ namespace Extractor
     {
         public static void PrintTree(string scsPath, string[] startPaths, bool forceEntryHeadersAtEnd)
         {
-            var reader = HashFsReader.Open(scsPath, forceEntryHeadersAtEnd);
+            using var reader = HashFsReader.Open(scsPath, forceEntryHeadersAtEnd);
             foreach (var startPath in startPaths)
             {
                 var entryType = reader.EntryExists(startPath);
@@ -63,7 +63,7 @@ namespace Extractor
 
         private static void PrintDirectory(IHashFsReader reader, string path, int indent)
         {
-            if (path.EndsWith("/"))
+            if (path.EndsWith('/'))
                 path = path[..^1];
             IEntry entry;
             try
@@ -83,14 +83,14 @@ namespace Extractor
             {
                 WriteIndent(indent);
                 var withoutLastSlash = subdir[..^1];
-                PrintDirectoryName(withoutLastSlash[(withoutLastSlash.LastIndexOf("/") + 1)..]);
+                PrintDirectoryName(withoutLastSlash[(withoutLastSlash.LastIndexOf('/') + 1)..]);
                 PrintDirectory(reader, subdir, indent + 1);
             }
             for (int i = 0; i < files.Count; i++)
             {
                 var file = files[i];
                 WriteIndent(indent, i == files.Count - 1);
-                Console.WriteLine(file[(file.LastIndexOf("/") + 1)..]);
+                Console.WriteLine(file[(file.LastIndexOf('/') + 1)..]);
             }
         }
 
