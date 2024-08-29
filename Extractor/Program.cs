@@ -14,6 +14,11 @@ namespace Extractor
     {
         const string Version = "2024-07-15";
 
+        static readonly char[] invalidPathChars = 
+            Path.GetInvalidFileNameChars().Except(['/']).ToArray();
+        static readonly char[] problematicControlChars = 
+            [(char)0x07, (char)0x08, (char)0x09, (char)0x0a, (char)0x0d, (char)0x1b];
+
         static bool launchedByExplorer = false;
         static string destination = "./extracted/";
         static bool skipIfExists = false;
@@ -225,7 +230,8 @@ namespace Extractor
                         // and not a directory falsely labeled as one
                         var outputPath = Path.Combine(destination, 
                             startPath.StartsWith('/') ? startPath[1..] : startPath);
-                        Console.Out.WriteLine($"Extracting {startPath} ...");
+                        Console.Out.WriteLine($"Extracting {ReplaceControlChars(startPath)} ...");
+                        outputPath = SanitizePath(outputPath);
                         ExtractToFile(startPath, outputPath, () => reader.ExtractToFile(startPath, outputPath));
                         break;
                     case EntryType.NotFound:
@@ -236,7 +242,8 @@ namespace Extractor
                         }
                         else if (printNotFoundMessage)
                         {
-                            Console.Error.WriteLine($"File or directory listing {startPath} does not exist");
+                            Console.Error.WriteLine($"File or directory listing " +
+                                $"{ReplaceControlChars(startPath)} does not exist");
                         }
                         break;
                 }
@@ -278,7 +285,7 @@ namespace Extractor
                 // subdirectory listings are useless because the file names are relative
                 if (entry.IsDirectory) continue;
 
-                var outputPath = Path.Combine(outputDir, key.ToString("x"));
+                var outputPath = SanitizePath(Path.Combine(outputDir, key.ToString("x")));
                 ExtractToFile(key.ToString("x"), outputPath, () => reader.ExtractToFile(entry, "", outputPath));
             }
 
@@ -287,7 +294,7 @@ namespace Extractor
 
         private static void ExtractDirectory(IHashFsReader reader, string directory, string scsName)
         {
-            Console.Out.WriteLine($"Extracting {scsName}{directory} ...");
+            Console.Out.WriteLine($"Extracting {scsName}{ReplaceControlChars(directory)} ...");
 
             var (subdirs, files) = reader.GetDirectoryListing(directory);
             Directory.CreateDirectory(Path.Combine(destination, directory[1..]));
@@ -314,8 +321,8 @@ namespace Extractor
                         ExtractDirectory(reader, subdir[..^1], scsName);
                         break;
                     case EntryType.NotFound:
-                        Console.Error.WriteLine($"Directory {subdir} is referenced in a directory listing " +
-                            $"but could not be found in the archive");
+                        Console.Error.WriteLine($"Directory {ReplaceControlChars(subdir)} is referenced" +
+                            $" in a directory listing but could not be found in the archive");
                         continue;
                 }
             }
@@ -329,8 +336,8 @@ namespace Extractor
                 switch (type)
                 {
                     case EntryType.NotFound:
-                        Console.Error.WriteLine($"File {file} is referenced in a directory listing" +
-                            $" but could not be found in the archive");
+                        Console.Error.WriteLine($"File {ReplaceControlChars(file)} is referenced in" +
+                            $" a directory listing but could not be found in the archive");
                         continue;
                     case EntryType.Directory:
                         // usually safe to ignore because it just points to the directory itself again
@@ -340,7 +347,7 @@ namespace Extractor
                 // The directory listing of core.scs only lists itself, but as a file, breaking everything
                 if (file == "/") continue;
 
-                var outputPath = Path.Combine(destination, file[1..]);
+                var outputPath = SanitizePath(Path.Combine(destination, file[1..]));
                 ExtractToFile(file, outputPath, () => reader.ExtractToFile(file, outputPath));
             }
         }
@@ -360,24 +367,43 @@ namespace Extractor
             }
             catch (ZlibException zlex)
             {
-                Console.Error.WriteLine($"Unable to extract {archivePath}:");
+                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
                 Console.Error.WriteLine(zlex.Message);
             }
             catch (InvalidDataException idex)
             {
-                Console.Error.WriteLine($"Unable to extract {archivePath}:");
+                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
                 Console.Error.WriteLine(idex.Message);
             }
             catch (AggregateException agex)
             {
-                Console.Error.WriteLine($"Unable to extract {archivePath}:");
+                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
                 Console.Error.WriteLine(agex.ToString());
             }
             catch (IOException ioex)
             {
-                Console.Error.WriteLine($"Unable to extract {archivePath}:");
+                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
                 Console.Error.WriteLine(ioex.Message);
             }
+        }
+
+        private static string SanitizePath(string input) 
+            => ReplaceChars(input, invalidPathChars, '_');
+
+        private static string ReplaceControlChars(string input) 
+            => ReplaceChars(input, problematicControlChars, '�');
+
+        private static string ReplaceChars(string input, char[] toReplace, char replacement)
+        {
+            var output = new StringBuilder();
+            foreach (char c in input)
+            {
+                if (Array.IndexOf(toReplace, c) > -1)
+                    output.Append(replacement);
+                else
+                    output.Append(c);
+            }
+            return output.ToString();
         }
     }
 }
