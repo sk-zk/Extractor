@@ -7,17 +7,13 @@ using TruckLib.HashFs;
 using Mono.Options;
 using Ionic.Zlib;
 using System.Diagnostics;
+using static Extractor.Util;
 
 namespace Extractor
 {
     class Program
     {
         const string Version = "2024-07-15";
-
-        static readonly char[] invalidPathChars = 
-            Path.GetInvalidFileNameChars().Except(['/']).ToArray();
-        static readonly char[] problematicControlChars = 
-            [(char)0x07, (char)0x08, (char)0x09, (char)0x0a, (char)0x0d, (char)0x1b];
 
         static bool launchedByExplorer = false;
         static string destination = "./extracted/";
@@ -195,9 +191,6 @@ namespace Extractor
             }
             return File.ReadAllLines(file).Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
         }
-
-        private static IEnumerable<string> GetAllScsFiles(string directory) => 
-            Directory.EnumerateFiles(directory, "*.scs");
 
         private static void ExtractScs(string scsPath, string[] startPaths, 
             bool printNotFoundMessage = true)
@@ -385,25 +378,6 @@ namespace Extractor
                 Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
                 Console.Error.WriteLine(ioex.Message);
             }
-        }
-
-        private static string SanitizePath(string input) 
-            => ReplaceChars(input, invalidPathChars, '_');
-
-        private static string ReplaceControlChars(string input) 
-            => ReplaceChars(input, problematicControlChars, '�');
-
-        private static string ReplaceChars(string input, char[] toReplace, char replacement)
-        {
-            var output = new StringBuilder();
-            foreach (char c in input)
-            {
-                if (Array.IndexOf(toReplace, c) > -1)
-                    output.Append(replacement);
-                else
-                    output.Append(c);
-            }
-            return output.ToString();
         }
     }
 }
