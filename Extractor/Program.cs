@@ -221,11 +221,11 @@ namespace Extractor
                     case EntryType.File:
                         // TODO make sure this is actually a file
                         // and not a directory falsely labeled as one
-                        var outputPath = Path.Combine(destination, 
-                            startPath.StartsWith('/') ? startPath[1..] : startPath);
+                        var startPathWithoutSlash = startPath.StartsWith('/') ? startPath[1..] : startPath;
+                        var outputPath = Path.Combine(destination, SanitizePath(startPathWithoutSlash));
                         Console.Out.WriteLine($"Extracting {ReplaceControlChars(startPath)} ...");
-                        outputPath = SanitizePath(outputPath);
-                        ExtractToFile(startPath, outputPath, () => reader.ExtractToFile(startPath, outputPath));
+                        ExtractToFile(startPathWithoutSlash, outputPath, 
+                            () => reader.ExtractToFile(startPathWithoutSlash, outputPath));
                         break;
                     case EntryType.NotFound:
                         if (startPath == "/")
@@ -278,7 +278,7 @@ namespace Extractor
                 // subdirectory listings are useless because the file names are relative
                 if (entry.IsDirectory) continue;
 
-                var outputPath = SanitizePath(Path.Combine(outputDir, key.ToString("x")));
+                var outputPath = Path.Combine(outputDir, key.ToString("x"));
                 ExtractToFile(key.ToString("x"), outputPath, () => reader.ExtractToFile(entry, "", outputPath));
             }
 
@@ -340,7 +340,7 @@ namespace Extractor
                 // The directory listing of core.scs only lists itself, but as a file, breaking everything
                 if (file == "/") continue;
 
-                var outputPath = SanitizePath(Path.Combine(destination, file[1..]));
+                var outputPath = Path.Combine(destination, SanitizePath(file[1..]));
                 ExtractToFile(file, outputPath, () => reader.ExtractToFile(file, outputPath));
             }
         }
