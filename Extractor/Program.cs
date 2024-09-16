@@ -108,6 +108,8 @@ namespace Extractor
 
         private static void Extract()
         {
+            startPaths = startPaths.Select(x => x.StartsWith('/') ? x: $"/{x}").ToArray();
+
             var scsPaths = GetScsPathsFromArgs();
             foreach (var scsPath in scsPaths)
             {
