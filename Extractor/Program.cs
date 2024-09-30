@@ -8,6 +8,9 @@ using Mono.Options;
 using Ionic.Zlib;
 using System.Diagnostics;
 using static Extractor.Util;
+using System.Reflection.PortableExecutable;
+using System.Threading;
+using System.Net.NetworkInformation;
 
 namespace Extractor
 {
@@ -16,7 +19,7 @@ namespace Extractor
         const string Version = "2024-09-16";
 
         static bool launchedByExplorer = false;
-        static string destination = "./extracted/";
+        static string destination = "./extracted";
         static bool skipIfExists = false;
         static bool forceEntryTableAtEnd = false;
         static bool listEntries = false;
@@ -46,13 +49,13 @@ namespace Extractor
             var p = new OptionSet()
             {
                 { "a|all",
-                    "Extracts all .scs archives in the specified directory.",
+                    "Extract all .scs archives in the specified directory.",
                     x => { extractAllInDir = true; } },
                 { "d=|dest=",
                     $"The output directory.\nDefault: {destination}",
                     x => { destination = x; } },
                 { "list",
-                    "Lists entries and exits.",
+                    "[HashFS] Lists entries and exits.",
                     x => { listEntries = true; } },
                 { "p=|partial=",
                     "Partial extraction, e.g.:\n" +
@@ -65,22 +68,22 @@ namespace Extractor
                     "separated by newlines.",
                     x => { startPaths = LoadStartPathsFromFile(x); } },
                 { "r|raw",
-                    "Directly dumps the contained files with their hashed filenames rather than " +
-                    "traversing the archive's directory tree.",
+                    "[HashFS] Directly dumps the contained files with their hashed " +
+                    "filenames rather than traversing the archive's directory tree.",
                     x => { rawMode = true; } },
                 { "salt=",
-                    "Ignores the salt in the archive header and uses this one instead.",
+                    "[HashFS] Ignores the salt in the archive header and uses this one instead.",
                     x => { salt = ushort.Parse(x); } },
                 { "s|skip-existing",
                     "Don't overwrite existing files.",
                     x => { skipIfExists = true; } },
                 { "table-at-end",
-                    "[HashFS v1 only] Ignores what the archive header says and reads " +
+                    "[HashFS v1] Ignores what the archive header says and reads " +
                     "the entry table from the end of the file.",
                     x => { forceEntryTableAtEnd = true; } },
                 { "tree",
-                    "Prints the directory tree and exits. Can be combined with --partial, " +
-                    "--paths, and --all.",
+                    "[HashFS] Prints the directory tree and exits. Can be combined with " +
+                    "--partial, --paths, and --all.",
                     x => { tree = true; } },
                 { "?|h|help",
                     $"Prints this message and exits.",
@@ -119,25 +122,122 @@ namespace Extractor
                     continue;
                 }
 
+                Extractor extractor;
+                try
+                {
+                    extractor = CreateExtractor(scsPath);
+                }
+                catch (InvalidDataException)
+                {
+                    Console.Error.WriteLine($"Unable to open {scsPath}: Not a HashFS or ZIP archive");
+                    continue;
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Unable to open {scsPath}: {ex.Message}");
+                    continue;
+                }
+                PrintArchiveOpenedMessage(extractor, scsPath);
+
                 if (listEntries)
                 {
-                    ListEntries(scsPath);
-                    continue;
+                    if (extractor is HashFsExtractor)
+                    {
+                        ListEntries(extractor);
+                    }
+                    else
+                    {
+                        Console.WriteLine("--list can only be used with HashFS archives.");
+                    }
                 }
-
-                if (tree)
+                else if (tree)
                 {
-                    Tree.PrintTree(scsPath, startPaths, forceEntryTableAtEnd);
-                    continue;
+                    if (extractor is HashFsExtractor)
+                    {
+                        Tree.PrintTree((extractor as HashFsExtractor).Reader, startPaths);
+                    }
+                    else
+                    {
+                        Console.WriteLine("--tree can only be used with HashFS archives.");
+                    }
                 }
-
-                if (rawMode)
+                else if (rawMode)
                 {
-                    ExtractRaw(scsPath);
+                    if (extractor is HashFsExtractor)
+                    {
+                        (extractor as HashFsExtractor).ExtractRaw(destination);
+                    }
+                    else
+                    {
+                        Console.WriteLine("--raw can only be used with HashFS archives.");
+                    }           
                 }
                 else
                 {
-                    ExtractScs(scsPath, startPaths, !extractAllInDir);
+                    extractor.Extract(startPaths, destination);
+                }
+            }
+        }
+
+        private static void PrintArchiveOpenedMessage(Extractor extractor, string scsPath)
+        {
+            var scsName = Path.GetFileName(scsPath);
+            Console.Write($"Opened {scsName}: ");
+
+            switch (extractor)
+            {
+                case HashFsExtractor h:
+                    Console.Write($"HashFS v{h.Reader.Version} archive, {h.Reader.Entries.Count} entries\n");
+                    break;
+                case ZipExtractor z:
+                    Console.Write($"ZIP archive, {z.Entries.Count} entries\n");
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private static Extractor CreateExtractor(string scsPath)
+        {
+            Extractor extractor;
+
+            // check if the file begins with "SCS#", the magic bytes of a HashFS file.
+            // anything else is assumed to be a zip file because simply checking for "PK"
+            // would miss zip files with invalid local file headers.
+
+            char[] magic;
+            using (var fs = new FileStream(scsPath, FileMode.Open, FileAccess.Read))
+            using (var r = new BinaryReader(fs, Encoding.ASCII))
+            {
+                magic = r.ReadChars(4);
+            }
+
+            if (magic.SequenceEqual(['S', 'C', 'S', '#']))
+            {
+                extractor = new HashFsExtractor(scsPath, !skipIfExists)
+                {
+                    ForceEntryTableAtEnd = forceEntryTableAtEnd,
+                    Salt = salt,
+                    PrintNotFoundMessage = !extractAllInDir,
+                };
+            }
+            else
+            {
+                extractor = new ZipExtractor(scsPath, !skipIfExists);
+            }
+
+            return extractor;
+        }
+
+        private static void ListEntries(Extractor extractor)
+        {
+            if (extractor is HashFsExtractor hExt)
+            {
+                Console.WriteLine($"  {"Offset",-10}  {"Hash",-16}  {"Cmp. Size",-10}  {"Uncmp.Size",-10}");
+                foreach (var (_, entry) in hExt.Reader.Entries)
+                {
+                    Console.WriteLine($"{(entry.IsDirectory ? "*" : " ")} " +
+                        $"{entry.Offset,10}  {entry.Hash,16:x}  {entry.CompressedSize,10}  {entry.Size,10}");
                 }
             }
         }
@@ -170,18 +270,7 @@ namespace Extractor
             if (launchedByExplorer)
             {
                 Console.WriteLine("Press any key to continue ...");
-                Console.ReadLine();
-            }
-        }
-
-        private static void ListEntries(string scsPath)
-        {
-            using var reader = HashFsReader.Open(scsPath, forceEntryTableAtEnd);
-            Console.WriteLine($"  {"Offset",-10}  {"Hash",-16}  {"Cmp. Size",-10}  {"Uncmp.Size",-10}");
-            foreach (var (_, entry) in reader.Entries)
-            {
-                Console.WriteLine($"{(entry.IsDirectory ? "*" : " ")} " +
-                    $"{entry.Offset,10}  {entry.Hash,16:x}  {entry.CompressedSize,10}  {entry.Size,10}");
+                Console.Read();
             }
         }
 
@@ -192,194 +281,6 @@ namespace Extractor
                 Console.Error.WriteLine($"File {file} does not exist");
             }
             return File.ReadAllLines(file).Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
-        }
-
-        private static void ExtractScs(string scsPath, string[] startPaths, 
-            bool printNotFoundMessage = true)
-        {
-            IHashFsReader reader;
-            try
-            {
-                reader = HashFsReader.Open(scsPath, forceEntryTableAtEnd);
-            }
-            catch (InvalidDataException idex)
-            {
-                Console.Error.WriteLine($"Unable to open {scsPath}: {idex.Message}");
-                return;
-            }
-
-            if (salt is not null)
-            {
-                reader.Salt = salt.Value;
-            }
-
-            foreach (var startPath in startPaths)
-            {
-                switch (reader.EntryExists(startPath))
-                {
-                    case EntryType.Directory:
-                        ExtractDirectory(reader, startPath, Path.GetFileName(scsPath));
-                        break;
-                    case EntryType.File:
-                        // TODO make sure this is actually a file
-                        // and not a directory falsely labeled as one
-                        var startPathWithoutSlash = startPath.StartsWith('/') ? startPath[1..] : startPath;
-                        var outputPath = Path.Combine(destination, SanitizePath(startPathWithoutSlash));
-                        Console.Out.WriteLine($"Extracting {ReplaceControlChars(startPath)} ...");
-                        ExtractToFile(startPathWithoutSlash, outputPath, 
-                            () => reader.ExtractToFile(startPathWithoutSlash, outputPath));
-                        break;
-                    case EntryType.NotFound:
-                        if (startPath == "/")
-                        {
-                            Console.Error.WriteLine("Top level directory is missing; " +
-                                "try a partial extraction or use --raw to dump entries");
-                        }
-                        else if (printNotFoundMessage)
-                        {
-                            Console.Error.WriteLine($"File or directory listing " +
-                                $"{ReplaceControlChars(startPath)} does not exist");
-                        }
-                        break;
-                }
-            }
-
-            reader?.Dispose();
-        }
-
-        private static void ExtractRaw(string scsPath)
-        {
-            var scsName = Path.GetFileName(scsPath);
-            Console.Out.WriteLine($"Extracting {scsName} ...");
-            var outputDir = Path.Combine(destination, scsName);
-            Directory.CreateDirectory(outputDir);
-
-            IHashFsReader reader;
-            try
-            {
-                reader = HashFsReader.Open(scsPath, forceEntryTableAtEnd);
-            }
-            catch (InvalidDataException idex)
-            {
-                Console.Error.WriteLine($"Unable to open {scsPath}: {idex.Message}");
-                return;
-            }
-
-            if (salt is not null)
-            {
-                reader.Salt = salt.Value;
-            }
-
-            var seenOffsets = new HashSet<ulong>();
-
-            foreach (var (key, entry) in reader.Entries)
-            {
-                if (seenOffsets.Contains(entry.Offset)) continue;
-                seenOffsets.Add(entry.Offset);
-
-                // subdirectory listings are useless because the file names are relative
-                if (entry.IsDirectory) continue;
-
-                var outputPath = Path.Combine(outputDir, key.ToString("x"));
-                ExtractToFile(key.ToString("x"), outputPath, () => reader.ExtractToFile(entry, "", outputPath));
-            }
-
-            reader?.Dispose();
-        }
-
-        private static void ExtractDirectory(IHashFsReader reader, string directory, string scsName)
-        {
-            Console.Out.WriteLine($"Extracting {scsName}{ReplaceControlChars(directory)} ...");
-
-            var (subdirs, files) = reader.GetDirectoryListing(directory);
-            Directory.CreateDirectory(Path.Combine(destination, directory[1..]));
-            ExtractFiles(reader, files);
-            ExtractSubdirectories(reader, subdirs, scsName);
-        }
-
-        private static void ExtractSubdirectories(IHashFsReader reader, List<string> subdirs, string scsName)
-        {
-            foreach (var subdir in subdirs)
-            {
-                var type = reader.EntryExists(subdir);
-                switch (type)
-                {
-                    case EntryType.Directory:
-                        ExtractDirectory(reader, subdir, scsName);
-                        break;
-                    case EntryType.File:
-                        // the subdir list contains a path which has not been
-                        // marked as a directory. it might be one regardless though,
-                        // so let's just attempt to extract it anyway
-                        var e = reader.GetEntry(subdir[..^1]);
-                        e.IsDirectory = true;
-                        ExtractDirectory(reader, subdir[..^1], scsName);
-                        break;
-                    case EntryType.NotFound:
-                        Console.Error.WriteLine($"Directory {ReplaceControlChars(subdir)} is referenced" +
-                            $" in a directory listing but could not be found in the archive");
-                        continue;
-                }
-            }
-        }
-
-        private static void ExtractFiles(IHashFsReader reader, List<string> files)
-        {
-            foreach (var file in files)
-            {
-                var type = reader.EntryExists(file);
-                switch (type)
-                {
-                    case EntryType.NotFound:
-                        Console.Error.WriteLine($"File {ReplaceControlChars(file)} is referenced in" +
-                            $" a directory listing but could not be found in the archive");
-                        continue;
-                    case EntryType.Directory:
-                        // usually safe to ignore because it just points to the directory itself again
-                        continue;
-                }
-
-                // The directory listing of core.scs only lists itself, but as a file, breaking everything
-                if (file == "/") continue;
-
-                var outputPath = Path.Combine(destination, SanitizePath(file[1..]));
-                ExtractToFile(file, outputPath, () => reader.ExtractToFile(file, outputPath));
-            }
-        }
-
-        private static void ExtractToFile(string archivePath, string outputPath, Action extractToFileCall)
-        {
-            if (skipIfExists && File.Exists(outputPath)) return;
-
-            if (archivePath.StartsWith('/'))
-            {
-                archivePath = archivePath[1..];
-            }
-
-            try
-            {
-                extractToFileCall();
-            }
-            catch (ZlibException zlex)
-            {
-                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
-                Console.Error.WriteLine(zlex.Message);
-            }
-            catch (InvalidDataException idex)
-            {
-                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
-                Console.Error.WriteLine(idex.Message);
-            }
-            catch (AggregateException agex)
-            {
-                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
-                Console.Error.WriteLine(agex.ToString());
-            }
-            catch (IOException ioex)
-            {
-                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
-                Console.Error.WriteLine(ioex.Message);
-            }
         }
     }
 }

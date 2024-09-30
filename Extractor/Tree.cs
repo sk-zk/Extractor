@@ -10,9 +10,9 @@ namespace Extractor
 {
     internal static class Tree
     {
-        public static void PrintTree(string scsPath, string[] startPaths, bool forceEntryHeadersAtEnd)
+        public static void PrintTree(IHashFsReader reader, string[] startPaths)
         {
-            using var reader = HashFsReader.Open(scsPath, forceEntryHeadersAtEnd);
+            var scsName = Path.GetFileName(reader.Path);
             foreach (var startPath in startPaths)
             {
                 var entryType = reader.EntryExists(startPath);
@@ -20,7 +20,7 @@ namespace Extractor
                 switch (entryType)
                 {
                     case EntryType.Directory:
-                        PrintWithColor(Path.GetFileName(scsPath), ConsoleColor.White);
+                        PrintWithColor(scsName, ConsoleColor.White);
                         if (startPath == "/")
                         {
                             PrintDirectory(reader, startPath, 1);
@@ -32,7 +32,7 @@ namespace Extractor
                         }
                         break;
                     case EntryType.File:
-                        PrintWithColor(Path.GetFileName(scsPath), ConsoleColor.White);
+                        PrintWithColor(scsName, ConsoleColor.White);
                         PrintPathParts(parts[..^1]);
                         WriteIndent(parts.Length + 1, true);
                         Console.WriteLine(parts[^1]);
