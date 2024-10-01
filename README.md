@@ -102,7 +102,7 @@ extractor path... [options]
 </tr>
 </table>
 
-### Samples
+### Examples
 Normal extraction:
 ```
 extractor "path\to\file.scs"
