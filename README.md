@@ -22,9 +22,9 @@ extractor path... [options]
 <table>
 <thead>
   <tr>
-    <td>Short</td>
-    <td>Long</td>
-    <td>Descripton</td>
+    <td><b>Short</b></td>
+    <td><b>Long</b></td>
+    <td><b>Descripton</b></td>
   </tr>
 </thead>
 <tr>
@@ -68,9 +68,9 @@ extractor path... [options]
 <table>
 <thead>
   <tr>
-    <td>Short</td>
-    <td>Long</td>
-    <td>Descripton</td>
+    <td><b>Short</b></td>
+    <td><b>Long</b></td>
+    <td><b>Descripton</b></td>
   </tr>
 </thead>
 <tr>
