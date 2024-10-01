@@ -16,7 +16,7 @@ namespace Extractor
 {
     class Program
     {
-        const string Version = "2024-09-16";
+        const string Version = "2024-10-01";
 
         static bool launchedByExplorer = false;
         static string destination = "./extracted";
