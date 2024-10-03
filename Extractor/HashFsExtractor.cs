@@ -12,11 +12,33 @@ using static Extractor.Util;
 
 namespace Extractor
 {
+    /// <summary>
+    /// A HashFS extractor which wraps TruckLib's HashFsReader.
+    /// </summary>
     public class HashFsExtractor : Extractor
     {
+        /// <summary>
+        /// The underlying HashFsReader.
+        /// </summary>
         public IHashFsReader Reader { get; private set; }
+
+        /// <summary>
+        /// Overrides the salt found in the header with this one.
+        /// </summary>
+        /// <remarks>Solves #1.</remarks>
         public ushort? Salt { get; set; } = null;
+
+        /// <summary>
+        /// Gets or sets whether the entry table should be read from the end of the file
+        /// regardless of where the header says it is located.
+        /// </summary>
+        /// <remarks>Solves #1.</remarks>
         public bool ForceEntryTableAtEnd { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets whether a "not found" message should be printed
+        /// if a start path does not exist in the archive.
+        /// </summary>
         public bool PrintNotFoundMessage { get; set; } = true;
 
         public HashFsExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
@@ -31,6 +53,7 @@ namespace Extractor
             }
         }
 
+        /// <inheritdoc/>
         public override void Extract(string[] startPaths, string destination)
         {
             if (Salt is not null)
@@ -169,6 +192,10 @@ namespace Extractor
             }
         }
 
+        /// <summary>
+        /// Dumps the archive's entries by their hashed filenames.
+        /// </summary>
+        /// <param name="destination">The directory to extract the entires to.</param>
         public void ExtractRaw(string destination)
         {
             var scsName = Path.GetFileName(scsPath);

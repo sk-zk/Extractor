@@ -38,6 +38,7 @@ namespace Extractor
             ReadCentralDirectory();
         }
 
+        /// <inheritdoc/>
         public override void Extract(string[] startPaths, string destination)
         {
             string scsName = Path.GetFileName(scsPath);
@@ -73,6 +74,11 @@ namespace Extractor
             }
         }
 
+        /// <summary>
+        /// Extracts the given file from the archive to the destination directory.
+        /// </summary>
+        /// <param name="entry">The file to extract.</param>
+        /// <param name="destination">The directory to extract the file to.</param>
         public void Extract(CentralDirectoryFileHeader entry, string destination)
         {
             var fileName = SanitizePath(entry.FileName);
@@ -156,10 +162,6 @@ namespace Extractor
         /// <summary>
         /// Reads the Central Directory file headers from a stream.
         /// </summary>
-        /// <param name="reader">A BinaryReader.</param>
-        /// <param name="offset">The absolute offset of the Central Directory record.</param>
-        /// <param name="length">The length of the Central Directory record.</param>
-        /// <returns>A list of CentralDirectoryFile objects.</returns>
         private void ReadCentralDirectory()
         {
             reader.BaseStream.Position = eocdRecord.CentralDirectoryOffset;
@@ -204,7 +206,6 @@ namespace Extractor
         /// <summary>
         /// Searches for a byte sequence in a stream, starting at the end of the file.
         /// </summary>
-        /// <param name="reader">A BinaryReader of the stream to search within.</param>
         /// <param name="bytes">The byte sequence to search for.</param>
         /// <returns>The absolute offset of the last occurrence of the sequence in the stream,
         /// or -1 if the sequence is not found.</returns>
