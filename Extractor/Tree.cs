@@ -74,7 +74,7 @@ namespace Extractor
             {
                 return;
             }
-            // The subdir list may contain patsh which have not
+            // The subdir list may contain paths which have not
             // been marked as a directory.
             entry.IsDirectory = true;
 
