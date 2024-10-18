@@ -13,10 +13,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Mono.Options" Version="6.12.0.148" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\TruckLib\TruckLib.HashFs\TruckLib.HashFs.csproj" />
+		<PackageReference Include="TruckLib.HashFs" Version="0.1.0" />
 	</ItemGroup>
 
 </Project>
