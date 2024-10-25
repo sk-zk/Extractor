@@ -30,6 +30,8 @@ namespace Extractor
         /// <param name="destination">The directory to which the extracted files will be written.</param>
         public abstract void Extract(string[] startPaths, string destination);
 
+        public abstract void PrintSummary();
+
         public abstract void Dispose();
     }
 }

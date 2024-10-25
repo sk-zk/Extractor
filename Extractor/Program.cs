@@ -171,6 +171,7 @@ namespace Extractor
                 else
                 {
                     extractor.Extract(startPaths, destination);
+                    extractor.PrintSummary();
                 }
             }
         }
@@ -183,10 +184,12 @@ namespace Extractor
             switch (extractor)
             {
                 case HashFsExtractor h:
-                    Console.Write($"HashFS v{h.Reader.Version} archive, {h.Reader.Entries.Count} entries\n");
+                    var dirCount = h.Reader.Entries.Count(x => x.Value.IsDirectory);
+                    Console.Write($"HashFS v{h.Reader.Version} archive; {h.Reader.Entries.Count} entries " +
+                        $"({h.Reader.Entries.Count - dirCount} files, {dirCount} directory listings)\n");
                     break;
                 case ZipExtractor z:
-                    Console.Write($"ZIP archive, {z.Entries.Count} entries\n");
+                    Console.Write($"ZIP archive; {z.Entries.Count} entries\n");
                     break;
                 default:
                     throw new NotImplementedException();

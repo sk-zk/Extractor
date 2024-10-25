@@ -23,6 +23,11 @@ namespace Extractor
         private long endOfCentralDirOffset = -1;
         private EndOfCentralDirectory eocdRecord;
 
+        private int extracted;
+        private int skipped;
+        private int empty;
+        private int failed;
+
         public ZipExtractor(string scsPath, bool overwrite) 
             : base(scsPath, overwrite)
         {
@@ -50,15 +55,21 @@ namespace Extractor
                     : x
                 ).ToArray();
 
+            extracted = 0;
+            skipped = 0;
+            empty = 0;
+            failed = 0;
+
             foreach (var entry in Entries)
             {
-                if (entry.UncompressedSize == 0)
+                if (!startPaths.Any(entry.FileName.StartsWith))
                 {
                     continue;
                 }
 
-                if (!startPaths.Any(entry.FileName.StartsWith))
+                if (entry.UncompressedSize == 0)
                 {
+                    empty++;
                     continue;
                 }
 
@@ -70,6 +81,7 @@ namespace Extractor
                 {
                     Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(entry.FileName)}:");
                     Console.Error.WriteLine(ex.Message);
+                    failed++;
                 }
             }
         }
@@ -89,6 +101,7 @@ namespace Extractor
             var outputPath = Path.Combine(destination, fileName);
             if (File.Exists(outputPath) && !Overwrite)
             {
+                skipped++;
                 return;
             }
             var outputDir = Path.GetDirectoryName(outputPath);
@@ -138,6 +151,12 @@ namespace Extractor
                     throw new NotSupportedException(
                         $"Unsupported compression method {(int)entry.CompressionMethod}.");
             }
+            extracted++;
+        }
+
+        public override void PrintSummary()
+        {
+            Console.WriteLine($"{extracted} extracted, {skipped} skipped, {empty} empty, {failed} failed");
         }
 
         /// <summary>

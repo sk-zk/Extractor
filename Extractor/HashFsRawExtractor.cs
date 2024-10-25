@@ -9,6 +9,8 @@ namespace Extractor
 {
     public class HashFsRawExtractor : HashFsExtractor
     {
+        private int duplicate = 0;
+
         public HashFsRawExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
         }
@@ -25,11 +27,19 @@ namespace Extractor
                 Reader.Salt = Salt.Value;
             }
 
+            extracted = 0;
+            skipped = 0;
+            failed = 0;
+
             var seenOffsets = new HashSet<ulong>();
 
             foreach (var (key, entry) in Reader.Entries)
             {
-                if (seenOffsets.Contains(entry.Offset)) continue;
+                if (seenOffsets.Contains(entry.Offset))
+                {
+                    duplicate++;
+                    continue;
+                }
                 seenOffsets.Add(entry.Offset);
 
                 // subdirectory listings are useless because the file names are relative
@@ -38,6 +48,11 @@ namespace Extractor
                 var outputPath = Path.Combine(outputDir, key.ToString("x"));
                 ExtractToFile(key.ToString("x"), outputPath, () => Reader.ExtractToFile(entry, "", outputPath));
             }
+        }
+
+        public override void PrintSummary()
+        {
+            Console.WriteLine($"{extracted} extracted, {skipped} skipped, {duplicate} duplicates, {failed} failed");
         }
     }
 }

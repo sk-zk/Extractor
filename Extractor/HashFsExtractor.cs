@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using TruckLib.HashFs;
 using static Extractor.Util;
 
-
 namespace Extractor
 {
     /// <summary>
@@ -41,6 +40,11 @@ namespace Extractor
         /// </summary>
         public bool PrintNotFoundMessage { get; set; } = true;
 
+        protected int extracted;
+        protected int skipped;
+        protected int failed;
+        protected int notFound;
+
         public HashFsExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
             try
@@ -60,6 +64,11 @@ namespace Extractor
             {
                 Reader.Salt = Salt.Value;
             }
+
+            extracted = 0;
+            skipped = 0;
+            failed = 0;
+            notFound = 0;
 
             foreach (var startPath in startPaths)
             {
@@ -87,10 +96,16 @@ namespace Extractor
                         {
                             Console.Error.WriteLine($"File or directory listing " +
                                 $"{ReplaceControlChars(startPath)} does not exist");
+                            notFound++;
                         }
                         break;
                 }
             }
+        }
+
+        public override void PrintSummary()
+        {
+            Console.WriteLine($"{extracted} extracted, {skipped} skipped, {notFound} not found, {failed} failed");
         }
 
         private void ExtractDirectory(string directory, string destination)
@@ -125,6 +140,7 @@ namespace Extractor
                     case EntryType.NotFound:
                         Console.Error.WriteLine($"Directory {ReplaceControlChars(subdir)} is referenced" +
                             $" in a directory listing but could not be found in the archive");
+                        notFound++;
                         continue;
                 }
             }
@@ -140,6 +156,7 @@ namespace Extractor
                     case EntryType.NotFound:
                         Console.Error.WriteLine($"File {ReplaceControlChars(file)} is referenced in" +
                             $" a directory listing but could not be found in the archive");
+                        notFound++;
                         continue;
                     case EntryType.Directory:
                         // usually safe to ignore because it just points to the directory itself again
@@ -158,6 +175,7 @@ namespace Extractor
         {
             if (!Overwrite && File.Exists(outputPath))
             {
+                skipped++;
                 return;
             }
 
@@ -169,26 +187,31 @@ namespace Extractor
             try
             {
                 extractToFileCall();
+                extracted++;
             }
             catch (ZlibException zlex)
             {
                 Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
                 Console.Error.WriteLine(zlex.Message);
+                failed++;
             }
             catch (InvalidDataException idex)
             {
                 Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
                 Console.Error.WriteLine(idex.Message);
+                failed++;
             }
             catch (AggregateException agex)
             {
                 Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
                 Console.Error.WriteLine(agex.ToString());
+                failed++;
             }
             catch (IOException ioex)
             {
                 Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
                 Console.Error.WriteLine(ioex.Message);
+                failed++;
             }
         }
 
