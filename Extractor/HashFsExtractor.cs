@@ -154,7 +154,7 @@ namespace Extractor
             }
         }
 
-        private void ExtractToFile(string archivePath, string outputPath, Action extractToFileCall)
+        protected void ExtractToFile(string archivePath, string outputPath, Action extractToFileCall)
         {
             if (!Overwrite && File.Exists(outputPath))
             {
@@ -189,37 +189,6 @@ namespace Extractor
             {
                 Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
                 Console.Error.WriteLine(ioex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Dumps the archive's entries by their hashed filenames.
-        /// </summary>
-        /// <param name="destination">The directory to extract the entires to.</param>
-        public void ExtractRaw(string destination)
-        {
-            var scsName = Path.GetFileName(scsPath);
-            Console.Out.WriteLine($"Extracting {scsName} ...");
-            var outputDir = Path.Combine(destination, scsName);
-            Directory.CreateDirectory(outputDir);
-
-            if (Salt is not null)
-            {
-                Reader.Salt = Salt.Value;
-            }
-
-            var seenOffsets = new HashSet<ulong>();
-
-            foreach (var (key, entry) in Reader.Entries)
-            {
-                if (seenOffsets.Contains(entry.Offset)) continue;
-                seenOffsets.Add(entry.Offset);
-
-                // subdirectory listings are useless because the file names are relative
-                if (entry.IsDirectory) continue;
-
-                var outputPath = Path.Combine(outputDir, key.ToString("x"));
-                ExtractToFile(key.ToString("x"), outputPath, () => Reader.ExtractToFile(entry, "", outputPath));
             }
         }
 

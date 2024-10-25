@@ -11,6 +11,7 @@ using static Extractor.Util;
 using System.Reflection.PortableExecutable;
 using System.Threading;
 using System.Net.NetworkInformation;
+using System.Runtime.CompilerServices;
 
 namespace Extractor
 {
@@ -39,14 +40,32 @@ namespace Extractor
                 // so that people who just want to drag and drop a file onto it can read the
                 // error message if one occurs.
                 // This works for both conhost and Windows Terminal.
-                launchedByExplorer = !Debugger.IsAttached && 
-                    Path.TrimEndingDirectorySeparator(Path.GetDirectoryName(Console.Title)) == 
+                launchedByExplorer = !Debugger.IsAttached &&
+                    Path.TrimEndingDirectorySeparator(Path.GetDirectoryName(Console.Title)) ==
                     Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
             }
 
             Console.OutputEncoding = Encoding.UTF8;
 
-            var p = new OptionSet()
+            var optionSet = ParseOptions(args);
+
+            if (printHelp || args.Length == 0)
+            {
+                Console.WriteLine($"Extractor {Version}\n");
+                Console.WriteLine("Usage:\n  extractor path... [options]\n");
+                Console.WriteLine("Options:");
+                optionSet.WriteOptionDescriptions(Console.Out);
+                PauseIfNecessary();
+                return;
+            }
+
+            Extract();
+            PauseIfNecessary();
+        }
+
+        private static OptionSet ParseOptions(string[] args)
+        {
+            var optionSet = new OptionSet()
             {
                 { "a|all",
                     "Extract all .scs archives in the specified directory.",
@@ -89,29 +108,17 @@ namespace Extractor
                     $"Prints this message and exits.",
                     x => { printHelp = true; } },
             };
-            inputPaths = p.Parse(args);
+            inputPaths = optionSet.Parse(args);
             if (inputPaths.Count == 0)
             {
                 inputPaths.Add(".");
             }
-
-            if (printHelp || args.Length == 0)
-            {
-                Console.WriteLine($"Extractor {Version}\n");
-                Console.WriteLine("Usage:\n  extractor path... [options]\n");
-                Console.WriteLine("Options:");
-                p.WriteOptionDescriptions(Console.Out);
-                PauseIfNecessary();
-                return;
-            }
-
-            Extract();
-            PauseIfNecessary();
+            return optionSet;
         }
 
         private static void Extract()
         {
-            startPaths = startPaths.Select(x => x.StartsWith('/') ? x: $"/{x}").ToArray();
+            startPaths = startPaths.Select(x => x.StartsWith('/') ? x : $"/{x}").ToArray();
 
             var scsPaths = GetScsPathsFromArgs();
             foreach (var scsPath in scsPaths)
@@ -161,17 +168,6 @@ namespace Extractor
                         Console.WriteLine("--tree can only be used with HashFS archives.");
                     }
                 }
-                else if (rawMode)
-                {
-                    if (extractor is HashFsExtractor)
-                    {
-                        (extractor as HashFsExtractor).ExtractRaw(destination);
-                    }
-                    else
-                    {
-                        Console.WriteLine("--raw can only be used with HashFS archives.");
-                    }           
-                }
                 else
                 {
                     extractor.Extract(startPaths, destination);
@@ -193,7 +189,7 @@ namespace Extractor
                     Console.Write($"ZIP archive, {z.Entries.Count} entries\n");
                     break;
                 default:
-                    break;
+                    throw new NotImplementedException();
             }
         }
 
@@ -204,7 +200,7 @@ namespace Extractor
             // check if the file begins with "SCS#", the magic bytes of a HashFS file.
             // anything else is assumed to be a zip file because simply checking for "PK"
             // would miss zip files with invalid local file headers.
-
+         
             char[] magic;
             using (var fs = new FileStream(scsPath, FileMode.Open, FileAccess.Read))
             using (var r = new BinaryReader(fs, Encoding.ASCII))
@@ -214,12 +210,7 @@ namespace Extractor
 
             if (magic.SequenceEqual(['S', 'C', 'S', '#']))
             {
-                extractor = new HashFsExtractor(scsPath, !skipIfExists)
-                {
-                    ForceEntryTableAtEnd = forceEntryTableAtEnd,
-                    Salt = salt,
-                    PrintNotFoundMessage = !extractAllInDir,
-                };
+                extractor = CreateHashFsExtractor(scsPath);
             }
             else
             {
@@ -227,6 +218,25 @@ namespace Extractor
             }
 
             return extractor;
+        }
+
+        private static Extractor CreateHashFsExtractor(string scsPath)
+        {
+            if (rawMode)
+            {
+                return new HashFsRawExtractor(scsPath, !skipIfExists)
+                {
+                    ForceEntryTableAtEnd = forceEntryTableAtEnd,
+                    Salt = salt,
+                    PrintNotFoundMessage = !extractAllInDir,
+                };
+            }
+            return new HashFsExtractor(scsPath, !skipIfExists)
+            {
+                ForceEntryTableAtEnd = forceEntryTableAtEnd,
+                Salt = salt,
+                PrintNotFoundMessage = !extractAllInDir,
+            };
         }
 
         private static void ListEntries(Extractor extractor)
