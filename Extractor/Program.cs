@@ -3,15 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using TruckLib.HashFs;
 using Mono.Options;
-using Ionic.Zlib;
 using System.Diagnostics;
 using static Extractor.Util;
-using System.Reflection.PortableExecutable;
-using System.Threading;
-using System.Net.NetworkInformation;
-using System.Runtime.CompilerServices;
 
 namespace Extractor
 {
@@ -144,7 +138,7 @@ namespace Extractor
                     Console.Error.WriteLine($"Unable to open {scsPath}: {ex.Message}");
                     continue;
                 }
-                PrintArchiveOpenedMessage(extractor, scsPath);
+                extractor.PrintContentSummary();
 
                 if (listEntries)
                 {
@@ -171,28 +165,8 @@ namespace Extractor
                 else
                 {
                     extractor.Extract(startPaths, destination);
-                    extractor.PrintSummary();
+                    extractor.PrintExtractionResult();
                 }
-            }
-        }
-
-        private static void PrintArchiveOpenedMessage(Extractor extractor, string scsPath)
-        {
-            var scsName = Path.GetFileName(scsPath);
-            Console.Write($"Opened {scsName}: ");
-
-            switch (extractor)
-            {
-                case HashFsExtractor h:
-                    var dirCount = h.Reader.Entries.Count(x => x.Value.IsDirectory);
-                    Console.Write($"HashFS v{h.Reader.Version} archive; {h.Reader.Entries.Count} entries " +
-                        $"({h.Reader.Entries.Count - dirCount} files, {dirCount} directory listings)\n");
-                    break;
-                case ZipExtractor z:
-                    Console.Write($"ZIP archive; {z.Entries.Count} entries\n");
-                    break;
-                default:
-                    throw new NotImplementedException();
             }
         }
 

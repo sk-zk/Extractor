@@ -50,7 +50,7 @@ namespace Extractor
             }
         }
 
-        public override void PrintSummary()
+        public override void PrintExtractionResult()
         {
             Console.WriteLine($"{extracted} extracted, {skipped} skipped, {duplicate} duplicates, {failed} failed");
         }

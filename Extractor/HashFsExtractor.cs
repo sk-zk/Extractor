@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
 using TruckLib.HashFs;
@@ -103,7 +102,15 @@ namespace Extractor
             }
         }
 
-        public override void PrintSummary()
+        public override void PrintContentSummary()
+        {
+            var dirCount = Reader.Entries.Count(x => x.Value.IsDirectory);
+            Console.WriteLine($"Opened {Path.GetFileName(scsPath)}: " +
+                $"HashFS v{Reader.Version} archive; {Reader.Entries.Count} entries " +
+                $"({Reader.Entries.Count - dirCount} files, {dirCount} directory listings)");
+        }
+
+        public override void PrintExtractionResult()
         {
             Console.WriteLine($"{extracted} extracted, {skipped} skipped, {notFound} not found, {failed} failed");
         }

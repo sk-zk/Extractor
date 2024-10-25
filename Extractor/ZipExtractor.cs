@@ -154,7 +154,13 @@ namespace Extractor
             extracted++;
         }
 
-        public override void PrintSummary()
+        public override void PrintContentSummary()
+        {
+            Console.WriteLine($"Opened {Path.GetFileName(scsPath)}: " +
+                $"ZIP archive; {Entries.Count} entries");
+        }
+
+        public override void PrintExtractionResult()
         {
             Console.WriteLine($"{extracted} extracted, {skipped} skipped, {empty} empty, {failed} failed");
         }
