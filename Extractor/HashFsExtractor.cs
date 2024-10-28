@@ -43,6 +43,7 @@ namespace Extractor
         protected int skipped;
         protected int failed;
         protected int notFound;
+        protected int renamed;
 
         public HashFsExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
@@ -68,6 +69,7 @@ namespace Extractor
             skipped = 0;
             failed = 0;
             notFound = 0;
+            renamed = 0;
 
             foreach (var startPath in startPaths)
             {
@@ -80,8 +82,14 @@ namespace Extractor
                         // TODO make sure this is actually a file
                         // and not a directory falsely labeled as one
                         var startPathWithoutSlash = RemoveInitialSlash(startPath);
-                        var outputPath = Path.Combine(destination, SanitizePath(startPathWithoutSlash));
+                        var sanitized = SanitizePath(startPathWithoutSlash);
+                        var outputPath = Path.Combine(destination, sanitized);
                         Console.Out.WriteLine($"Extracting {ReplaceControlChars(startPath)} ...");
+                        if (startPathWithoutSlash != sanitized)
+                        {
+                            PrintRenameWarning(startPath, sanitized);
+                            renamed++;
+                        }
                         ExtractToFile(startPathWithoutSlash, outputPath,
                             () => Reader.ExtractToFile(startPathWithoutSlash, outputPath));
                         break;
@@ -112,7 +120,8 @@ namespace Extractor
 
         public override void PrintExtractionResult()
         {
-            Console.WriteLine($"{extracted} extracted, {skipped} skipped, {notFound} not found, {failed} failed");
+            Console.WriteLine($"{extracted} extracted, {renamed} renamed, {skipped} skipped, " +
+                $"{notFound} not found, {failed} failed");
         }
 
         private void ExtractDirectory(string directory, string destination)
@@ -176,7 +185,14 @@ namespace Extractor
                 // The directory listing of core.scs only lists itself, but as a file, breaking everything
                 if (file == "/") continue;
 
-                var outputPath = Path.Combine(destination, SanitizePath(file));
+                var fileWithoutSlash = RemoveInitialSlash(file);
+                var sanitized = SanitizePath(fileWithoutSlash);
+                var outputPath = Path.Combine(destination, sanitized);
+                if (fileWithoutSlash != sanitized)
+                {
+                    PrintRenameWarning(file, sanitized);
+                    renamed++;
+                }
                 ExtractToFile(file, outputPath, () => Reader.ExtractToFile(file, outputPath));
             }
         }

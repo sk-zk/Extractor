@@ -27,6 +27,7 @@ namespace Extractor
         private int skipped;
         private int empty;
         private int failed;
+        private int renamed;
 
         public ZipExtractor(string scsPath, bool overwrite) 
             : base(scsPath, overwrite)
@@ -59,6 +60,7 @@ namespace Extractor
             skipped = 0;
             empty = 0;
             failed = 0;
+            renamed = 0;
 
             foreach (var entry in Entries)
             {
@@ -93,17 +95,24 @@ namespace Extractor
         /// <param name="destination">The directory to extract the file to.</param>
         public void Extract(CentralDirectoryFileHeader entry, string destination)
         {
-            var fileName = SanitizePath(entry.FileName);
+            var sanitized = SanitizePath(entry.FileName);
 
             // prevent traversing upwards with ".."
-            fileName = string.Join('/', fileName.Split(['/', '\\']).Select(x => x == ".." ? "__" : x));
+            sanitized = string.Join('/', sanitized.Split(['/', '\\']).Select(x => x == ".." ? "__" : x));
 
-            var outputPath = Path.Combine(destination, fileName);
+            var outputPath = Path.Combine(destination, sanitized);
             if (File.Exists(outputPath) && !Overwrite)
             {
                 skipped++;
                 return;
             }
+
+            if (sanitized != entry.FileName)
+            {
+                Util.PrintRenameWarning(entry.FileName, sanitized);
+                renamed++;
+            }
+
             var outputDir = Path.GetDirectoryName(outputPath);
             if (outputDir != null)
             {
@@ -162,7 +171,8 @@ namespace Extractor
 
         public override void PrintExtractionResult()
         {
-            Console.WriteLine($"{extracted} extracted, {skipped} skipped, {empty} empty, {failed} failed");
+            Console.WriteLine($"{extracted} extracted, {renamed} renamed, {skipped} skipped, " +
+                $"{empty} empty, {failed} failed");
         }
 
         /// <summary>

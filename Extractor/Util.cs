@@ -17,7 +17,7 @@ namespace Extractor
         public static string SanitizePath(string input)
         {
             input = RemoveInitialSlash(input);
-            return ReplaceChars(input, InvalidPathChars, '_');
+            return ReplaceCharsUnambiguously(input, InvalidPathChars);
         }
 
         public static string ReplaceControlChars(string input)
@@ -30,6 +30,19 @@ namespace Extractor
             {
                 if (Array.IndexOf(toReplace, c) > -1)
                     output.Append(replacement);
+                else
+                    output.Append(c);
+            }
+            return output.ToString();
+        }
+
+        public static string ReplaceCharsUnambiguously(string input, char[] toReplace)
+        {
+            var output = new StringBuilder();
+            foreach (char c in input)
+            {
+                if (Array.IndexOf(toReplace, c) > -1)
+                    output.Append($"X{(int)c:X2}");
                 else
                     output.Append(c);
             }
@@ -52,6 +65,12 @@ namespace Extractor
                 path = path[..^1];
             }
             return path;
+        }
+
+        public static void PrintRenameWarning(string original, string renamed)
+        {
+            Console.Out.WriteLine($"WARN: {ReplaceControlChars(original)} renamed to " +
+                $"{ReplaceControlChars(renamed)}");
         }
 
         public static IEnumerable<string> GetAllScsFiles(string directory) 
