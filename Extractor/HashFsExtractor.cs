@@ -1,6 +1,7 @@
 ﻿using Ionic.Zlib;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -84,7 +85,7 @@ namespace Extractor
                         var startPathWithoutSlash = RemoveInitialSlash(startPath);
                         var sanitized = SanitizePath(startPathWithoutSlash);
                         var outputPath = Path.Combine(destination, sanitized);
-                        Console.Out.WriteLine($"Extracting {ReplaceControlChars(startPath)} ...");
+                        PrintExtractingMessage(Path.GetFileName(Reader.Path), startPath);
                         if (startPathWithoutSlash != sanitized)
                         {
                             PrintRenameWarning(startPath, sanitized);
@@ -110,26 +111,12 @@ namespace Extractor
             }
         }
 
-        public override void PrintContentSummary()
-        {
-            var dirCount = Reader.Entries.Count(x => x.Value.IsDirectory);
-            Console.WriteLine($"Opened {Path.GetFileName(scsPath)}: " +
-                $"HashFS v{Reader.Version} archive; {Reader.Entries.Count} entries " +
-                $"({Reader.Entries.Count - dirCount} files, {dirCount} directory listings)");
-        }
-
-        public override void PrintExtractionResult()
-        {
-            Console.WriteLine($"{extracted} extracted, {renamed} renamed, {skipped} skipped, " +
-                $"{notFound} not found, {failed} failed");
-        }
-
         private void ExtractDirectory(string directory, string destination)
         {
             string scsName = Path.GetFileName(scsPath);
             var directoryWithoutSlash = RemoveInitialSlash(directory);
 
-            Console.Out.WriteLine($"Extracting {scsName}/{ReplaceControlChars(directoryWithoutSlash)} ...");
+            PrintExtractingMessage(scsName, directoryWithoutSlash);
 
             var (subdirs, files) = Reader.GetDirectoryListing(directory);
             Directory.CreateDirectory(Path.Combine(destination, directoryWithoutSlash));
@@ -236,6 +223,35 @@ namespace Extractor
                 Console.Error.WriteLine(ioex.Message);
                 failed++;
             }
+        }
+
+        private void PrintExtractingMessage(string scsName, string archivePath)
+        {
+            var path = Combine(scsName, archivePath);
+            Console.Out.WriteLine($"Extracting {ReplaceControlChars(path)} ...");
+        }
+
+        private string Combine(string scsName, string archivePath)
+        {
+            if (archivePath.StartsWith('/'))
+            {
+                return $"{scsName}{archivePath}";
+            }
+            return $"{scsName}/{archivePath}";
+        }
+
+        public override void PrintContentSummary()
+        {
+            var dirCount = Reader.Entries.Count(x => x.Value.IsDirectory);
+            Console.WriteLine($"Opened {Path.GetFileName(scsPath)}: " +
+                $"HashFS v{Reader.Version} archive; {Reader.Entries.Count} entries " +
+                $"({Reader.Entries.Count - dirCount} files, {dirCount} directory listings)");
+        }
+
+        public override void PrintExtractionResult()
+        {
+            Console.WriteLine($"{extracted} extracted, {renamed} renamed, {skipped} skipped, " +
+                $"{notFound} not found, {failed} failed");
         }
 
         public override void Dispose()
