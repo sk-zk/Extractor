@@ -173,6 +173,7 @@ namespace Extractor
         {
             Console.WriteLine($"{extracted} extracted, {renamed} renamed, {skipped} skipped, " +
                 $"{empty} empty, {failed} failed");
+            PrintRenameSummary(renamed);
         }
 
         /// <summary>

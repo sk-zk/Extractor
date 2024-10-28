@@ -73,6 +73,15 @@ namespace Extractor
                 $"{ReplaceControlChars(renamed)}");
         }
 
+        public static void PrintRenameSummary(int renamed)
+        {
+            if (renamed > 0)
+            {
+                Console.WriteLine($"WARN: {renamed} file{(renamed == 1 ? " was" : "s were")} renamed. " +
+                    $"Make sure to update references to affected paths accordingly.");
+            }
+        }
+
         public static IEnumerable<string> GetAllScsFiles(string directory) 
             => Directory.EnumerateFiles(directory, "*.scs");
     }

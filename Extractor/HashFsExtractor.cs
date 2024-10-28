@@ -252,6 +252,7 @@ namespace Extractor
         {
             Console.WriteLine($"{extracted} extracted, {renamed} renamed, {skipped} skipped, " +
                 $"{notFound} not found, {failed} failed");
+            PrintRenameSummary(renamed);
         }
 
         public override void Dispose()
