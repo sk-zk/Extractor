@@ -42,7 +42,7 @@ namespace Extractor
             foreach (char c in input)
             {
                 if (Array.IndexOf(toReplace, c) > -1)
-                    output.Append($"X{(int)c:X2}");
+                    output.Append($"x{(int)c:X2}");
                 else
                     output.Append(c);
             }
