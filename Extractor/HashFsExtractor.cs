@@ -79,7 +79,7 @@ namespace Extractor
                     case EntryType.File:
                         // TODO make sure this is actually a file
                         // and not a directory falsely labeled as one
-                        var startPathWithoutSlash = startPath.StartsWith('/') ? startPath[1..] : startPath;
+                        var startPathWithoutSlash = RemoveInitialSlash(startPath);
                         var outputPath = Path.Combine(destination, SanitizePath(startPathWithoutSlash));
                         Console.Out.WriteLine($"Extracting {ReplaceControlChars(startPath)} ...");
                         ExtractToFile(startPathWithoutSlash, outputPath,
@@ -118,10 +118,12 @@ namespace Extractor
         private void ExtractDirectory(string directory, string destination)
         {
             string scsName = Path.GetFileName(scsPath);
-            Console.Out.WriteLine($"Extracting {scsName}{ReplaceControlChars(directory)} ...");
+            var directoryWithoutSlash = RemoveInitialSlash(directory);
+
+            Console.Out.WriteLine($"Extracting {scsName}/{ReplaceControlChars(directoryWithoutSlash)} ...");
 
             var (subdirs, files) = Reader.GetDirectoryListing(directory);
-            Directory.CreateDirectory(Path.Combine(destination, directory[1..]));
+            Directory.CreateDirectory(Path.Combine(destination, directoryWithoutSlash));
             ExtractFiles(files, destination);
             ExtractSubdirectories(subdirs, destination);
         }
@@ -140,9 +142,10 @@ namespace Extractor
                         // the subdir list contains a path which has not been
                         // marked as a directory. it might be one regardless though,
                         // so let's just attempt to extract it anyway
-                        var e = Reader.GetEntry(subdir[..^1]);
+                        var subdirWithoutSlash = RemoveInitialSlash(subdir);
+                        var e = Reader.GetEntry(subdirWithoutSlash);
                         e.IsDirectory = true;
-                        ExtractDirectory(subdir[..^1], destination);
+                        ExtractDirectory(subdirWithoutSlash, destination);
                         break;
                     case EntryType.NotFound:
                         Console.Error.WriteLine($"Directory {ReplaceControlChars(subdir)} is referenced" +
@@ -173,7 +176,7 @@ namespace Extractor
                 // The directory listing of core.scs only lists itself, but as a file, breaking everything
                 if (file == "/") continue;
 
-                var outputPath = Path.Combine(destination, SanitizePath(file[1..]));
+                var outputPath = Path.Combine(destination, SanitizePath(file));
                 ExtractToFile(file, outputPath, () => Reader.ExtractToFile(file, outputPath));
             }
         }
@@ -186,10 +189,7 @@ namespace Extractor
                 return;
             }
 
-            if (archivePath.StartsWith('/'))
-            {
-                archivePath = archivePath[1..];
-            }
+            archivePath = RemoveInitialSlash(archivePath);
 
             try
             {

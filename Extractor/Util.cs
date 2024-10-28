@@ -9,13 +9,16 @@ namespace Extractor
 {
     internal static class Util
     {
-        private static readonly char[] invalidPathChars =
+        public static readonly char[] InvalidPathChars =
             Path.GetInvalidFileNameChars().Except(['/', '\\']).ToArray();
         private static readonly char[] problematicControlChars =
             [(char)0x07, (char)0x08, (char)0x09, (char)0x0a, (char)0x0d, (char)0x1b];
 
         public static string SanitizePath(string input)
-            => ReplaceChars(input, invalidPathChars, '_');
+        {
+            input = RemoveInitialSlash(input);
+            return ReplaceChars(input, InvalidPathChars, '_');
+        }
 
         public static string ReplaceControlChars(string input)
             => ReplaceChars(input, problematicControlChars, '�');
@@ -31,6 +34,24 @@ namespace Extractor
                     output.Append(c);
             }
             return output.ToString();
+        }
+
+        public static string RemoveInitialSlash(string path)
+        {
+            if (path.StartsWith('/') && path != "/")
+            {
+                path = path[1..];
+            }
+            return path;
+        }
+
+        public static string RemoveTrailingSlash(string path)
+        {
+            if (path.EndsWith('/') && path != "/")
+            {
+                path = path[..^1];
+            }
+            return path;
         }
 
         public static IEnumerable<string> GetAllScsFiles(string directory) 
