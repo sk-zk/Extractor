@@ -99,11 +99,8 @@ namespace Extractor.Deep
             FoundFiles = [];
             dirsToSearchForRelativeTobj = [];
 
-            // TODO Does this have to happen at runtime or is there a better
-            // method to embed this?
-            var potentialPaths = Resources.DeepStartPaths
-                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-                .ToHashSet();
+            // TODO compress this
+            var potentialPaths = LinesToHashSet(Resources.DeepStartPaths);
             ExplorePotentialPaths(potentialPaths);
 
             var morePaths = FindPathsInUnvisited();
@@ -153,7 +150,7 @@ namespace Extractor.Deep
                         Add(path, potentialPaths);
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     #if DEBUG
                         var extension = FileTypeHelper.FileTypeToExtension(type);
@@ -210,7 +207,7 @@ namespace Extractor.Deep
                     {
                         potentialPaths.UnionWith(FindPathsInFile(path));
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
                         #if DEBUG
                             Console.Error.WriteLine($"Unable to parse {ReplaceControlChars(path)}: " +
@@ -340,7 +337,7 @@ namespace Extractor.Deep
                 {
                     return finder(fileBuffer);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     #if DEBUG
                         Console.Error.WriteLine($"Unable to parse {filePath} (falling back to FindPathsInBlob): " +

@@ -100,6 +100,36 @@ namespace Extractor
             && (str.Contains('/')
             || str.Contains('.'));
 
+        /// <summary>
+        /// Converts a string containing lines separated by <c>\n</c> or <c>\r\n</c> to a HashSet.
+        /// </summary>
+        /// <param name="input">The input string.</param>
+        /// <returns>A HashSet populated with the lines contained in the input string.</returns>
+        public static HashSet<string> LinesToHashSet(string input)
+        {
+            HashSet<string> output = [];
+
+            int start = 0;
+            for (int i = 0; i < input.Length; i++)
+            {
+                char c = input[i];
+                if (c == '\n' || (c == '\r' && i + 1 < input.Length && input[i + 1] == '\n'))
+                {
+                    var line = input.AsSpan(start, i - start);
+                    output.Add(line.ToString());
+
+                    if (c == '\r')
+                        i++;
+                    start = i + 1;
+                }
+            }
+
+            if (start < input.Length)
+                output.Add(input.AsSpan(start).ToString());
+
+            return output;
+        }
+
         public static IEnumerable<string> GetAllScsFiles(string directory) 
             => Directory.EnumerateFiles(directory, "*.scs");
     }
