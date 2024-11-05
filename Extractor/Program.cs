@@ -5,7 +5,9 @@ using System.Linq;
 using System.Text;
 using Mono.Options;
 using System.Diagnostics;
-using static Extractor.Util;
+using static Extractor.PathUtils;
+using TruckLib.HashFs;
+using Extractor.Deep;
 
 namespace Extractor
 {
@@ -18,13 +20,15 @@ namespace Extractor
         static bool skipIfExists = false;
         static bool forceEntryTableAtEnd = false;
         static bool listEntries = false;
+        static bool listPaths = false;
         static List<string> inputPaths;
         static bool extractAllInDir = false;
         static string[] startPaths = ["/"];
         static bool printHelp = false;
-        static bool rawMode = false;
+        static bool rawExtractor = false;
         static bool tree = false;
         static ushort? salt = null;
+        static bool deepExtractor = false;
 
         static void Main(string[] args)
         {
@@ -53,7 +57,7 @@ namespace Extractor
                 return;
             }
 
-            Extract();
+            Run();
             PauseIfNecessary();
         }
 
@@ -64,12 +68,19 @@ namespace Extractor
                 { "a|all",
                     "Extract all .scs archives in the specified directory.",
                     x => { extractAllInDir = true; } },
+                { "deep",
+                    $"[HashFS] Scans contained files for paths before extracting. Use this option " +
+                    $"to extract archives without top level directory listing.",
+                    x => { deepExtractor = true; } },
                 { "d=|dest=",
                     $"The output directory.\nDefault: {destination}",
                     x => { destination = x; } },
-                { "list",
-                    "[HashFS] Lists entries and exits.",
+                { "list-entries",
+                    "[HashFS] Lists entries contained in the archive.",
                     x => { listEntries = true; } },
+                { "list",
+                    "Lists paths contained in the archive.",
+                    x => { listPaths = true; } },
                 { "p=|partial=",
                     "Partial extraction, e.g.:\n" +
                     "-p=/locale\n" +
@@ -78,12 +89,12 @@ namespace Extractor
                     x => { startPaths = x.Split(","); } },
                  { "P=|paths=",
                     "Same as --partial, but expects a text file containing paths to extract, " +
-                    "separated by newlines.",
+                    "separated by line breaks.",
                     x => { startPaths = LoadStartPathsFromFile(x); } },
                 { "r|raw",
                     "[HashFS] Directly dumps the contained files with their hashed " +
                     "filenames rather than traversing the archive's directory tree.",
-                    x => { rawMode = true; } },
+                    x => { rawExtractor = true; } },
                 { "salt=",
                     "[HashFS] Ignores the salt in the archive header and uses this one instead.",
                     x => { salt = ushort.Parse(x); } },
@@ -110,7 +121,7 @@ namespace Extractor
             return optionSet;
         }
 
-        private static void Extract()
+        private static void Run()
         {
             startPaths = startPaths.Select(x => x.StartsWith('/') ? x : $"/{x}").ToArray();
 
@@ -151,11 +162,22 @@ namespace Extractor
                         Console.WriteLine("--list can only be used with HashFS archives.");
                     }
                 }
+                else if (listPaths)
+                {
+                    extractor.PrintPaths(startPaths);
+                }
                 else if (tree)
                 {
                     if (extractor is HashFsExtractor)
                     {
-                        Tree.PrintTree((extractor as HashFsExtractor).Reader, startPaths);
+                        if (rawExtractor)
+                        {
+                            Console.WriteLine("--tree and --raw cannot be combined.");
+                        }
+                        else
+                        {
+                            Tree.PrintTree((extractor as HashFsExtractor).Reader, startPaths);
+                        }
                     }
                     else
                     {
@@ -199,9 +221,18 @@ namespace Extractor
 
         private static Extractor CreateHashFsExtractor(string scsPath)
         {
-            if (rawMode)
+            if (rawExtractor)
             {
                 return new HashFsRawExtractor(scsPath, !skipIfExists)
+                {
+                    ForceEntryTableAtEnd = forceEntryTableAtEnd,
+                    Salt = salt,
+                    PrintNotFoundMessage = !extractAllInDir,
+                };
+            }
+            else if (deepExtractor)
+            {
+                return new HashFsDeepExtractor(scsPath, !skipIfExists)
                 {
                     ForceEntryTableAtEnd = forceEntryTableAtEnd,
                     Salt = salt,

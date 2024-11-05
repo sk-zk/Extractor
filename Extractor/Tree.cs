@@ -63,7 +63,7 @@ namespace Extractor
 
         private static void PrintDirectory(IHashFsReader reader, string path, int indent)
         {
-            path = Util.RemoveTrailingSlash(path);
+            path = PathUtils.RemoveTrailingSlash(path);
             IEntry entry;
             try
             {
@@ -81,7 +81,7 @@ namespace Extractor
             foreach (var subdir in subdirs)
             {
                 WriteIndent(indent);
-                var withoutLastSlash = Util.RemoveTrailingSlash(subdir);
+                var withoutLastSlash = PathUtils.RemoveTrailingSlash(subdir);
                 PrintDirectoryName(withoutLastSlash[(withoutLastSlash.LastIndexOf('/') + 1)..]);
                 PrintDirectory(reader, subdir, indent + 1);
             }

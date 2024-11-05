@@ -5,7 +5,8 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static Extractor.Util;
+using static Extractor.PathUtils;
+using static Extractor.ConsoleUtils;
 
 namespace Extractor
 {
@@ -109,7 +110,7 @@ namespace Extractor
 
             if (sanitized != entry.FileName)
             {
-                Util.PrintRenameWarning(entry.FileName, sanitized);
+                PrintRenameWarning(entry.FileName, sanitized);
                 renamed++;
             }
 
@@ -269,6 +270,14 @@ namespace Extractor
                 reader.BaseStream.Seek(-2, SeekOrigin.Current);
             }
             return offset;
+        }
+
+        public override void PrintPaths(string[] startPaths)
+        {
+            foreach (var entry in Entries)
+            {
+                Console.WriteLine(ReplaceControlChars(entry.FileName));
+            }
         }
 
         public override void Dispose()

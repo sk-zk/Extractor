@@ -9,6 +9,9 @@ namespace Extractor
 {
     public class HashFsRawExtractor : HashFsExtractor
     {
+        /// <summary>
+        /// The number of entries pointing to the same data which were skipped.
+        /// </summary>
         private int duplicate = 0;
 
         public HashFsRawExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
@@ -53,6 +56,11 @@ namespace Extractor
         public override void PrintExtractionResult()
         {
             Console.WriteLine($"{extracted} extracted, {skipped} skipped, {duplicate} duplicates, {failed} failed");
+        }
+
+        public override void PrintPaths(string[] startPaths)
+        {
+            Console.WriteLine("--list and --raw cannot be combined.");
         }
     }
 }

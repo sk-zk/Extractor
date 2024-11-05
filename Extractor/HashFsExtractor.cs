@@ -1,5 +1,4 @@
-﻿using Ionic.Zlib;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -7,7 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TruckLib.HashFs;
-using static Extractor.Util;
+using static Extractor.PathUtils;
+using static Extractor.ConsoleUtils;
 
 namespace Extractor
 {
@@ -40,10 +40,31 @@ namespace Extractor
         /// </summary>
         public bool PrintNotFoundMessage { get; set; } = true;
 
+        /// <summary>
+        /// The number of files which have been extracted successfully.
+        /// </summary>
         protected int extracted;
+
+        /// <summary>
+        /// The number of files which have been skipped because the output path
+        /// already exists and <c>--skip-existing</c> was passed.
+        /// </summary>
         protected int skipped;
+
+        /// <summary>
+        /// The number of files which failed to extract.
+        /// </summary>
         protected int failed;
+
+        /// <summary>
+        /// The number of paths passed by the user which were not found in the archive.
+        /// </summary>
         protected int notFound;
+
+        /// <summary>
+        /// The number of files whose paths had to be changed because they contained
+        /// invalid characters.
+        /// </summary>
         protected int renamed;
 
         public HashFsExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
@@ -56,6 +77,12 @@ namespace Extractor
             {
                 throw;
             }
+
+            extracted = 0;
+            skipped = 0;
+            failed = 0;
+            notFound = 0;
+            renamed = 0;
         }
 
         /// <inheritdoc/>
@@ -65,12 +92,6 @@ namespace Extractor
             {
                 Reader.Salt = Salt.Value;
             }
-
-            extracted = 0;
-            skipped = 0;
-            failed = 0;
-            notFound = 0;
-            renamed = 0;
 
             foreach (var startPath in startPaths)
             {
@@ -184,7 +205,8 @@ namespace Extractor
             }
         }
 
-        protected void ExtractToFile(string archivePath, string outputPath, Action extractToFileCall)
+        protected void ExtractToFile(string displayedPath, string outputPath,
+            Action extractToFileCall)
         {
             if (!Overwrite && File.Exists(outputPath))
             {
@@ -192,35 +214,36 @@ namespace Extractor
                 return;
             }
 
-            archivePath = RemoveInitialSlash(archivePath);
+            displayedPath = RemoveInitialSlash(displayedPath);
 
             try
             {
+                Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
                 extractToFileCall();
                 extracted++;
             }
-            catch (ZlibException zlex)
-            {
-                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
-                Console.Error.WriteLine(zlex.Message);
-                failed++;
-            }
             catch (InvalidDataException idex)
             {
-                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
+                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(displayedPath)}:");
                 Console.Error.WriteLine(idex.Message);
                 failed++;
             }
             catch (AggregateException agex)
             {
-                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
+                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(displayedPath)}:");
                 Console.Error.WriteLine(agex.ToString());
                 failed++;
             }
             catch (IOException ioex)
             {
-                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
+                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(displayedPath)}:");
                 Console.Error.WriteLine(ioex.Message);
+                failed++;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(displayedPath)}:");
+                Console.Error.WriteLine(ex.ToString());
                 failed++;
             }
         }
@@ -250,9 +273,40 @@ namespace Extractor
 
         public override void PrintExtractionResult()
         {
-            Console.WriteLine($"{extracted} extracted, {renamed} renamed, {skipped} skipped, " +
+            Console.WriteLine($"{extracted} extracted ({renamed} renamed), {skipped} skipped, " +
                 $"{notFound} not found, {failed} failed");
             PrintRenameSummary(renamed);
+        }
+
+        public override void PrintPaths(string[] startPaths)
+        {
+            foreach (var startPath in startPaths)
+            {
+                switch (Reader.EntryExists(startPath))
+                {
+                    case EntryType.Directory:
+                        Console.WriteLine(ReplaceControlChars(startPath));
+                        var content = Reader.GetDirectoryListing(startPath);
+                        PrintPaths([..content.Subdirectories, ..content.Files]);
+                        break;
+                    case EntryType.File:
+                        Console.WriteLine(ReplaceControlChars(startPath));
+                        break;
+                    case EntryType.NotFound:
+                        if (startPath == "/")
+                        {
+                            Console.Error.WriteLine("Top level directory is missing; " +
+                                "try a partial extraction or use --raw to dump entries");
+                        }
+                        else if (PrintNotFoundMessage)
+                        {
+                            Console.Error.WriteLine($"File or directory listing " +
+                                $"{ReplaceControlChars(startPath)} does not exist");
+                            notFound++;
+                        }
+                        break;
+                }
+            }
         }
 
         public override void Dispose()

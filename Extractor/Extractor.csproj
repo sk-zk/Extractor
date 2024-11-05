@@ -13,7 +13,26 @@
 
 	<ItemGroup>
 		<PackageReference Include="Mono.Options" Version="6.12.0.148" />
-		<PackageReference Include="TruckLib.HashFs" Version="0.1.2" />
+		<PackageReference Include="TruckLib.HashFs" Version="0.1.7" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\TruckLib.Sii\TruckLib.Sii\TruckLib.Sii.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Properties\Resources.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Resources.resx</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Update="Properties\Resources.resx">
+	    <Generator>ResXFileCodeGenerator</Generator>
+	    <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
 	</ItemGroup>
 
 </Project>
