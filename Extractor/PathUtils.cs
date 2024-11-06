@@ -94,6 +94,15 @@ namespace Extractor
             return parent;
         }
 
+        public static string Combine(string scsName, string archivePath)
+        {
+            if (archivePath.StartsWith('/'))
+            {
+                return $"{scsName}{archivePath}";
+            }
+            return $"{scsName}/{archivePath}";
+        }
+
         public static bool ResemblesPath(string str) =>
             !string.IsNullOrEmpty(str)
             && !str.Contains("//")

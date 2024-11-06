@@ -269,15 +269,6 @@ namespace Extractor
             Console.Out.WriteLine($"Extracting {ReplaceControlChars(path)} ...");
         }
 
-        private string Combine(string scsName, string archivePath)
-        {
-            if (archivePath.StartsWith('/'))
-            {
-                return $"{scsName}{archivePath}";
-            }
-            return $"{scsName}/{archivePath}";
-        }
-
         public override void PrintContentSummary()
         {
             var dirCount = Reader.Entries.Count(x => x.Value.IsDirectory);
