@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static Extractor.PathUtils;
 using static Extractor.ConsoleUtils;
+using TruckLib.Sii;
 
 namespace Extractor
 {
@@ -120,8 +121,18 @@ namespace Extractor
                 Directory.CreateDirectory(outputDir);
             }
 
-            using var fs = new FileStream(outputPath, FileMode.Create, FileAccess.Write);
-            Extract(entry, fs);
+            if (Path.GetExtension(entry.FileName) == ".sii")
+            {
+                using var ms = new MemoryStream();
+                Extract(entry, ms);
+                var sii = SiiFile.Decode(ms.ToArray());
+                File.WriteAllBytes(outputPath, sii);
+            }
+            else
+            {
+                using var fs = new FileStream(outputPath, FileMode.Create, FileAccess.Write);
+                Extract(entry, fs);
+            }
         }
 
         /// <summary>

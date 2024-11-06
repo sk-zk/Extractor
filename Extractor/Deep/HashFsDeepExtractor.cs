@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static Extractor.PathUtils;
 using static Extractor.ConsoleUtils;
+using TruckLib.Sii;
 
 namespace Extractor.Deep
 {
@@ -99,6 +100,10 @@ namespace Extractor.Deep
                 {
                     ExtractToFile(fileName, outputPath, () =>
                     {
+                        if (fileType == FileType.Sii)
+                        {
+                            fileBuffer = SiiFile.Decode(fileBuffer);
+                        }
                         File.WriteAllBytes(outputPath, fileBuffer);
                     });
                     dumped++;

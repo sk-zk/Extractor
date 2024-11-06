@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using TruckLib.HashFs;
 using static Extractor.PathUtils;
 using static Extractor.ConsoleUtils;
+using TruckLib.Sii;
 
 namespace Extractor
 {
@@ -113,7 +114,7 @@ namespace Extractor
                             renamed++;
                         }
                         ExtractToFile(startPathWithoutSlash, outputPath,
-                            () => Reader.ExtractToFile(startPathWithoutSlash, outputPath));
+                            () => ExtractToFileInner(startPathWithoutSlash, outputPath));
                         break;
                     case EntryType.NotFound:
                         if (startPath == "/")
@@ -177,6 +178,9 @@ namespace Extractor
         {
             foreach (var file in files)
             {
+                // The directory listing of core.scs only lists itself, but as a file, breaking everything
+                if (file == "/") continue;
+
                 var type = Reader.EntryExists(file);
                 switch (type)
                 {
@@ -190,9 +194,6 @@ namespace Extractor
                         continue;
                 }
 
-                // The directory listing of core.scs only lists itself, but as a file, breaking everything
-                if (file == "/") continue;
-
                 var fileWithoutSlash = RemoveInitialSlash(file);
                 var sanitized = SanitizePath(fileWithoutSlash);
                 var outputPath = Path.Combine(destination, sanitized);
@@ -201,7 +202,7 @@ namespace Extractor
                     PrintRenameWarning(file, sanitized);
                     renamed++;
                 }
-                ExtractToFile(file, outputPath, () => Reader.ExtractToFile(file, outputPath));
+                ExtractToFile(file, outputPath, () => ExtractToFileInner(file, outputPath));
             }
         }
 
@@ -245,6 +246,20 @@ namespace Extractor
                 Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(displayedPath)}:");
                 Console.Error.WriteLine(ex.ToString());
                 failed++;
+            }
+        }
+
+        private void ExtractToFileInner(string file, string outputPath)
+        {
+            if (Path.GetExtension(file) == ".sii")
+            {
+                var sii = Reader.Extract(file)[0];
+                sii = SiiFile.Decode(sii);
+                File.WriteAllBytes(outputPath, sii);
+            }
+            else
+            {
+                Reader.ExtractToFile(file, outputPath);
             }
         }
 
