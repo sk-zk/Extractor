@@ -46,13 +46,28 @@ namespace Extractor.Deep
             var finder = new PathFinder(Reader);
             finder.Find();
 
+            bool startPathsSet = !startPaths.SequenceEqual(["/"]);
+
             var foundFiles = finder.FoundFiles.Order().ToArray();
+            if (startPathsSet)
+            {
+                foundFiles = foundFiles
+                    .Where(f => startPaths.Any(f.StartsWith)).ToArray();
+            }
             base.Extract(foundFiles, destination);
 
             var foundDecoyFiles = finder.FoundDecoyFiles.Order().ToArray();
+            if (startPathsSet)
+            {
+                foundDecoyFiles = foundDecoyFiles
+                    .Where(f => startPaths.Any(f.StartsWith)).ToArray();
+            }
             base.Extract(foundDecoyFiles, Path.Combine(destination, DecoyDirectory));
 
-            DumpUnrecovered(destination, foundFiles.Concat(foundDecoyFiles));
+            if (!startPathsSet)
+            {
+                DumpUnrecovered(destination, foundFiles.Concat(foundDecoyFiles));
+            }
         }
 
         /// <summary>
