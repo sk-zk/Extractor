@@ -149,7 +149,7 @@ namespace Extractor
 
             foreach (var path in paths)
             {
-                if (!path.StartsWith(root))
+                if (root != "/" && !path.StartsWith(root))
                     continue;
 
                 var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);

@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using static Extractor.PathUtils;
 using static Extractor.ConsoleUtils;
 using TruckLib.Sii;
+using Extractor.Deep;
+using System.ComponentModel.DataAnnotations;
 
 namespace Extractor
 {
@@ -291,14 +293,29 @@ namespace Extractor
             }
         }
 
+        public override List<Tree.Directory> GetDirectoryTree(string[] startPaths)
+        {
+            for (int i = 0; i < startPaths.Length; i++)
+            {
+                if (startPaths[i] != "/" && startPaths[i].StartsWith('/'))
+                {
+                    startPaths[i] = startPaths[i][1..];
+                }
+            }
+
+            var paths = Entries
+                .Where(e => e.UncompressedSize > 0) // filter out directory metadata
+                .Select(e => e.FileName);
+            File.WriteAllLines("c:/users/daniel/desktop/bla.txt", paths.ToArray());
+            var trees = startPaths
+                .Select(startPath => PathListToTree(startPath, paths))
+                .ToList();
+            return trees;
+        }
+
         public override void Dispose()
         {
             reader.Dispose();
-        }
-
-        public override List<Tree.Directory> GetDirectoryTree(string[] startPaths)
-        {
-            throw new NotImplementedException();
         }
     }
 
