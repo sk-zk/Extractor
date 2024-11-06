@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -99,14 +100,23 @@ namespace Extractor.Deep
             FoundFiles = [];
             dirsToSearchForRelativeTobj = [];
 
-            // TODO compress this
-            var potentialPaths = LinesToHashSet(Resources.DeepStartPaths);
+            var potentialPaths = LoadStartPaths();
             ExplorePotentialPaths(potentialPaths);
 
             var morePaths = FindPathsInUnvisited();
             ExplorePotentialPaths(morePaths);
 
             FoundDecoyFiles = FindDecoyPaths();
+        }
+
+        private static HashSet<string> LoadStartPaths()
+        {
+            using var inMs = new MemoryStream(Resources.DeepStartPaths);
+            using var ds = new DeflateStream(inMs, CompressionMode.Decompress);
+            using var outMs = new MemoryStream();
+            ds.CopyTo(outMs);
+            var lines = Encoding.UTF8.GetString(outMs.ToArray());
+            return LinesToHashSet(lines);
         }
 
         private void ExplorePotentialPaths(HashSet<string> potentialPaths)

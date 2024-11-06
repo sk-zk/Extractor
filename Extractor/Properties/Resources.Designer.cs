@@ -60,23 +60,9 @@ namespace Extractor.Properties {
             }
         }
         
-        /// <summary>
-        ///   Looks up a localized string similar to /
-        ////accessory
-        ////accessory/f_bumper__to_check
-        ////accessory/f_bumper__to_check/high_plastic_gray.pmd
-        ////accessory/f_bumper__to_check/high_plastic_gray.pmg
-        ////accessory/f_bumper__to_check/high_plastic_gray_lights.pmd
-        ////accessory/f_bumper__to_check/high_plastic_gray_lights.pmg
-        ////accessory/f_bumper__to_check/low_plastic_gray.pmd
-        ////accessory/f_bumper__to_check/low_plastic_gray.pmg
-        ////accessory/f_bumper__to_check/low_plastic_gray_lights.pmd
-        ////accessory/f_bumper__to_check/low_plastic_gray_lights.pmg
-        ////accessory/f_bumpe [rest of string was truncated]&quot;;.
-        /// </summary>
-        internal static string DeepStartPaths {
+        internal static byte[] DeepStartPaths {
             get {
-                return ResourceManager.GetString("DeepStartPaths", resourceCulture);
+                return (byte[])ResourceManager.GetObject("DeepStartPaths", resourceCulture);
             }
         }
     }
