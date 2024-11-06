@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Extractor.Tree;
+using System;
+using System.Collections.Generic;
 
 namespace Extractor
 {
@@ -29,6 +31,8 @@ namespace Extractor
         /// <param name="startPaths">A list of paths to extract. Pass ["/"] to extract the entire archive.</param>
         /// <param name="destination">The directory to which the extracted files will be written.</param>
         public abstract void Extract(string[] startPaths, string destination);
+
+        public abstract Directory GetDirectoryTree(string root);
 
         public abstract void PrintPaths(string[] startPaths);
 

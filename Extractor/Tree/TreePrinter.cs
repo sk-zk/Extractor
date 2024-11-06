@@ -10,87 +10,54 @@ namespace Extractor.Tree
 {
     internal static class TreePrinter
     {
-        public static void Print(IHashFsReader reader, string[] startPaths)
+        public static void Print(List<Directory> roots, string scsName)
         {
-            var scsName = Path.GetFileName(reader.Path);
-            foreach (var startPath in startPaths)
+            PrintWithColor(scsName, ConsoleColor.White);
+            foreach (Directory root in roots)
             {
-                var entryType = reader.EntryExists(startPath);
-                var parts = startPath.Split("/", StringSplitOptions.RemoveEmptyEntries);
-                switch (entryType)
+                var indentLevel = root.Path.Count(c => c == '/');
+                if (root.Path != "/")
                 {
-                    case EntryType.Directory:
-                        PrintWithColor(scsName, ConsoleColor.White);
-                        if (startPath == "/")
-                        {
-                            PrintDirectory(reader, startPath, 1);
-                        }
-                        else
-                        {
-                            PrintPathParts(parts);
-                            PrintDirectory(reader, startPath, parts.Length + 1);
-                        }
-                        break;
-                    case EntryType.File:
-                        PrintWithColor(scsName, ConsoleColor.White);
-                        PrintPathParts(parts[..^1]);
-                        WriteIndent(parts.Length + 1, true);
-                        Console.WriteLine(parts[^1]);
-                        break;
-                    case EntryType.NotFound:
-                        if (startPath == "/")
-                        {
-                            Console.WriteLine("Top level directory listing is missing.");
-                        }
-                        break;
+                    WriteIndent(indentLevel);
+                    PrintDirectoryPath(root.Path);
+                    indentLevel++;
                 }
+                Print(root, indentLevel);
             }
         }
 
-        private static void PrintPathParts(string[] parts)
+        public static void Print(Directory root, int indent = 0)
         {
-            for (int i = 0; i < parts.Length; i++)
+            var parts = root.Path.Split("/", StringSplitOptions.RemoveEmptyEntries);
+
+            var sortedSubdirs = root.Subdirectories.OrderBy(s => s.Key).ToArray();
+            for (int i = 0; i < sortedSubdirs.Length; i++)
             {
-                WriteIndent(i + 1);
-                PrintDirectoryName(parts[i]);
+                var (_, subdir) = sortedSubdirs[i];
+                WriteIndent(indent);
+                PrintDirectoryPath(subdir.Path);
+                Print(subdir, indent + 1);
             }
+
+            var sortedFiles = root.Files.Order().ToArray();
+            for (int i = 0; i < sortedFiles.Length; i++)
+            {
+                var file = sortedFiles[i];
+                WriteIndent(indent, i == root.Files.Count - 1);
+                Console.WriteLine(file[(file.LastIndexOf('/') + 1)..]);
+            }
+        }
+
+        private static void PrintDirectoryPath(string path)
+        {
+            path = PathUtils.RemoveTrailingSlash(path);
+            var name = path[(path.LastIndexOf('/') + 1)..];
+            PrintDirectoryName(name);
         }
 
         private static void PrintDirectoryName(string name)
         {
             PrintWithColor($"[{name}]", ConsoleColor.Yellow);
-        }
-
-        private static void PrintDirectory(IHashFsReader reader, string path, int indent)
-        {
-            path = PathUtils.RemoveTrailingSlash(path);
-            IEntry entry;
-            try
-            {
-                entry = reader.GetEntry(path);
-            }
-            catch (KeyNotFoundException)
-            {
-                return;
-            }
-            // The subdir list may contain paths which have not
-            // been marked as a directory.
-            entry.IsDirectory = true;
-
-            var (subdirs, files) = reader.GetDirectoryListing(path);
-            foreach (var subdir in subdirs)
-            {
-                WriteIndent(indent);
-                var withoutLastSlash = PathUtils.RemoveTrailingSlash(subdir);
-                PrintDirectoryName(withoutLastSlash[(withoutLastSlash.LastIndexOf('/') + 1)..]);
-                PrintDirectory(reader, subdir, indent + 1);
-            }
-            for (int i = 0; i < files.Count; i++)
-            {
-                var file = files[i];
-                WriteIndent(indent, i == files.Count - 1);
-                Console.WriteLine(file[(file.LastIndexOf('/') + 1)..]);
-            }
         }
 
         private static void PrintWithColor(string str, ConsoleColor color)

@@ -230,5 +230,30 @@ namespace Extractor
         {
             Reader.Dispose();
         }
+
+        public override Tree.Directory GetDirectoryTree(string root)
+        {
+            var dir = new Tree.Directory();
+            dir.Path = root;
+            var entry = Reader.GetEntry(root);
+            entry.IsDirectory = true;
+            var content = Reader.GetDirectoryListing(root);
+            foreach (var subdir in content.Subdirectories)
+            {
+                var type = Reader.EntryExists(subdir);
+                if (type == EntryType.File)
+                {
+                    var subentry = Reader.GetEntry(root);
+                    subentry.IsDirectory = true;
+                }
+                else if (type == EntryType.NotFound)
+                {
+                    continue;
+                }
+                dir.Subdirectories.Add(Path.GetFileName(subdir), GetDirectoryTree(subdir));
+            }
+            dir.Files = content.Files;
+            return dir;
+        }
     }
 }

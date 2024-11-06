@@ -295,6 +295,11 @@ namespace Extractor
         {
             reader.Dispose();
         }
+
+        public override Tree.Directory GetDirectoryTree(string root)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     /// <summary>

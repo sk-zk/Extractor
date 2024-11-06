@@ -7,7 +7,6 @@ using Mono.Options;
 using System.Diagnostics;
 using static Extractor.PathUtils;
 using Extractor.Deep;
-using Extractor.Tree;
 
 namespace Extractor
 {
@@ -168,20 +167,15 @@ namespace Extractor
                 }
                 else if (tree)
                 {
-                    if (extractor is HashFsExtractor)
+                    if (rawExtractor)
                     {
-                        if (rawExtractor)
-                        {
-                            Console.WriteLine("--tree and --raw cannot be combined.");
-                        }
-                        else
-                        {
-                            TreePrinter.Print((extractor as HashFsExtractor).Reader, startPaths);
-                        }
+                        Console.WriteLine("--tree and --raw cannot be combined.");
                     }
                     else
                     {
-                        Console.WriteLine("--tree can only be used with HashFS archives.");
+                        var dirs = startPaths.Select(p => extractor.GetDirectoryTree(p)).ToList();
+                        var scsName = Path.GetFileName(scsPath);
+                        Tree.TreePrinter.Print(dirs, scsName);
                     }
                 }
                 else
