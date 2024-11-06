@@ -1,12 +1,18 @@
-## Extractor
-A cross-platform .scs extractor for both HashFS and ZIP archives. Supports raw dumps,
-partial extraction, and extracting all .scs files at once.
+# Extractor
+A cross-platform .scs extractor for both HashFS and ZIP.
 
-HashFS v2, introduced with game version 1.50, is supported.
+## Features
+* Supports HashFS v1 and v2 as well as ZIP (including "locked" ZIP files)
+* Can extract multiple archives at once
+* Partial extraction
+* Raw dumps
+* Built-in path-finding mode for HashFS archives without directory listings
+* Automatic conversion of 3nK-encoded and encrypted SII files
 
-## Build
-A self-contained binary for Windows is available on the Releases page. On other platforms, install the
+## Download / Build
+A Windows build is available on the Releases page. On other platforms, install the
 .NET 8 SDK and run the following:
+
 ```sh
 git clone https://github.com/sk-zk/Extractor.git
 cd Extractor
@@ -24,13 +30,13 @@ extractor path... [options]
   <tr>
     <td><b>Short</b></td>
     <td><b>Long</b></td>
-    <td><b>Descripton</b></td>
+    <td><b>Description</b></td>
   </tr>
 </thead>
 <tr>
   <td><code>-a</code></td>
   <td><code>--all</code></td>
-  <td>Extract all .scs archives in the specified directory.</td>
+  <td>Extracts all .scs archives in the specified directory.</td>
 </tr>
 <tr>
   <td><code>-d</code></td>
@@ -50,7 +56,7 @@ extractor path... [options]
   <td><code>-P</code></td>
   <td><code>--paths</code></td>
   <td>Same as <code>--partial</code>, but expects a text file containing paths to extract, separated by
-  newlines.</td>
+  line breaks.</td>
 </tr>
 <tr>
   <td><code>-s</code></td>
@@ -64,19 +70,31 @@ extractor path... [options]
 </tr>
 </table>
 
+
 ### HashFS options
 <table>
 <thead>
   <tr>
     <td><b>Short</b></td>
     <td><b>Long</b></td>
-    <td><b>Descripton</b></td>
+    <td><b>Description</b></td>
   </tr>
 </thead>
 <tr>
   <td></td>
+  <td><code>--deep</code></td>
+  <td>An extraction mode which scans the contained entries for referenced paths instead of traversing
+  the directory tree from <code>/</code>. Use this option to extract archives without a top level directory listing.</td>
+</tr>
+<tr>
+  <td></td>
   <td><code>--list</code></td>
-  <td>Lists entries and exits.</td>
+  <td>Lists paths contained in the archive. Can be combined with <code>--deep</code>.</td>
+</tr>
+<tr>
+  <td></td>
+  <td><code>--list-entries</code></td>
+  <td>Lists entries contained in the archive.</td>
 </tr>
 <tr>
   <td><code>-r</code></td>
@@ -102,6 +120,7 @@ extractor path... [options]
 </tr>
 </table>
 
+
 ### Examples
 Normal extraction:
 ```
@@ -123,12 +142,7 @@ Extract `def` and `manifest.sii` only:
 extractor "path\to\file.scs" -p=/def,/manifest.sii
 ```
 
-Extract `map` only for all .scs files in a directory:
+Extract with deep mode:
 ```
-extractor "path\to\directory" -a -p=/map
-```
-
-Extract `locale.scs`:
-```
-extractor "path\to\locale.scs" -p=/locale
+extractor "path\to\file.scs" --deep
 ```
