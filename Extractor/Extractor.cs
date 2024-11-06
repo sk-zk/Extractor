@@ -32,7 +32,7 @@ namespace Extractor
         /// <param name="destination">The directory to which the extracted files will be written.</param>
         public abstract void Extract(string[] startPaths, string destination);
 
-        public abstract Directory GetDirectoryTree(string root);
+        public abstract List<Directory> GetDirectoryTree(string[] startPaths);
 
         public abstract void PrintPaths(string[] startPaths);
 

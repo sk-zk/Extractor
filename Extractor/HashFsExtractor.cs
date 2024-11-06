@@ -226,12 +226,15 @@ namespace Extractor
             }
         }
 
-        public override void Dispose()
+        public override List<Tree.Directory> GetDirectoryTree(string[] startPaths)
         {
-            Reader.Dispose();
+            var trees = startPaths
+                .Select(startPath => GetDirectoryTree(startPath))
+                .ToList();
+            return trees;
         }
 
-        public override Tree.Directory GetDirectoryTree(string root)
+        private Tree.Directory GetDirectoryTree(string root)
         {
             var dir = new Tree.Directory();
             dir.Path = root;
@@ -254,6 +257,11 @@ namespace Extractor
             }
             dir.Files = content.Files;
             return dir;
+        }
+
+        public override void Dispose()
+        {
+            Reader.Dispose();
         }
     }
 }

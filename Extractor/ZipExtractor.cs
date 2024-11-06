@@ -296,7 +296,7 @@ namespace Extractor
             reader.Dispose();
         }
 
-        public override Tree.Directory GetDirectoryTree(string root)
+        public override List<Tree.Directory> GetDirectoryTree(string[] startPaths)
         {
             throw new NotImplementedException();
         }

@@ -173,9 +173,9 @@ namespace Extractor
                     }
                     else
                     {
-                        var dirs = startPaths.Select(p => extractor.GetDirectoryTree(p)).ToList();
+                        var trees = extractor.GetDirectoryTree(startPaths);
                         var scsName = Path.GetFileName(scsPath);
-                        Tree.TreePrinter.Print(dirs, scsName);
+                        Tree.TreePrinter.Print(trees, scsName);
                     }
                 }
                 else
