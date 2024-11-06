@@ -6,7 +6,6 @@ using System.Text;
 using Mono.Options;
 using System.Diagnostics;
 using static Extractor.PathUtils;
-using TruckLib.HashFs;
 using Extractor.Deep;
 
 namespace Extractor
@@ -70,7 +69,7 @@ namespace Extractor
                     x => { extractAllInDir = true; } },
                 { "deep",
                     $"[HashFS] Scans contained files for paths before extracting. Use this option " +
-                    $"to extract archives without top level directory listing.",
+                    $"to extract archives without a top level directory listing.",
                     x => { deepExtractor = true; } },
                 { "d=|dest=",
                     $"The output directory.\nDefault: {destination}",
@@ -79,7 +78,7 @@ namespace Extractor
                     "[HashFS] Lists entries contained in the archive.",
                     x => { listEntries = true; } },
                 { "list",
-                    "Lists paths contained in the archive.",
+                    "Lists paths contained in the archive. Can be combined with --deep.",
                     x => { listPaths = true; } },
                 { "p=|partial=",
                     "Partial extraction, e.g.:\n" +
