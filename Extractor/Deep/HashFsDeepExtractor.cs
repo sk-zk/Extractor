@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using static Extractor.PathUtils;
 using static Extractor.ConsoleUtils;
 using TruckLib.Sii;
+using System.Data;
 
 namespace Extractor.Deep
 {
@@ -128,6 +129,40 @@ namespace Extractor.Deep
             Console.WriteLine($"{extracted} extracted ({renamed} renamed, {dumped} dumped), " +
                 $"{skipped} skipped, {failed} failed");
             PrintRenameSummary(renamed);
+        }
+
+        public override Tree.Directory GetDirectoryTree(string root)
+        {
+            var finder = new PathFinder(Reader);
+            finder.Find();
+
+            var rootDir = new Tree.Directory();
+            rootDir.Path = "/";
+            foreach (var path in finder.FoundFiles)
+            {
+                if (!path.StartsWith(root))
+                    continue;
+
+                var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                Tree.Directory subdir = rootDir;
+                for (int i = 0; i < parts.Length - 1; i++)
+                {
+                    if (subdir.Subdirectories.TryGetValue(parts[i], out var dir))
+                    {
+                        subdir = dir;
+                    }
+                    else
+                    {
+                        var newDir = new Tree.Directory();
+                        newDir.Path = "/" + string.Join('/', parts[0..(i+1)]);
+                        subdir.Subdirectories.Add(parts[i], newDir);
+                        subdir = newDir;
+                    }
+                }
+                subdir.Files.Add(path);
+            }
+
+            return rootDir;
         }
     }
 }
