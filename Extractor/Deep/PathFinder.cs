@@ -210,72 +210,33 @@ namespace Extractor.Deep
             HashSet<string> potentialPaths = [];
             foreach (var path in inputPaths)
             {
-                var type = reader.EntryExists(path);
-                if (type == EntryType.File)
-                {
-                    try
+                reader.Traverse(path,
+                    (dir) => 
                     {
-                        potentialPaths.UnionWith(FindPathsInFile(path));
-                    }
-                    catch (Exception ex)
+                        var isNew = visited.Add(dir);
+                        if (isNew)
+                        {
+                            visitedEntries.Add(reader.GetEntry(dir));
+                        }
+                        return isNew;
+                    },
+                    (file) =>
                     {
-                        #if DEBUG
-                            Console.Error.WriteLine($"Unable to parse {ReplaceControlChars(path)}: " +
+                        try
+                        {
+                            potentialPaths.UnionWith(FindPathsInFile(file));
+                        }
+                        catch (Exception ex)
+                        {
+                            #if DEBUG
+                            Console.Error.WriteLine($"Unable to parse {ReplaceControlChars(file)}: " +
                                 $"{ex.GetType().Name}: {ex.Message}");
-                        #endif
-                    }
-                }
-                else if (type == EntryType.Directory)
-                {
-                    potentialPaths.UnionWith(ExploreDirectory(path));
-                }
+                            #endif
+                        }
+                    },
+                    (_) => { }
+                    );
             }
-            return potentialPaths;
-        }
-
-        /// <summary>
-        /// Recursively explores the files and subdirectories of a directory if the archive 
-        /// contains a listing for the given path.
-        /// </summary>
-        /// <param name="dirPath">The directory to explore.</param>
-        /// <returns>Paths found in the files of this directory and its subdirectories,
-        /// or an empty set if the directory has no listing.</returns>
-        private HashSet<string> ExploreDirectory(string dirPath)
-        {
-            HashSet<string> potentialPaths = [];
-
-            if (!visited.Add(dirPath))
-            {
-                return [];
-            }
-
-            var type = reader.EntryExists(dirPath);
-            if (type == EntryType.NotFound)
-            {
-                Debug.WriteLine($"Directory {ReplaceControlChars(dirPath)} is referenced" +
-                    $" in a directory listing but could not be found in the archive");
-                return [];
-            }
-            if (type == EntryType.File)
-            {
-                var entry = reader.GetEntry(dirPath);
-                entry.IsDirectory = true;
-            }
-
-            visited.Add(dirPath);
-            visitedEntries.Add(reader.GetEntry(dirPath));
-            var listing = reader.GetDirectoryListing(dirPath);
-
-            foreach (var filePath in listing.Files)
-            {
-                potentialPaths.UnionWith(FindPathsInFile(filePath));
-            }
-
-            foreach (var subdirPath in listing.Subdirectories)
-            {
-                potentialPaths.UnionWith(ExploreDirectory(subdirPath));
-            }
-
             return potentialPaths;
         }
 

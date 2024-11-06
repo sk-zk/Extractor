@@ -87,6 +87,9 @@ namespace Extractor
 
         public static string GetParent(string filePath)
         {
+            if (string.IsNullOrEmpty(filePath)) 
+               return filePath;
+
             var lastSlash = filePath.LastIndexOf('/');
             var parent = lastSlash != -1
                 ? filePath[..filePath.LastIndexOf('/')]

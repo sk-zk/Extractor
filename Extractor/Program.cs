@@ -7,6 +7,7 @@ using Mono.Options;
 using System.Diagnostics;
 using static Extractor.PathUtils;
 using Extractor.Deep;
+using Extractor.Tree;
 
 namespace Extractor
 {
@@ -175,7 +176,7 @@ namespace Extractor
                         }
                         else
                         {
-                            Tree.PrintTree((extractor as HashFsExtractor).Reader, startPaths);
+                            TreePrinter.Print((extractor as HashFsExtractor).Reader, startPaths);
                         }
                     }
                     else

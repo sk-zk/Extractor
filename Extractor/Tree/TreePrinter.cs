@@ -6,11 +6,11 @@ using System.Text;
 using System.Threading.Tasks;
 using TruckLib.HashFs;
 
-namespace Extractor
+namespace Extractor.Tree
 {
-    internal static class Tree
+    internal static class TreePrinter
     {
-        public static void PrintTree(IHashFsReader reader, string[] startPaths)
+        public static void Print(IHashFsReader reader, string[] startPaths)
         {
             var scsName = Path.GetFileName(reader.Path);
             foreach (var startPath in startPaths)
@@ -101,13 +101,13 @@ namespace Extractor
             Console.ForegroundColor = prevConsoleColor;
         }
 
-        private static void WriteIndent(int indent, bool isLast = false)
+        private static void WriteIndent(int level, bool isLastLine = false)
         {
-            for (int i = 0; i < indent; i++)
+            for (int i = 0; i < level; i++)
             {
-                if (i == indent - 1)
+                if (i == level - 1)
                 {
-                    if (isLast)
+                    if (isLastLine)
                     {
                         Console.Write(" └╴");
                     }

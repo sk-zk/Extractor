@@ -70,14 +70,7 @@ namespace Extractor
 
         public HashFsExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
-            try
-            {
-                Reader = HashFsReader.Open(scsPath, ForceEntryTableAtEnd);
-            }
-            catch (InvalidDataException)
-            {
-                throw;
-            }
+            Reader = HashFsReader.Open(scsPath, ForceEntryTableAtEnd);
 
             extracted = 0;
             skipped = 0;
@@ -96,114 +89,40 @@ namespace Extractor
 
             foreach (var startPath in startPaths)
             {
-                switch (Reader.EntryExists(startPath))
-                {
-                    case EntryType.Directory:
-                        ExtractDirectory(startPath, destination);
-                        break;
-                    case EntryType.File:
-                        // TODO make sure this is actually a file
-                        // and not a directory falsely labeled as one
-                        var startPathWithoutSlash = RemoveInitialSlash(startPath);
-                        var sanitized = SanitizePath(startPathWithoutSlash);
-                        var outputPath = Path.Combine(destination, sanitized);
-                        PrintExtractingMessage(Path.GetFileName(Reader.Path), startPath);
-                        if (startPathWithoutSlash != sanitized)
-                        {
-                            PrintRenameWarning(startPath, sanitized);
-                            renamed++;
-                        }
-                        ExtractToFile(startPathWithoutSlash, outputPath,
-                            () => ExtractToFileInner(startPathWithoutSlash, outputPath));
-                        break;
-                    case EntryType.NotFound:
-                        if (startPath == "/")
+                Reader.Traverse(startPath,
+                    (dir) => Console.WriteLine($"Extracting {ReplaceControlChars(dir)} ..."),
+                    (file) => ExtractFile(file, destination),
+                    (nonexistent) =>
+                    {
+                        if (nonexistent == "/")
                         {
                             Console.Error.WriteLine("Top level directory is missing; " +
                                 "try a partial extraction or use --raw to dump entries");
                         }
                         else if (PrintNotFoundMessage)
                         {
-                            Console.Error.WriteLine($"File or directory listing " +
-                                $"{ReplaceControlChars(startPath)} does not exist");
+                            Console.Error.WriteLine($"Path {ReplaceControlChars(nonexistent)} " +
+                                $"was not found");
                             notFound++;
                         }
-                        break;
-                }
+                    });
             }
         }
 
-        private void ExtractDirectory(string directory, string destination)
+        private void ExtractFile(string file, string destination)
         {
-            string scsName = Path.GetFileName(scsPath);
-            var directoryWithoutSlash = RemoveInitialSlash(directory);
+            // The directory listing of core.scs only lists itself, but as a file, breaking everything
+            if (file == "/") return;
 
-            PrintExtractingMessage(scsName, directoryWithoutSlash);
-
-            var (subdirs, files) = Reader.GetDirectoryListing(directory);
-            Directory.CreateDirectory(Path.Combine(destination, directoryWithoutSlash));
-            ExtractFiles(files, destination);
-            ExtractSubdirectories(subdirs, destination);
-        }
-
-        private void ExtractSubdirectories(List<string> subdirs, string destination)
-        {
-            foreach (var subdir in subdirs)
+            var fileWithoutSlash = RemoveInitialSlash(file);
+            var sanitized = SanitizePath(fileWithoutSlash);
+            var outputPath = Path.Combine(destination, sanitized);
+            if (fileWithoutSlash != sanitized)
             {
-                var type = Reader.EntryExists(subdir);
-                switch (type)
-                {
-                    case EntryType.Directory:
-                        ExtractDirectory(subdir, destination);
-                        break;
-                    case EntryType.File:
-                        // the subdir list contains a path which has not been
-                        // marked as a directory. it might be one regardless though,
-                        // so let's just attempt to extract it anyway
-                        var subdirWithoutSlash = RemoveInitialSlash(subdir);
-                        var e = Reader.GetEntry(subdirWithoutSlash);
-                        e.IsDirectory = true;
-                        ExtractDirectory(subdirWithoutSlash, destination);
-                        break;
-                    case EntryType.NotFound:
-                        Console.Error.WriteLine($"Directory {ReplaceControlChars(subdir)} is referenced" +
-                            $" in a directory listing but could not be found in the archive");
-                        notFound++;
-                        continue;
-                }
+                PrintRenameWarning(file, sanitized);
+                renamed++;
             }
-        }
-
-        private void ExtractFiles(List<string> files, string destination)
-        {
-            foreach (var file in files)
-            {
-                // The directory listing of core.scs only lists itself, but as a file, breaking everything
-                if (file == "/") continue;
-
-                var type = Reader.EntryExists(file);
-                switch (type)
-                {
-                    case EntryType.NotFound:
-                        Console.Error.WriteLine($"File {ReplaceControlChars(file)} is referenced in" +
-                            $" a directory listing but could not be found in the archive");
-                        notFound++;
-                        continue;
-                    case EntryType.Directory:
-                        // usually safe to ignore because it just points to the directory itself again
-                        continue;
-                }
-
-                var fileWithoutSlash = RemoveInitialSlash(file);
-                var sanitized = SanitizePath(fileWithoutSlash);
-                var outputPath = Path.Combine(destination, sanitized);
-                if (fileWithoutSlash != sanitized)
-                {
-                    PrintRenameWarning(file, sanitized);
-                    renamed++;
-                }
-                ExtractToFile(file, outputPath, () => ExtractToFileInner(file, outputPath));
-            }
+            ExtractToFile(file, outputPath, () => ExtractToFileInner(file, outputPath));
         }
 
         protected void ExtractToFile(string displayedPath, string outputPath,
@@ -288,30 +207,22 @@ namespace Extractor
         {
             foreach (var startPath in startPaths)
             {
-                switch (Reader.EntryExists(startPath))
-                {
-                    case EntryType.Directory:
-                        Console.WriteLine(ReplaceControlChars(startPath));
-                        var content = Reader.GetDirectoryListing(startPath);
-                        PrintPaths([..content.Subdirectories, ..content.Files]);
-                        break;
-                    case EntryType.File:
-                        Console.WriteLine(ReplaceControlChars(startPath));
-                        break;
-                    case EntryType.NotFound:
-                        if (startPath == "/")
+                Reader.Traverse(startPath,
+                    (dir) => Console.WriteLine(ReplaceControlChars(dir)),
+                    (file) => Console.WriteLine(ReplaceControlChars(file)),
+                    (nonexistent) =>
+                    {
+                        if (nonexistent == "/")
                         {
                             Console.Error.WriteLine("Top level directory is missing; " +
                                 "try a partial extraction or use --raw to dump entries");
                         }
                         else if (PrintNotFoundMessage)
                         {
-                            Console.Error.WriteLine($"File or directory listing " +
-                                $"{ReplaceControlChars(startPath)} does not exist");
-                            notFound++;
+                            Console.Error.WriteLine($"Path {ReplaceControlChars(nonexistent)} " +
+                                $"was not found");
                         }
-                        break;
-                }
+                    });
             }
         }
 
