@@ -105,8 +105,8 @@ namespace Extractor
                     "the entry table from the end of the file.",
                     x => { forceEntryTableAtEnd = true; } },
                 { "tree",
-                    "[HashFS] Prints the directory tree and exits. Can be combined with " +
-                    "--partial, --paths, and --all.",
+                    "Prints the directory tree and exits. Can be combined with " +
+                    "-deep, --partial, --paths, and --all.",
                     x => { tree = true; } },
                 { "?|h|help",
                     $"Prints this message and exits.",

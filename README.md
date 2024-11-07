@@ -9,8 +9,8 @@ A cross-platform .scs extractor for both HashFS and ZIP.
 * Built-in path-finding mode for HashFS archives without directory listings
 * Automatic conversion of 3nK-encoded and encrypted SII files
 
-## Download / Build
-A Windows build is available on the Releases page. On other platforms, install the
+## Build
+A Windows executable is available on the Releases page. On other platforms, install the
 .NET 8 SDK and run the following:
 
 ```sh
@@ -71,7 +71,8 @@ extractor path... [options]
 <tr>
   <td></td>
   <td><code>--tree</code></td>
-  <td>Prints the directory tree and exits. Can be combined with <code>--partial</code>, <code>--paths</code>, and <code>--all</code>.</td>
+  <td>Prints the directory tree and exits. Can be combined with <code>--deep</code>, <code>--partial</code>, 
+  <code>--paths</code>, and <code>--all</code>.</td>
 </tr>
 <tr>
   <td><code>-?</code>, <code>-h</code></td>
