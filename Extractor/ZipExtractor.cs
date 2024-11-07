@@ -78,6 +78,7 @@ namespace Extractor
 
                 try
                 {
+                    Console.Out.WriteLine(ReplaceControlChars($"Extracting {entry.FileName} ..."));
                     Extract(entry, destination);
                 }
                 catch (Exception ex)
