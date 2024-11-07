@@ -191,12 +191,6 @@ namespace Extractor
             }
         }
 
-        private void PrintExtractingMessage(string scsName, string archivePath)
-        {
-            var path = Combine(scsName, archivePath);
-            Console.Out.WriteLine($"Extracting {ReplaceControlChars(path)} ...");
-        }
-
         public override void PrintContentSummary()
         {
             var dirCount = Reader.Entries.Count(x => x.Value.IsDirectory);
