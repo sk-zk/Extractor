@@ -44,6 +44,11 @@ extractor path... [options]
   <td>Sets the output directory. Defaults to <code>./extracted</code>.</td>
 </tr>
 <tr>
+  <td></td>
+  <td><code>--list</code></td>
+  <td>Lists paths contained in the archive. Can be combined with <code>--deep</code>.</td>
+</tr>
+<tr>
   <td><code>-p</code></td>
   <td><code>--partial</code></td>
   <td>Limits extraction to the comma-separated list of files and/or directories specified. Examples:<br>
@@ -62,6 +67,11 @@ extractor path... [options]
   <td><code>-s</code></td>
   <td><code>--skip-existing</code></td>
   <td>Don't overwrite existing files.</td>
+</tr>
+<tr>
+  <td></td>
+  <td><code>--tree</code></td>
+  <td>Prints the directory tree and exits. Can be combined with <code>--partial</code>, <code>--paths</code>, and <code>--all</code>.</td>
 </tr>
 <tr>
   <td><code>-?</code>, <code>-h</code></td>
@@ -88,11 +98,6 @@ extractor path... [options]
 </tr>
 <tr>
   <td></td>
-  <td><code>--list</code></td>
-  <td>Lists paths contained in the archive. Can be combined with <code>--deep</code>.</td>
-</tr>
-<tr>
-  <td></td>
   <td><code>--list-entries</code></td>
   <td>Lists entries contained in the archive.</td>
 </tr>
@@ -112,11 +117,6 @@ extractor path... [options]
   <td><code>--table-at-end</code></td>
   <td>[v1 only] Ignores what the archive header says and reads the entry table from
   the end of the file.</td>
-</tr>
-<tr>
-  <td></td>
-  <td><code>--tree</code></td>
-  <td>Prints the directory tree and exits. Can be combined with <code>--partial</code>, <code>--paths</code>, and <code>--all</code>.</td>
 </tr>
 </table>
 
