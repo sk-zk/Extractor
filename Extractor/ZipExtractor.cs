@@ -29,7 +29,6 @@ namespace Extractor
 
         private int extracted;
         private int skipped;
-        private int empty;
         private int failed;
         private int renamed;
 
@@ -62,20 +61,18 @@ namespace Extractor
 
             extracted = 0;
             skipped = 0;
-            empty = 0;
             failed = 0;
             renamed = 0;
 
             foreach (var entry in Entries)
             {
-                if (!startPaths.Any(entry.FileName.StartsWith))
+                if (entry.FileName.EndsWith('/'))
                 {
                     continue;
                 }
 
-                if (entry.UncompressedSize == 0)
+                if (!startPaths.Any(entry.FileName.StartsWith))
                 {
-                    empty++;
                     continue;
                 }
 
@@ -186,7 +183,7 @@ namespace Extractor
         public override void PrintExtractionResult()
         {
             Console.WriteLine($"{extracted} extracted, {renamed} renamed, {skipped} skipped, " +
-                $"{empty} empty, {failed} failed");
+                $"{failed} failed");
             PrintRenameSummary(renamed);
         }
 
