@@ -41,6 +41,8 @@ namespace Extractor
         /// </summary>
         public bool PrintNotFoundMessage { get; set; } = true;
 
+        protected bool PrintExtractedFiles { get; set; } = false;
+
         /// <summary>
         /// The number of files which have been extracted successfully.
         /// </summary>
@@ -91,7 +93,14 @@ namespace Extractor
             {
                 Reader.Traverse(startPath,
                     (dir) => Console.WriteLine($"Extracting {ReplaceControlChars(dir)} ..."),
-                    (file) => ExtractFile(file, destination),
+                    (file) =>
+                    {
+                        if (PrintExtractedFiles)
+                        {
+                            Console.WriteLine($"Extracting {ReplaceControlChars(file)} ...");
+                        }
+                        ExtractFile(file, destination);
+                    },
                     (nonexistent) =>
                     {
                         if (nonexistent == "/")

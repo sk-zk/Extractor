@@ -39,6 +39,7 @@ namespace Extractor.Deep
         public HashFsDeepExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
             dumped = 0;
+            PrintExtractedFiles = true;
         }
 
         public override void Extract(string[] startPaths, string destination)

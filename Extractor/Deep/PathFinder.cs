@@ -230,7 +230,7 @@ namespace Extractor.Deep
                         {
                             #if DEBUG
                             Console.Error.WriteLine($"Unable to parse {ReplaceControlChars(file)}: " +
-                                $"{ex.GetType().Name}: {ex.Message}");
+                                $"{ex.GetType().Name}: {ex.Message.Trim()}");
                             #endif
                         }
                     },
@@ -312,7 +312,7 @@ namespace Extractor.Deep
                 {
                     #if DEBUG
                         Console.Error.WriteLine($"Unable to parse {filePath} (falling back to FindPathsInBlob): " +
-                            $"{ex.GetType().Name}: {ex.Message}");
+                            $"{ex.GetType().Name}: {ex.Message.Trim()}");
                     #endif
                     return FindPathsInBlob(fileBuffer);
                 }
