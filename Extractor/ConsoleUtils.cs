@@ -23,5 +23,13 @@ namespace Extractor
                     $"Make sure to update references to affected paths accordingly.");
             }
         }
+
+        public static void PrintExtractionMessage(string path, string scsName)
+        {
+            if (!path.StartsWith('/'))
+                path = $"/{path}";
+
+            Console.WriteLine($"Extracting {ReplaceControlChars($"{scsName}{path}")} ...");
+        }
     }
 }

@@ -89,15 +89,17 @@ namespace Extractor
                 Reader.Salt = Salt.Value;
             }
 
+            var scsName = Path.GetFileName(scsPath);    
+
             foreach (var startPath in startPaths)
             {
                 Reader.Traverse(startPath,
-                    (dir) => Console.WriteLine($"Extracting {ReplaceControlChars(dir)} ..."),
+                    (dir) => PrintExtractionMessage(dir, scsName),
                     (file) =>
                     {
                         if (PrintExtractedFiles)
                         {
-                            Console.WriteLine($"Extracting {ReplaceControlChars(file)} ...");
+                            PrintExtractionMessage(file, scsName);
                         }
                         ExtractFile(file, destination);
                     },

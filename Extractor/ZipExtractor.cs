@@ -51,7 +51,6 @@ namespace Extractor
         public override void Extract(string[] startPaths, string destination)
         {
             string scsName = Path.GetFileName(scsPath);
-            Console.Out.WriteLine($"Extracting {scsName} ...");
 
             startPaths = startPaths.Select(x => 
                 x.StartsWith('/') || x.StartsWith('\\') 
@@ -78,7 +77,7 @@ namespace Extractor
 
                 try
                 {
-                    Console.Out.WriteLine(ReplaceControlChars($"Extracting {entry.FileName} ..."));
+                    PrintExtractionMessage(entry.FileName, scsName);
                     Extract(entry, destination);
                 }
                 catch (Exception ex)
