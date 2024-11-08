@@ -369,7 +369,17 @@ namespace Extractor.Deep
         {
             HashSet<string> potentialPaths = [];
 
-            MatFile mat = MatFile.Load(Encoding.UTF8.GetString(fileBuffer));
+            MatFile mat;
+            try
+            {
+                mat = MatFile.Load(Encoding.UTF8.GetString(fileBuffer));
+            }
+            catch (Exception)
+            {
+                Debugger.Break();
+                throw;
+            }
+
             foreach (var texture in mat.Textures)
             {
                 if (texture.Attributes.TryGetValue("source", out var value)
@@ -543,12 +553,16 @@ namespace Extractor.Deep
 
         private void Add(string str, HashSet<string> potentialPaths)
         {
-            if (potentialPaths.Contains(str) || !IsNewPotentialPath(str))
+            if (!str.StartsWith('/'))
             {
-                return;
+                str = $"/{str}";
             }
-            potentialPaths.Add(str);
-            AddPathVariants(str, potentialPaths);
+
+            if (!potentialPaths.Contains(str) && IsNewPotentialPath(str))
+            {
+                potentialPaths.Add(str);
+                AddPathVariants(str, potentialPaths);
+            }
         }
 
         private void AddPathVariants(string str, HashSet<string> potentialPaths)
