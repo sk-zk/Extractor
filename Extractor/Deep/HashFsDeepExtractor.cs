@@ -36,9 +36,16 @@ namespace Extractor.Deep
         /// </summary>
         private int dumped;
 
+        /// <summary>
+        /// The number of undiscovered files which were skipped because they pointed to
+        /// the same offset as another entry.
+        /// </summary>
+        private int duplicate;
+
         public HashFsDeepExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
             dumped = 0;
+            duplicate = 0;
             PrintExtractedFiles = true;
         }
 
@@ -81,13 +88,21 @@ namespace Extractor.Deep
         private void DumpUnrecovered(string destination, IEnumerable<string> foundFiles)
         {
             var notRecovered = Reader.Entries.Values
-                            .Where(x => !x.IsDirectory)
+                            .Where(e => !e.IsDirectory)
                             .Except(foundFiles.Select(Reader.GetEntry));
+
+            HashSet<ulong> visitedOffsets = [];
 
             var outputDir = Path.Combine(destination, DumpDirectory);
 
             foreach (var entry in notRecovered)
             {
+                if (!visitedOffsets.Add(entry.Offset))
+                {
+                    duplicate++;
+                    continue;
+                }
+
                 var fileBuffer = Reader.Extract(entry, "")[0];
                 var fileType = FileTypeHelper.Infer(fileBuffer);
                 var extension = FileTypeHelper.FileTypeToExtension(fileType);
@@ -128,7 +143,7 @@ namespace Extractor.Deep
         public override void PrintExtractionResult()
         {
             Console.WriteLine($"{extracted} extracted ({renamed} renamed, {dumped} dumped), " +
-                $"{skipped} skipped, {failed} failed");
+                $"{skipped} skipped, {duplicate} junk, {failed} failed");
             PrintRenameSummary(renamed);
         }
 

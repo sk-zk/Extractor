@@ -136,12 +136,21 @@ namespace Extractor.Deep
         /// <returns></returns>
         private HashSet<string> FindPathsInUnvisited()
         {
+            HashSet<ulong> visitedOffsets = [];
             HashSet<string> potentialPaths = [];
 
             var unvisited = reader.Entries.Values.Except(visitedEntries);
             foreach (var entry in unvisited)
             {
                 visitedEntries.Add(entry);
+                // Some archives contain a large number of garbage entries all pointing
+                // to the same offset and claiming to be many MB in size.
+                // Let's not waste our time on those.
+                if (!visitedOffsets.Add(entry.Offset))
+                {
+                    continue;
+                }
+
                 if (entry.IsDirectory)
                 {
                     continue;
