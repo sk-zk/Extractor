@@ -23,5 +23,6 @@
         Sui,
         TgaMask,
         Tobj,
+        ZlibBlob,
     }
 }

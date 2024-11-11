@@ -28,6 +28,7 @@ namespace Extractor.Deep
             { FileType.SoundBankGuids, IsSoundBankGuidsFile },
             { FileType.TgaMask, IsTgaFile },
             { FileType.Tobj, IsTobjFile },
+            { FileType.ZlibBlob, IsZlibBlob },
             { FileType.SoundRef, IsSoundRefFile },
         };
 
@@ -92,6 +93,9 @@ namespace Extractor.Deep
 
         private static bool IsSoundRefFile(byte[] fileBuffer)
         {
+            if (fileBuffer.Length > 10000)
+                return false;
+
             var lines = Encoding.UTF8.GetString(fileBuffer)
                 .Trim(['\uFEFF', '\0'])
                 .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
@@ -196,6 +200,14 @@ namespace Extractor.Deep
         {
             return fileBuffer.Length > 4 &&
                 Encoding.ASCII.GetString(fileBuffer[0..4]) == "8BPS";
+        }
+
+        private static bool IsZlibBlob(byte[] fileBuffer)
+        {
+            return fileBuffer.Length > 2 && 
+                fileBuffer[0] == 0x78 && 
+                (fileBuffer[1] == 0xDA || fileBuffer[1] == 0x9C 
+                || fileBuffer[1] == 0x5E || fileBuffer[1] == 0x01);
         }
 
         public static FileType PathToFileType(string filePath)

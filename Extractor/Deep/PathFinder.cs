@@ -50,6 +50,7 @@ namespace Extractor.Deep
             FileType.SoundBankGuids,
             FileType.Sui, // handled by the including .sii files
             FileType.TgaMask,
+            FileType.ZlibBlob,
             ];
 
         /// <summary>
