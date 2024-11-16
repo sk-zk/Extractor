@@ -31,5 +31,12 @@ namespace Extractor
 
             Console.WriteLine($"Extracting {ReplaceControlChars($"{scsName}{path}")} ...");
         }
+
+        public static void PrintNoTopLevelError()
+        {
+            Console.Error.WriteLine("Top level directory is missing; " +
+                "use --deep to scan contents for paths before extraction " +
+                "or --partial to extract known paths");
+        }
     }
 }

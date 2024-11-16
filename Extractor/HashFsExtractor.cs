@@ -107,8 +107,7 @@ namespace Extractor
                     {
                         if (nonexistent == "/")
                         {
-                            Console.Error.WriteLine("Top level directory is missing; " +
-                                "try a partial extraction or use --raw to dump entries");
+                            PrintNoTopLevelError();
                         }
                         else if (PrintNotFoundMessage)
                         {
@@ -219,8 +218,7 @@ namespace Extractor
                     {
                         if (nonexistent == "/")
                         {
-                            Console.Error.WriteLine("Top level directory is missing; " +
-                                "try a partial extraction or use --raw to dump entries");
+                            PrintNoTopLevelError();
                         }
                         else if (PrintNotFoundMessage)
                         {
