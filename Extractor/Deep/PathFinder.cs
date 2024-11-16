@@ -220,6 +220,9 @@ namespace Extractor.Deep
             HashSet<string> potentialPaths = [];
             foreach (var path in inputPaths)
             {
+                if (visited.Contains(path))
+                    continue;
+
                 reader.Traverse(path,
                     (dir) => 
                     {
