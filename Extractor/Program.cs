@@ -106,7 +106,7 @@ namespace Extractor
                     x => { forceEntryTableAtEnd = true; } },
                 { "tree",
                     "Prints the directory tree and exits. Can be combined with " +
-                    "-deep, --partial, --paths, and --all.",
+                    "-deep, --partial, --paths,\nand --all.",
                     x => { tree = true; } },
                 { "?|h|help",
                     $"Prints this message and exits.",
