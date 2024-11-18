@@ -497,6 +497,11 @@ namespace Extractor.Deep
                     Debugger.Break();
                 throw;
             }
+            catch (IndexOutOfRangeException)
+            {
+                Debugger.Break();
+                throw;
+            }
         }
 
         private HashSet<string> FindPathsInSii(SiiFile sii)
@@ -553,7 +558,7 @@ namespace Extractor.Deep
                 {
                     if (attrib.Key == "sounds")
                     {
-                        var soundPath = str.Split('|')[1];
+                        var soundPath = str.Contains('|') ? str.Split('|')[1] : str;
                         Add(soundPath, potentialPaths);
                     }
                     else
