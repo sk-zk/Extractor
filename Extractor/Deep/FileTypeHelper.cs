@@ -13,9 +13,13 @@ namespace Extractor.Deep
         private static readonly Dictionary<FileType, Func<byte[], bool>> FileTypeCheckers = new()
         {
             { FileType.Dds, IsDdsFile },
+            { FileType.OpenExr, IsExrFile },
+            { FileType.Fbx, IsFbxFile },
             { FileType.Font, IsFontFile },
             { FileType.Jpeg, IsJpegFile },
             { FileType.Material, IsMatFile },
+            { FileType.MayaFile, IsMayaFile },
+            { FileType.Ogg, IsOggFile },
             { FileType.Pdn, IsPdnFile },
             { FileType.Pmg, IsPmgFile },
             { FileType.Pmc, IsPmcFile },
@@ -23,11 +27,14 @@ namespace Extractor.Deep
             { FileType.Pma, IsPmaFile },
             { FileType.Png, IsPngFile },
             { FileType.Psd, IsPsdFile },
+            { FileType.Ppd, IsPpdFile },
+            { FileType.Rar, IsRarFile },
             { FileType.Sii, IsSiiFile },
             { FileType.SoundBank, IsSoundBankFile },
             { FileType.SoundBankGuids, IsSoundBankGuidsFile },
             { FileType.TgaMask, IsTgaFile },
             { FileType.Tobj, IsTobjFile },
+            { FileType.GimpXcf, IsXcfFile },
             { FileType.ZlibBlob, IsZlibBlob },
             { FileType.SoundRef, IsSoundRefFile },
         };
@@ -210,6 +217,54 @@ namespace Extractor.Deep
                 || fileBuffer[1] == 0x5E || fileBuffer[1] == 0x01);
         }
 
+        private static bool IsPpdFile(byte[] fileBuffer)
+        {
+            if (fileBuffer.Length < 4)
+                return false;
+
+            var version = BitConverter.ToInt32(fileBuffer.AsSpan()[0..4]);
+            return version is >= 0x15 and <= 0x18;
+        }
+
+        private static bool IsMayaFile(byte[] fileBuffer)
+        {
+            return fileBuffer.Length > 4 &&
+                Encoding.ASCII.GetString(fileBuffer[0..4]) == "FOR4";
+        }
+
+        private static bool IsOggFile(byte[] fileBuffer)
+        {
+            return fileBuffer.Length > 4 &&
+                Encoding.ASCII.GetString(fileBuffer[0..4]) == "OggS";
+        }
+        
+        private static bool IsRarFile(byte[] fileBuffer)
+        {
+            return fileBuffer.Length > 4 &&
+                Encoding.ASCII.GetString(fileBuffer[0..4]) == "Rar!";
+        }
+        
+        private static bool IsFbxFile(byte[] fileBuffer)
+        {
+            return fileBuffer.Length > 18 &&
+                Encoding.ASCII.GetString(fileBuffer[0..18]) == "Kaydara FBX Binary";
+        }
+
+        private static bool IsXcfFile(byte[] fileBuffer)
+        {
+            return fileBuffer.Length > 13 &&
+                Encoding.ASCII.GetString(fileBuffer[0..13]) == "gimp xcf file";
+        }
+
+        private static bool IsExrFile(byte[] fileBuffer)
+        {
+            if (fileBuffer.Length < 4)
+                return false;
+
+            byte[] magic = [0x76, 0x2F, 0x31, 0x01];
+            return magic.SequenceEqual(fileBuffer[0..4]);
+        }
+
         public static FileType PathToFileType(string filePath)
         {
             var extension = Path.GetExtension(filePath).ToLowerInvariant();
@@ -222,10 +277,17 @@ namespace Extractor.Deep
 
         public static FileType ExtensionToFileType(string extension)
         {
+            // Maya junk; presumably autosaves? I've never used it
+            if (extension.StartsWith(".maa"))
+                return FileType.MayaAsciiScene;
+
             return extension switch
             {
                 ".bank" => FileType.SoundBank,
+                ".bmp" => FileType.Bmp,
                 ".dds" => FileType.Dds,
+                ".exr" => FileType.OpenExr,
+                ".fbx" => FileType.Fbx,
                 ".font" => FileType.Font,
                 ".guids" => FileType.SoundBankGuids,
                 ".bank.guids" => FileType.SoundBankGuids,
@@ -233,6 +295,11 @@ namespace Extractor.Deep
                 ".jpg" => FileType.Jpeg,
                 ".mask" => FileType.TgaMask,
                 ".mat" => FileType.Material,
+                ".ma" => FileType.MayaAsciiScene,
+                ".mb" => FileType.MayaBinaryScene,
+                ".oga" => FileType.Ogg,
+                ".ogg" => FileType.Ogg,
+                ".ogv" => FileType.Ogg,
                 ".pdn" => FileType.Pdn,
                 ".pma" => FileType.Pma,
                 ".pmc" => FileType.Pmc,
@@ -241,10 +308,27 @@ namespace Extractor.Deep
                 ".png" => FileType.Png,
                 ".ppd" => FileType.Ppd,
                 ".psd" => FileType.Psd,
+                ".rar" => FileType.Rar,
+                ".rpl" => FileType.Replay,
+                ".sbs" => FileType.SubstanceDesignerSource,
+                ".sct" => FileType.Sct,
                 ".sii" => FileType.Sii,
+                ".xcf" => FileType.GimpXcf,
+                ".xrc" => FileType.WxWidgetsResource,
                 ".soundref" => FileType.SoundRef,
+                ".swatch" => FileType.MayaSwatch,
+                ".swatches" => FileType.MayaSwatches,
                 ".sui" => FileType.Sui,
+                ".svg" => FileType.Svg,
                 ".tobj" => FileType.Tobj,
+                ".mbd" => FileType.MapRoot,
+                ".base" => FileType.MapBase,
+                ".aux" => FileType.MapAux,
+                ".snd" => FileType.MapSnd,
+                ".data" => FileType.MapData,
+                ".desc" => FileType.MapDesc,
+                ".layer" => FileType.MapLayer,
+                ".sbd" => FileType.MapSelection,
                 _ => FileType.Unknown,
             };
         }
@@ -254,13 +338,19 @@ namespace Extractor.Deep
             return fileType switch
             {
                 FileType.SoundBank => ".bank",
+                FileType.Bmp => ".bmp",
                 FileType.Dds => ".dds",
+                FileType.OpenExr => ".exr",
+                FileType.Fbx => ".fbx",
                 FileType.Font => ".font",
                 FileType.Ini => ".ini",
                 FileType.SoundBankGuids => ".bank.guids",
                 FileType.Jpeg => ".jpg",
                 FileType.TgaMask => ".mask",
                 FileType.Material => ".mat",
+                FileType.MayaAsciiScene => ".ma",
+                FileType.MayaBinaryScene => ".mb",
+                FileType.Ogg => ".ogg",
                 FileType.Pdn => ".pdn",
                 FileType.Pma => ".pma",
                 FileType.Pmc => ".pmc",
@@ -269,10 +359,27 @@ namespace Extractor.Deep
                 FileType.Png => ".png",
                 FileType.Ppd => ".ppd",
                 FileType.Psd => ".psd",
+                FileType.Rar => ".rar",
+                FileType.Replay => ".rpl",
+                FileType.SubstanceDesignerSource => ".sbs",
+                FileType.Sct => ".sct",
                 FileType.Sii => ".sii",
                 FileType.SoundRef => ".soundref",
                 FileType.Sui => ".sui",
+                FileType.Svg => ".svg",
+                FileType.MayaSwatch => ".swatch",
+                FileType.MayaSwatches => ".swatches",
                 FileType.Tobj => ".tobj",
+                FileType.GimpXcf => ".xcf",
+                FileType.WxWidgetsResource => ".xrc",
+                FileType.MapRoot => ".mbd",
+                FileType.MapBase => ".base",
+                FileType.MapAux => ".aux",
+                FileType.MapSnd => ".snd",
+                FileType.MapData => ".data",
+                FileType.MapDesc => ".desc",
+                FileType.MapLayer => ".layer",
+                FileType.MapSelection => ".sbd",
                 _ => string.Empty,
             };
         }
