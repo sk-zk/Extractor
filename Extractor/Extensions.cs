@@ -47,11 +47,6 @@ namespace Extractor
                     }
                     foreach (var file in content.Files)
                     {
-                        var entry = reader.GetEntry(file);
-                        if (entry.IsDirectory)
-                        {
-                            Debugger.Break();
-                        }
                         reader.Traverse(file, onVisitDirectory, onVisitFile, onVisitNonexistent);
                     }
                     break;
