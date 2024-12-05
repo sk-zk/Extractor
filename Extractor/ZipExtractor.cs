@@ -153,18 +153,11 @@ namespace Extractor
             {
                 case CompressionMethod.Deflate:
                     var ds = new DeflateStream(reader.BaseStream, CompressionMode.Decompress);
-                    ds.CopyTo(outputStream);
+                    CopyStream(ds, outputStream, entry.UncompressedSize);
                     break;
 
                 case CompressionMethod.None:
-                    const int bufferSize = 4096;
-                    var buffer = new byte[bufferSize];
-                    for (int i = 0; i < entry.CompressedSize; i += bufferSize)
-                    {
-                        int blockSize = Math.Min(bufferSize, (int)entry.CompressedSize - i);
-                        reader.BaseStream.Read(buffer, 0, blockSize);
-                        outputStream.Write(buffer, 0, blockSize);
-                    }
+                    CopyStream(reader.BaseStream, outputStream, entry.UncompressedSize);
                     break;
 
                 default:
@@ -172,6 +165,17 @@ namespace Extractor
                         $"Unsupported compression method {(int)entry.CompressionMethod}.");
             }
             extracted++;
+        }
+
+        protected static void CopyStream(Stream input, Stream output, long bytes)
+        {
+            var buffer = new byte[32768];
+            int read;
+            while (bytes > 0 && (read = input.Read(buffer, 0, Math.Min(buffer.Length, (int)bytes))) > 0)
+            {
+                output.Write(buffer, 0, read);
+                bytes -= read;
+            }
         }
 
         public override void PrintContentSummary()
