@@ -12,6 +12,7 @@ namespace Extractor.Deep
     {
         private static readonly Dictionary<FileType, Func<byte[], bool>> FileTypeCheckers = new()
         {
+            { FileType.Bmp, IsBmpFile },
             { FileType.Dds, IsDdsFile },
             { FileType.OpenExr, IsExrFile },
             { FileType.Fbx, IsFbxFile },
@@ -263,6 +264,14 @@ namespace Extractor.Deep
 
             byte[] magic = [0x76, 0x2F, 0x31, 0x01];
             return magic.SequenceEqual(fileBuffer[0..4]);
+        }
+
+        private static bool IsBmpFile(byte[] fileBuffer)
+        {
+            if (fileBuffer.Length < 2)
+                return false;
+
+            return fileBuffer[0] == 0x42 && fileBuffer[1] == 0x4D;
         }
 
         public static FileType PathToFileType(string filePath)
