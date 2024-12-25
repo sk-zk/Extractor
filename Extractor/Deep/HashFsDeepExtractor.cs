@@ -10,6 +10,8 @@ using static Extractor.PathUtils;
 using static Extractor.ConsoleUtils;
 using TruckLib.Sii;
 using System.Data;
+using System.Reflection.PortableExecutable;
+using TruckLib.HashFs;
 
 namespace Extractor.Deep
 {
@@ -36,22 +38,17 @@ namespace Extractor.Deep
         /// </summary>
         private int dumped;
 
-        /// <summary>
-        /// The number of undiscovered files which were skipped because they pointed to
-        /// the same offset as another entry.
-        /// </summary>
-        private int duplicate;
-
         public HashFsDeepExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
             dumped = 0;
-            duplicate = 0;
             PrintExtractedFiles = true;
         }
 
         public override void Extract(string[] startPaths, string destination)
         {
             Console.WriteLine("Searching for paths ...");
+
+            DeleteJunkEntries();
 
             var finder = new PathFinder(Reader);
             finder.Find();
@@ -130,6 +127,8 @@ namespace Extractor.Deep
 
         public override void PrintPaths(string[] startPaths)
         {
+            DeleteJunkEntries();
+
             var finder = new PathFinder(Reader);
             finder.Find();
             var foundFiles = finder.FoundFiles.Order().ToArray();
@@ -149,6 +148,8 @@ namespace Extractor.Deep
 
         public override List<Tree.Directory> GetDirectoryTree(string[] startPaths)
         {
+            DeleteJunkEntries();
+
             var finder = new PathFinder(Reader);
             finder.Find();
 

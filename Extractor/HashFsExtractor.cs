@@ -70,6 +70,17 @@ namespace Extractor
         /// </summary>
         protected int renamed;
 
+        /// <summary>
+        /// The number of files which were skipped because they pointed to
+        /// the same offset as another entry.
+        /// </summary>
+        protected int duplicate;
+
+        /// <summary>
+        /// Hashes of junk entries identified by DeleteJunkEntries.
+        /// </summary>
+        protected HashSet<ulong> junkHashes = new();
+
         public HashFsExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
             Reader = HashFsReader.Open(scsPath, ForceEntryTableAtEnd);
@@ -79,6 +90,7 @@ namespace Extractor
             failed = 0;
             notFound = 0;
             renamed = 0;
+            duplicate = 0;
         }
 
         /// <inheritdoc/>
@@ -88,6 +100,8 @@ namespace Extractor
             {
                 Reader.Salt = Salt.Value;
             }
+
+            DeleteJunkEntries();
 
             var scsName = Path.GetFileName(scsPath);    
 
@@ -109,7 +123,8 @@ namespace Extractor
                         {
                             PrintNoTopLevelError();
                         }
-                        else if (PrintNotFoundMessage)
+                        else if (PrintNotFoundMessage 
+                            && !junkHashes.Contains(Reader.HashPath(nonexistent)))
                         {
                             Console.Error.WriteLine($"Path {ReplaceControlChars(nonexistent)} " +
                                 $"was not found");
@@ -192,6 +207,26 @@ namespace Extractor
             }
         }
 
+        protected void DeleteJunkEntries()
+        {
+            var visitedOffsets = new Dictionary<ulong, IEntry>();
+            var junk = new HashSet<ulong>();
+            foreach (var (hash, entry) in Reader.Entries)
+            {
+                if (!visitedOffsets.TryAdd(entry.Offset, entry))
+                {
+                    junk.Add(hash);
+                    junk.Add(visitedOffsets[entry.Offset].Hash);
+                }
+            }
+            foreach (var hash in junk)
+            {
+                Reader.Entries.Remove(hash);
+                junkHashes.Add(hash);
+                duplicate++;
+            }
+        }
+
         public override void PrintContentSummary()
         {
             var dirCount = Reader.Entries.Count(x => x.Value.IsDirectory);
@@ -203,12 +238,14 @@ namespace Extractor
         public override void PrintExtractionResult()
         {
             Console.WriteLine($"{extracted} extracted ({renamed} renamed), {skipped} skipped, " +
-                $"{notFound} not found, {failed} failed");
+                $"{notFound} not found, {duplicate} junk, {failed} failed");
             PrintRenameSummary(renamed);
         }
 
         public override void PrintPaths(string[] startPaths)
         {
+            DeleteJunkEntries();
+
             foreach (var startPath in startPaths)
             {
                 Reader.Traverse(startPath,
@@ -220,7 +257,8 @@ namespace Extractor
                         {
                             PrintNoTopLevelError();
                         }
-                        else if (PrintNotFoundMessage)
+                        else if (PrintNotFoundMessage
+                                && !junkHashes.Contains(Reader.HashPath(nonexistent)))
                         {
                             Console.Error.WriteLine($"Path {ReplaceControlChars(nonexistent)} " +
                                 $"was not found");
@@ -231,6 +269,8 @@ namespace Extractor
 
         public override List<Tree.Directory> GetDirectoryTree(string[] startPaths)
         {
+            DeleteJunkEntries();
+
             var trees = startPaths
                 .Select(startPath => GetDirectoryTree(startPath))
                 .ToList();
@@ -258,7 +298,13 @@ namespace Extractor
                 }
                 dir.Subdirectories.Add(Path.GetFileName(subdir), GetDirectoryTree(subdir));
             }
-            dir.Files = content.Files;
+            foreach (var file in content.Files)
+            {
+                if (!junkHashes.Contains(Reader.HashPath(file)))
+                {
+                    dir.Files.Add(file);
+                }
+            }
             return dir;
         }
 

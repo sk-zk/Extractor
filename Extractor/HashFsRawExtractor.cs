@@ -9,17 +9,14 @@ namespace Extractor
 {
     public class HashFsRawExtractor : HashFsExtractor
     {
-        /// <summary>
-        /// The number of entries pointing to the same data which were skipped.
-        /// </summary>
-        private int duplicate = 0;
-
         public HashFsRawExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
         }
 
         public override void Extract(string[] startPaths, string destination)
         {
+            DeleteJunkEntries();
+
             var scsName = Path.GetFileName(scsPath);
             Console.Out.WriteLine($"Extracting {scsName} ...");
             var outputDir = Path.Combine(destination, scsName);
@@ -30,21 +27,8 @@ namespace Extractor
                 Reader.Salt = Salt.Value;
             }
 
-            extracted = 0;
-            skipped = 0;
-            failed = 0;
-
-            var seenOffsets = new HashSet<ulong>();
-
             foreach (var (key, entry) in Reader.Entries)
             {
-                if (seenOffsets.Contains(entry.Offset))
-                {
-                    duplicate++;
-                    continue;
-                }
-                seenOffsets.Add(entry.Offset);
-
                 // subdirectory listings are useless because the file names are relative
                 if (entry.IsDirectory) continue;
 
@@ -55,7 +39,7 @@ namespace Extractor
 
         public override void PrintExtractionResult()
         {
-            Console.WriteLine($"{extracted} extracted, {skipped} skipped, {duplicate} duplicates, {failed} failed");
+            Console.WriteLine($"{extracted} extracted, {skipped} skipped, {duplicate} junk, {failed} failed");
         }
 
         public override void PrintPaths(string[] startPaths)
