@@ -101,9 +101,22 @@ namespace Extractor
                 Reader.Salt = Salt.Value;
             }
 
+            if (startPaths.Length == 1 && startPaths[0] == "/" 
+                && Reader.EntryExists("/") == EntryType.Directory)
+            {
+                var listing = Reader.GetDirectoryListing("/");
+                if (listing.Subdirectories.Count == 0 && listing.Files.Count == 0)
+                {
+                    Console.Error.WriteLine("Top level directory listing is empty; " +
+                        "use --deep to scan contents for paths before extraction " +
+                        "or --partial to extract known paths");
+                    return;
+                }
+            }
+
             DeleteJunkEntries();
 
-            var scsName = Path.GetFileName(scsPath);    
+            var scsName = Path.GetFileName(scsPath);
 
             foreach (var startPath in startPaths)
             {
