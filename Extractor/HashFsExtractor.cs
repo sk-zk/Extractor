@@ -79,7 +79,7 @@ namespace Extractor
         /// <summary>
         /// Hashes of junk entries identified by DeleteJunkEntries.
         /// </summary>
-        protected HashSet<ulong> junkHashes = new();
+        protected HashSet<ulong> junkHashes = [];
 
         public HashFsExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
