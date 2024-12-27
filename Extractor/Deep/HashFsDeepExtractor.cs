@@ -50,7 +50,7 @@ namespace Extractor.Deep
 
             DeleteJunkEntries();
 
-            var finder = new PathFinder(Reader);
+            var finder = new PathFinder(Reader, junkEntries);
             finder.Find();
 
             bool startPathsSet = !startPaths.SequenceEqual(["/"]);
@@ -69,7 +69,11 @@ namespace Extractor.Deep
                 foundDecoyFiles = foundDecoyFiles
                     .Where(f => startPaths.Any(f.StartsWith)).ToArray();
             }
-            base.Extract(foundDecoyFiles, Path.Combine(destination, DecoyDirectory));
+            var decoyDestination = Path.Combine(destination, DecoyDirectory);
+            foreach (var decoyFile in foundDecoyFiles)
+            {
+                base.ExtractFile(decoyFile, decoyDestination);
+            }
 
             if (!startPathsSet)
             {
@@ -86,7 +90,15 @@ namespace Extractor.Deep
         {
             var notRecovered = Reader.Entries.Values
                             .Where(e => !e.IsDirectory)
-                            .Except(foundFiles.Select(Reader.GetEntry));
+                            .Except(foundFiles.Select(f =>
+                            {
+                                if (Reader.EntryExists(f) != EntryType.NotFound)
+                                {
+                                    return Reader.GetEntry(f);
+                                }
+                                junkEntries.TryGetValue(Reader.HashPath(f), out var retval);
+                                return retval;
+                            }));
 
             HashSet<ulong> visitedOffsets = [];
 
@@ -112,7 +124,7 @@ namespace Extractor.Deep
                 }
                 else
                 {
-                    ExtractToFile(fileName, outputPath, () =>
+                    ExtractToDisk(fileName, outputPath, () =>
                     {
                         if (fileType == FileType.Sii)
                         {

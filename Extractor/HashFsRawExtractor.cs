@@ -33,7 +33,7 @@ namespace Extractor
                 if (entry.IsDirectory) continue;
 
                 var outputPath = Path.Combine(outputDir, key.ToString("x"));
-                ExtractToFile(key.ToString("x"), outputPath, () => Reader.ExtractToFile(entry, "", outputPath));
+                ExtractToDisk(key.ToString("x"), outputPath, () => Reader.ExtractToFile(entry, "", outputPath));
             }
         }
 

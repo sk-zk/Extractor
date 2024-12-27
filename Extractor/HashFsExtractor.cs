@@ -77,9 +77,9 @@ namespace Extractor
         protected int duplicate;
 
         /// <summary>
-        /// Hashes of junk entries identified by DeleteJunkEntries.
+        /// Junk entries identified by DeleteJunkEntries.
         /// </summary>
-        protected HashSet<ulong> junkHashes = [];
+        protected Dictionary<ulong, IEntry> junkEntries = [];
 
         public HashFsExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
@@ -91,16 +91,18 @@ namespace Extractor
             notFound = 0;
             renamed = 0;
             duplicate = 0;
-        }
 
-        /// <inheritdoc/>
-        public override void Extract(string[] startPaths, string destination)
-        {
             if (Salt is not null)
             {
                 Reader.Salt = Salt.Value;
             }
 
+            DeleteJunkEntries();
+        }
+
+        /// <inheritdoc/>
+        public override void Extract(string[] startPaths, string destination)
+        {
             if (startPaths.Length == 1 && startPaths[0] == "/" 
                 && Reader.EntryExists("/") == EntryType.Directory)
             {
@@ -113,8 +115,6 @@ namespace Extractor
                     return;
                 }
             }
-
-            DeleteJunkEntries();
 
             var scsName = Path.GetFileName(scsPath);
 
@@ -136,8 +136,7 @@ namespace Extractor
                         {
                             PrintNoTopLevelError();
                         }
-                        else if (PrintNotFoundMessage 
-                            && !junkHashes.Contains(Reader.HashPath(nonexistent)))
+                        else if (PrintNotFoundMessage)
                         {
                             Console.Error.WriteLine($"Path {ReplaceControlChars(nonexistent)} " +
                                 $"was not found");
@@ -147,7 +146,7 @@ namespace Extractor
             }
         }
 
-        private void ExtractFile(string file, string destination)
+        protected void ExtractFile(string file, string destination)
         {
             // The directory listing of core.scs only lists itself, but as a file, breaking everything
             if (file == "/") return;
@@ -160,11 +159,11 @@ namespace Extractor
                 PrintRenameWarning(file, sanitized);
                 renamed++;
             }
-            ExtractToFile(file, outputPath, () => ExtractToFileInner(file, outputPath));
+            ExtractToDisk(file, outputPath, () => ExtractToDiskInner(file, outputPath));
         }
 
-        protected void ExtractToFile(string displayedPath, string outputPath,
-            Action extractToFileCall)
+        protected void ExtractToDisk(string displayedPath, string outputPath,
+            Action innerCall)
         {
             if (!Overwrite && File.Exists(outputPath))
             {
@@ -177,7 +176,7 @@ namespace Extractor
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-                extractToFileCall();
+                innerCall();
                 extracted++;
             }
             catch (InvalidDataException idex)
@@ -206,36 +205,55 @@ namespace Extractor
             }
         }
 
-        private void ExtractToFileInner(string file, string outputPath)
+        private void ExtractToDiskInner(string file, string outputPath, 
+            bool allowExtractingJunk = true)
         {
+            IEntry entry;
+            if (Reader.EntryExists(file) != EntryType.NotFound)
+            {
+                entry = Reader.GetEntry(file);
+            }
+            else if (allowExtractingJunk)
+            {
+                var hash = Reader.HashPath(file);
+                if (!junkEntries.TryGetValue(hash, out entry))
+                {
+                    throw new FileNotFoundException();
+                }
+            }
+            else
+            {
+                throw new FileNotFoundException();
+            }
+
             if (Path.GetExtension(file) == ".sii")
             {
-                var sii = Reader.Extract(file)[0];
+                var sii = Reader.Extract(entry, file)[0];
                 sii = SiiFile.Decode(sii);
                 File.WriteAllBytes(outputPath, sii);
             }
             else
             {
-                Reader.ExtractToFile(file, outputPath);
+                Reader.ExtractToFile(entry, file, outputPath);
             }
         }
 
         protected void DeleteJunkEntries()
         {
             var visitedOffsets = new Dictionary<ulong, IEntry>();
-            var junk = new HashSet<ulong>();
+            var junk = new Dictionary<ulong, IEntry>();
             foreach (var (hash, entry) in Reader.Entries)
             {
                 if (!visitedOffsets.TryAdd(entry.Offset, entry))
                 {
-                    junk.Add(hash);
-                    junk.Add(visitedOffsets[entry.Offset].Hash);
+                    junk.TryAdd(hash, entry);
+                    junk.TryAdd(visitedOffsets[entry.Offset].Hash, entry);
                 }
             }
-            foreach (var hash in junk)
+            foreach (var (hash, entry) in junk)
             {
                 Reader.Entries.Remove(hash);
-                junkHashes.Add(hash);
+                junkEntries.Add(hash, entry);
                 duplicate++;
             }
         }
@@ -270,8 +288,7 @@ namespace Extractor
                         {
                             PrintNoTopLevelError();
                         }
-                        else if (PrintNotFoundMessage
-                                && !junkHashes.Contains(Reader.HashPath(nonexistent)))
+                        else if (PrintNotFoundMessage)
                         {
                             Console.Error.WriteLine($"Path {ReplaceControlChars(nonexistent)} " +
                                 $"was not found");
@@ -313,7 +330,7 @@ namespace Extractor
             }
             foreach (var file in content.Files)
             {
-                if (!junkHashes.Contains(Reader.HashPath(file)))
+                if (!junkEntries.ContainsKey(Reader.HashPath(file)))
                 {
                     dir.Files.Add(file);
                 }

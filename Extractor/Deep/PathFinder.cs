@@ -103,6 +103,11 @@ namespace Extractor.Deep
         private HashSet<IEntry> visitedEntries;
 
         /// <summary>
+        /// Junk entries identified by DeleteJunkEntries.
+        /// </summary>
+        private Dictionary<ulong, IEntry> junkEntries;
+
+        /// <summary>
         /// Directories discovered during the first phase which might contain tobj files.
         /// This is used to find the absolute path of tobj files that are referenced in 
         /// mat files for which the mat path was not found and the tobj is referenced as
@@ -110,9 +115,10 @@ namespace Extractor.Deep
         /// </summary>
         private HashSet<string> dirsToSearchForRelativeTobj;
 
-        public PathFinder(IHashFsReader reader)
+        public PathFinder(IHashFsReader reader, Dictionary<ulong, IEntry> junkEntries = null)
         {
             this.reader = reader;
+            this.junkEntries = junkEntries;
         }
 
         /// <summary>
@@ -220,12 +226,19 @@ namespace Extractor.Deep
             foreach (var path in FoundFiles)
             {
                 var cleaned = RemoveNonAsciiOrInvalidChars(path);
-                if (cleaned != path && reader.FileExists(cleaned))
+                if (cleaned != path)
                 {
-                    var entry = reader.GetEntry(cleaned);
-                    visited.Add(cleaned);
-                    visitedEntries.Add(entry);
-                    decoyPaths.Add(cleaned);
+                    if (reader.FileExists(cleaned))
+                    {
+                        var entry = reader.GetEntry(cleaned);
+                        visited.Add(cleaned);
+                        visitedEntries.Add(entry);
+                        decoyPaths.Add(cleaned);
+                    }
+                    else if (junkEntries.ContainsKey(reader.HashPath(cleaned)))
+                    {
+                        decoyPaths.Add(cleaned);
+                    }
                 }
             }
 
