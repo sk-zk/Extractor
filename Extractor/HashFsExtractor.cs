@@ -81,6 +81,8 @@ namespace Extractor
         /// </summary>
         protected Dictionary<ulong, IEntry> junkEntries = [];
 
+        private bool hasRemovedJunk;
+
         public HashFsExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
             Reader = HashFsReader.Open(scsPath, ForceEntryTableAtEnd);
@@ -96,13 +98,13 @@ namespace Extractor
             {
                 Reader.Salt = Salt.Value;
             }
-
-            DeleteJunkEntries();
         }
 
         /// <inheritdoc/>
         public override void Extract(string[] startPaths, string destination)
         {
+            DeleteJunkEntries();
+
             if (startPaths.Length == 1 && startPaths[0] == "/" 
                 && Reader.EntryExists("/") == EntryType.Directory)
             {
@@ -240,6 +242,9 @@ namespace Extractor
 
         protected void DeleteJunkEntries()
         {
+            if (hasRemovedJunk)
+                return;
+
             var visitedOffsets = new Dictionary<ulong, IEntry>();
             var junk = new Dictionary<ulong, IEntry>();
             foreach (var (hash, entry) in Reader.Entries)
@@ -256,6 +261,8 @@ namespace Extractor
                 junkEntries.Add(hash, entry);
                 duplicate++;
             }
+
+            hasRemovedJunk = true;
         }
 
         public override void PrintContentSummary()
