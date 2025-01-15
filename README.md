@@ -111,7 +111,7 @@ extractor path... [options]
 <tr>
   <td></td>
   <td><code>--salt</code></td>
-  <td>Ignores the salt specified the archive header and uses the given one instead.</td>
+  <td>Ignores the salt specified in the archive header and uses the given one instead.</td>
 </tr>
 <tr>
   <td></td>
