@@ -268,14 +268,14 @@ namespace Extractor
         public override void PrintContentSummary()
         {
             var dirCount = Reader.Entries.Count(x => x.Value.IsDirectory);
-            Console.WriteLine($"Opened {Path.GetFileName(scsPath)}: " +
+            Console.Error.WriteLine($"Opened {Path.GetFileName(scsPath)}: " +
                 $"HashFS v{Reader.Version} archive; {Reader.Entries.Count} entries " +
                 $"({Reader.Entries.Count - dirCount} files, {dirCount} directory listings)");
         }
 
         public override void PrintExtractionResult()
         {
-            Console.WriteLine($"{extracted} extracted ({renamed} renamed), {skipped} skipped, " +
+            Console.Error.WriteLine($"{extracted} extracted ({renamed} renamed), {skipped} skipped, " +
                 $"{notFound} not found, {duplicate} junk, {failed} failed");
             PrintRenameSummary(renamed);
         }

@@ -180,13 +180,13 @@ namespace Extractor
 
         public override void PrintContentSummary()
         {
-            Console.WriteLine($"Opened {Path.GetFileName(scsPath)}: " +
+            Console.Error.WriteLine($"Opened {Path.GetFileName(scsPath)}: " +
                 $"ZIP archive; {Entries.Count} entries");
         }
 
         public override void PrintExtractionResult()
         {
-            Console.WriteLine($"{extracted} extracted, {renamed} renamed, {skipped} skipped, " +
+            Console.Error.WriteLine($"{extracted} extracted, {renamed} renamed, {skipped} skipped, " +
                 $"{failed} failed");
             PrintRenameSummary(renamed);
         }
