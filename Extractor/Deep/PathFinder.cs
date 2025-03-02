@@ -193,6 +193,15 @@ namespace Extractor.Deep
                 var fileBuffer = reader.Extract(entry, "")[0];
 
                 var type = FileTypeHelper.Infer(fileBuffer);
+                if (type == FileType.Material)
+                {
+                    // The file path of automats is derived from the CityHash64 of its content,
+                    // so we add this automat path to the set of paths to check
+                    var contentHash = CityHash.CityHash64(fileBuffer, (ulong)fileBuffer.Length);
+                    var contentHashStr = contentHash.ToString("x16");
+                    var automatPath = $"/automat/{contentHashStr[..2]}/{contentHashStr}.mat";
+                    potentialPaths.Add(automatPath);
+                }
                 try
                 {
                     var paths = FindPathsInFile(null, fileBuffer, type);
