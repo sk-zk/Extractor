@@ -410,7 +410,12 @@ namespace Extractor.Deep
             var matches = Regex.Matches(Encoding.UTF8.GetString(fileBuffer), @"image:(.*?),");
             foreach (Match match in matches)
             {
-                potentialPaths.Add(match.Groups[1].Value);
+                var path = match.Groups[1].Value;
+                potentialPaths.Add(path);
+                if (path.EndsWith(".mat"))
+                {
+                    potentialPaths.Add(Path.ChangeExtension(path, ".font"));
+                }
             }
 
             return potentialPaths;
