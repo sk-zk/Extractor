@@ -7,12 +7,13 @@ using Mono.Options;
 using System.Diagnostics;
 using static Extractor.PathUtils;
 using Extractor.Deep;
+using TruckLib.HashFs;
 
 namespace Extractor
 {
     class Program
     {
-        const string Version = "2024-12-27";
+        const string Version = "2025-03-03";
 
         static bool launchedByExplorer = false;
         static string destination = "./extracted";
