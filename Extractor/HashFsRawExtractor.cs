@@ -42,7 +42,7 @@ namespace Extractor
             Console.WriteLine($"{extracted} extracted, {skipped} skipped, {duplicate} junk, {failed} failed");
         }
 
-        public override void PrintPaths(string[] startPaths)
+        public override void PrintPaths(string[] startPaths, bool includeAll)
         {
             Console.WriteLine("--list and --raw cannot be combined.");
         }

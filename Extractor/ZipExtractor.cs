@@ -286,7 +286,7 @@ namespace Extractor
             return offset;
         }
 
-        public override void PrintPaths(string[] startPaths)
+        public override void PrintPaths(string[] startPaths, bool includeAll)
         {
             foreach (var entry in Entries)
             {

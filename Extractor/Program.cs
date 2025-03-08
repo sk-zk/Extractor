@@ -21,6 +21,7 @@ namespace Extractor
         static bool forceEntryTableAtEnd = false;
         static bool listEntries = false;
         static bool listPaths = false;
+        static bool listAll = false;
         static List<string> inputPaths;
         static bool extractAllInDir = false;
         static string[] startPaths = ["/"];
@@ -81,6 +82,10 @@ namespace Extractor
                 { "list",
                     "Lists paths contained in the archive. Can be combined with --deep.",
                     x => { listPaths = true; } },
+                { "list-all",
+                    "When using --deep, lists all paths referenced by files in the archive, " +
+                    "even if they are not contained in it.",
+                    x => { listPaths = true; listAll = true; } },
                 { "p=|partial=",
                     "Partial extraction, e.g.:\n" +
                     "-p=/locale\n" +
@@ -164,7 +169,7 @@ namespace Extractor
                 }
                 else if (listPaths)
                 {
-                    extractor.PrintPaths(startPaths);
+                    extractor.PrintPaths(startPaths, listAll);
                 }
                 else if (tree)
                 {

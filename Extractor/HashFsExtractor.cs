@@ -280,7 +280,7 @@ namespace Extractor
             PrintRenameSummary(renamed);
         }
 
-        public override void PrintPaths(string[] startPaths)
+        public override void PrintPaths(string[] startPaths, bool includeAll)
         {
             DeleteJunkEntries();
 

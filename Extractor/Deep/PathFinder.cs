@@ -34,6 +34,11 @@ namespace Extractor.Deep
         public HashSet<string> FoundDecoyFiles { get; private set; }
 
         /// <summary>
+        /// File paths that are referenced by files in this archive.
+        /// </summary>
+        public HashSet<string> ReferencedFiles { get; private set; }
+
+        /// <summary>
         /// File types which can be ignored because they don't contain
         /// any path references.
         /// </summary>
@@ -115,6 +120,14 @@ namespace Extractor.Deep
         /// </summary>
         private HashSet<string> dirsToSearchForRelativeTobj;
 
+        private readonly HashSet<string> ignorableUnitKeys = 
+            ["category", "sign_name", "display_name", "ferry_name", 
+            "static_lod_name", "city_names", "city_name_localized", "board_name",
+            "vehicle_brands", "package_version", "compatible_versions"];
+
+        private readonly HashSet<string> ignorableUnitClasses =
+            ["cargo_def", "traffic_spawn_condition"];
+
         public PathFinder(IHashFsReader reader, Dictionary<ulong, IEntry> junkEntries = null)
         {
             this.reader = reader;
@@ -131,6 +144,7 @@ namespace Extractor.Deep
             visitedEntries = [];
             FoundFiles = [];
             dirsToSearchForRelativeTobj = [];
+            ReferencedFiles = [];
 
             var potentialPaths = LoadStartPaths();
             ExplorePotentialPaths(potentialPaths);
@@ -284,7 +298,9 @@ namespace Extractor.Deep
                     {
                         try
                         {
-                            potentialPaths.UnionWith(FindPathsInFile(file));
+                            var paths = FindPathsInFile(file);
+                            potentialPaths.UnionWith(paths);
+                            ReferencedFiles.UnionWith(paths);
                         }
                         catch (Exception ex)
                         {
@@ -398,7 +414,7 @@ namespace Extractor.Deep
                         || i == fileBuffer.Length - 1)
                     {
                         var potentialPath = Encoding.UTF8.GetString(fileBuffer, start, i - start);
-                        potentialPaths.Add(potentialPath);
+                        Add(potentialPath, potentialPaths);
                         inPotentialPath = false;
                     }
                 }
@@ -420,10 +436,10 @@ namespace Extractor.Deep
             foreach (Match match in matches)
             {
                 var path = match.Groups[1].Value;
-                potentialPaths.Add(path);
+                Add(path, potentialPaths);
                 if (path.EndsWith(".mat"))
                 {
-                    potentialPaths.Add(Path.ChangeExtension(path, ".font"));
+                    Add(Path.ChangeExtension(path, ".font"), potentialPaths);
                 }
             }
 
@@ -452,7 +468,7 @@ namespace Extractor.Deep
                 {
                     if (path.StartsWith('/'))
                     {
-                        potentialPaths.Add(path);
+                        Add(path, potentialPaths);
                     }
                     else
                     {
@@ -463,7 +479,7 @@ namespace Extractor.Deep
                                 var potentialAbsPath = $"{dir}/{path}";
                                 if (reader.FileExists(potentialAbsPath))
                                 {
-                                    potentialPaths.Add(potentialAbsPath);
+                                    Add(potentialAbsPath, potentialPaths);
                                 }
                             }
                         }
@@ -471,7 +487,7 @@ namespace Extractor.Deep
                         {
                             var matDirectory = GetParent(filePath);
                             path = $"{matDirectory}/{path}";
-                            potentialPaths.Add(path);
+                            Add(path, potentialPaths);
                         }
                     }
                 }
@@ -486,6 +502,7 @@ namespace Extractor.Deep
 
             var tobj = Tobj.Load(fileBuffer);
             potentialPaths.UnionWith(tobj.TexturePaths);
+            ReferencedFiles.UnionWith(tobj.TexturePaths);
 
             return potentialPaths;
         }
@@ -498,6 +515,7 @@ namespace Extractor.Deep
             foreach (var look in model.Looks)
             {
                 potentialPaths.UnionWith(look.Materials);
+                ReferencedFiles.UnionWith(look.Materials);
             }
 
             return potentialPaths;
@@ -574,10 +592,16 @@ namespace Extractor.Deep
         private void ProcessSiiUnitAttribute(string unitClass, KeyValuePair<string, dynamic> attrib,
             HashSet<string> potentialPaths)
         {
+            if (ignorableUnitClasses.Contains(unitClass))
+                return;
+
+            if (ignorableUnitKeys.Contains(attrib.Key))
+                return;
+
             if (attrib.Value is string s)
             {
-                if (unitClass == "ui::text" 
-                    || unitClass == "ui::text_template" 
+                if (unitClass == "ui::text"
+                    || unitClass == "ui::text_template"
                     || unitClass == "ui_text_bar")
                 {
                     // Extract paths from img and font tags of the faux-HTML
@@ -604,18 +628,39 @@ namespace Extractor.Deep
                     Add(s, potentialPaths);
                 }
             }
-            else if (attrib.Value is List<dynamic> items)
+            else if (attrib.Value is List<dynamic> items && items[0] is string)
             {
-                foreach (var str in items.Where(x => x is string).Cast<string>())
+                var strings = items.Where(x => x is string).Cast<string>();
+
+                if (unitClass == "license_plate_data")
                 {
-                    if (attrib.Key == "sounds")
+                    if (attrib.Key.StartsWith("def"))
                     {
-                        var soundPath = str.Contains('|') ? str.Split('|')[1] : str;
-                        Add(soundPath, potentialPaths);
+                        foreach (var str in strings)
+                        {
+                            // Extract paths from img and font tags of the faux-HTML
+                            // used in UI strings.
+                            var matches = Regex.Matches(str, @"(?:src|face)=(\S*)");
+                            foreach (Match match in matches)
+                            {
+                                Add(match.Groups[1].Value, potentialPaths);
+                            }
+                        }
                     }
-                    else
+                }
+                else
+                {
+                    foreach (var str in strings)
                     {
-                        Add(str, potentialPaths);
+                        if (attrib.Key == "sounds")
+                        {
+                            var soundPath = str.Contains('|') ? str.Split('|')[1] : str;
+                            Add(soundPath, potentialPaths);
+                        }
+                        else
+                        {
+                            Add(str, potentialPaths);
+                        }
                     }
                 }
             }
@@ -623,12 +668,17 @@ namespace Extractor.Deep
 
         private void Add(string str, HashSet<string> potentialPaths)
         {
+            if (!ResemblesPath(str))
+            {
+                return;
+            }
+
             if (!str.StartsWith('/'))
             {
                 str = $"/{str}";
             }
 
-            if (!potentialPaths.Contains(str) && IsNewPotentialPath(str))
+            if (!potentialPaths.Contains(str) && !visited.Contains(str))
             {
                 potentialPaths.Add(str);
                 AddPathVariants(str, potentialPaths);
@@ -683,10 +733,5 @@ namespace Extractor.Deep
                 }
             }
         }
-
-        private bool IsNewPotentialPath(string str) =>
-            !visited.Contains(str)
-            && ResemblesPath(str)
-            && reader.FileExists(str);
     }
 }

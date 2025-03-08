@@ -34,7 +34,7 @@ namespace Extractor
 
         public abstract List<Directory> GetDirectoryTree(string[] startPaths);
 
-        public abstract void PrintPaths(string[] startPaths);
+        public abstract void PrintPaths(string[] startPaths, bool includeAll);
 
         public abstract void PrintContentSummary();
 

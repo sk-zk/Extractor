@@ -137,17 +137,19 @@ namespace Extractor.Deep
             }
         }
 
-        public override void PrintPaths(string[] startPaths)
+        public override void PrintPaths(string[] startPaths, bool includeAll)
         {
             DeleteJunkEntries();
 
             var finder = new PathFinder(Reader);
             finder.Find();
-            var foundFiles = finder.FoundFiles.Order().ToArray();
+            var paths = (includeAll 
+                ? finder.FoundFiles.Union(finder.ReferencedFiles) 
+                : finder.FoundFiles).Order().ToArray();
 
-            foreach (var foundFile in foundFiles)
+            foreach (var path in paths)
             {
-                Console.WriteLine(ReplaceControlChars(foundFile));
+                Console.WriteLine(ReplaceControlChars(path));
             }
         }
 
