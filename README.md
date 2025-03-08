@@ -93,9 +93,21 @@ extractor path... [options]
 </thead>
 <tr>
   <td></td>
+  <td><code>--additional</code></td>
+  <td>When using <code>--deep</code>, specifies additional start paths to search.
+  Expects a text file containing paths to extract, separated by line breaks.</td>
+</tr>
+<tr>
+  <td></td>
   <td><code>--deep</code></td>
   <td>An extraction mode which scans the contained entries for referenced paths instead of traversing
   the directory tree from <code>/</code>. Use this option to extract archives without a top level directory listing.</td>
+</tr>
+<tr>
+  <td></td>
+  <td><code>--list-all</code></td>
+  <td>When using <code>--deep</code>, lists all paths referenced by files in the archive,
+  even if they are not contained in it.</td>
 </tr>
 <tr>
   <td></td>

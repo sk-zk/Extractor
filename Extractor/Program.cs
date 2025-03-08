@@ -69,7 +69,7 @@ namespace Extractor
             var optionSet = new OptionSet()
             {
                  { "additional=",
-                    "When using --deep, specifies additional start paths to search. " +
+                    "[HashFS] When using --deep, specifies additional start paths to search. " +
                     "Expects a text file containing paths to extract, separated by line breaks.",
                     x => { additionalStartPaths = LoadPathsFromFile(x); } },
                 { "a|all",
@@ -82,18 +82,18 @@ namespace Extractor
                 { "d=|dest=",
                     $"The output directory.\nDefault: {destination}",
                     x => { destination = x; } },
-                { "list-entries",
-                    "[HashFS] Lists entries contained in the archive.",
-                    x => { listEntries = true; } },
                 { "list",
                     "Lists paths contained in the archive. Can be combined with --deep.",
                     x => { listPaths = true; } },
                 { "list-all",
-                    "When using --deep, lists all paths referenced by files in the archive, " +
+                    "[HashFS] When using --deep, lists all paths referenced by files in the archive, " +
                     "even if they are not contained in it.",
                     x => { listPaths = true; listAll = true; } },
+                { "list-entries",
+                    "[HashFS] Lists entries contained in the archive.",
+                    x => { listEntries = true; } },
                 { "p=|partial=",
-                    "Limits extraction to the given files and/or directories, e.g.:\n" +
+                    "Limits extraction to the comma-separated list of files and/or directories specified, e.g.:\n" +
                     "-p=/locale\n" +
                     "-p=/def,/map\n" +
                     "-p=/def/world/road.sii",
