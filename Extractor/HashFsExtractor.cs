@@ -316,10 +316,16 @@ namespace Extractor
 
         private Tree.Directory GetDirectoryTree(string root)
         {
+            if (Reader.EntryExists(root) == EntryType.NotFound)
+            {
+                return null;
+            }
+
             var dir = new Tree.Directory();
             dir.Path = root;
             var entry = Reader.GetEntry(root);
             entry.IsDirectory = true;
+
             var content = Reader.GetDirectoryListing(root);
             foreach (var subdir in content.Subdirectories)
             {

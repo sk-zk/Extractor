@@ -15,6 +15,9 @@ namespace Extractor.Tree
             PrintWithColor(scsName, ConsoleColor.White);
             foreach (Directory root in roots)
             {
+                if (root is null)
+                    continue;
+
                 var indentLevel = root.Path.Count(c => c == '/');
                 if (root.Path != "/")
                 {
