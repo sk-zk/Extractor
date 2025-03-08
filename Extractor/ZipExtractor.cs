@@ -52,7 +52,9 @@ namespace Extractor
         {
             string scsName = Path.GetFileName(scsPath);
 
-            RemoveInitialSlash(pathFilter);
+            bool pathFilterUsed = !pathFilter.SequenceEqual(["/"]);
+            if (pathFilterUsed)
+                RemoveInitialSlash(pathFilter);
 
             extracted = 0;
             skipped = 0;
@@ -66,7 +68,7 @@ namespace Extractor
                     continue;
                 }
 
-                if (!pathFilter.Any(entry.FileName.StartsWith))
+                if (pathFilterUsed && !pathFilter.Any(entry.FileName.StartsWith))
                 {
                     continue;
                 }
