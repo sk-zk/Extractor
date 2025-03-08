@@ -14,26 +14,10 @@ namespace Extractor
     class Program
     {
         const string Version = "2025-03-03";
+        private static bool launchedByExplorer = false;
+        private static Options opt;
 
-        static bool launchedByExplorer = false;
-
-        static string destination = "./extracted";
-        static bool skipIfExists = false;
-        static bool forceEntryTableAtEnd = false;
-        static bool listEntries = false;
-        static bool listPaths = false;
-        static bool listAll = false;
-        static List<string> inputPaths;
-        static bool extractAllInDir = false;
-        static IList<string> pathFilter = ["/"];
-        static bool printHelp = false;
-        static bool rawExtractor = false;
-        static bool tree = false;
-        static ushort? salt = null;
-        static bool deepExtractor = false;
-        static IList<string> additionalStartPaths;
-
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             if (OperatingSystem.IsWindows())
             {
@@ -48,88 +32,21 @@ namespace Extractor
 
             Console.OutputEncoding = Encoding.UTF8;
 
-            var optionSet = ParseOptions(args);
+            opt = new Options();
+            opt.Parse(args);
 
-            if (printHelp || args.Length == 0)
+            if (opt.PrintHelp || args.Length == 0)
             {
                 Console.WriteLine($"Extractor {Version}\n");
                 Console.WriteLine("Usage:\n  extractor path... [options]\n");
                 Console.WriteLine("Options:");
-                optionSet.WriteOptionDescriptions(Console.Out);
+                opt.OptionSet.WriteOptionDescriptions(Console.Out);
                 PauseIfNecessary();
                 return;
             }
 
             Run();
             PauseIfNecessary();
-        }
-
-        private static OptionSet ParseOptions(string[] args)
-        {
-            var optionSet = new OptionSet()
-            {
-                 { "additional=",
-                    "[HashFS] When using --deep, specifies additional start paths to search. " +
-                    "Expects a text file containing paths to extract, separated by line breaks.",
-                    x => { additionalStartPaths = LoadPathsFromFile(x); } },
-                { "a|all",
-                    "Extract all .scs archives in the specified directory.",
-                    x => { extractAllInDir = true; } },
-                { "deep",
-                    $"[HashFS] Scans contained files for paths before extracting. Use this option " +
-                    $"to extract archives without a top level directory listing.",
-                    x => { deepExtractor = true; } },
-                { "d=|dest=",
-                    $"The output directory.\nDefault: {destination}",
-                    x => { destination = x; } },
-                { "list",
-                    "Lists paths contained in the archive. Can be combined with --deep.",
-                    x => { listPaths = true; } },
-                { "list-all",
-                    "[HashFS] When using --deep, lists all paths referenced by files in the archive, " +
-                    "even if they are not contained in it.",
-                    x => { listPaths = true; listAll = true; } },
-                { "list-entries",
-                    "[HashFS] Lists entries contained in the archive.",
-                    x => { listEntries = true; } },
-                { "p=|partial=",
-                    "Limits extraction to the comma-separated list of files and/or directories specified, e.g.:\n" +
-                    "-p=/locale\n" +
-                    "-p=/def,/map\n" +
-                    "-p=/def/world/road.sii",
-                    x => { pathFilter = x.Split(","); } },
-                 { "P=|paths=",
-                    "Same as --partial, but expects a text file containing paths to extract, " +
-                    "separated by line breaks.",
-                    x => { pathFilter = LoadPathsFromFile(x); } },
-                { "r|raw",
-                    "[HashFS] Directly dumps the contained files with their hashed " +
-                    "filenames rather than traversing the archive's directory tree.",
-                    x => { rawExtractor = true; } },
-                { "salt=",
-                    "[HashFS] Ignores the salt in the archive header and uses this one instead.",
-                    x => { salt = ushort.Parse(x); } },
-                { "s|skip-existing",
-                    "Don't overwrite existing files.",
-                    x => { skipIfExists = true; } },
-                { "table-at-end",
-                    "[HashFS v1] Ignores what the archive header says and reads " +
-                    "the entry table from the end of the file.",
-                    x => { forceEntryTableAtEnd = true; } },
-                { "tree",
-                    "Prints the directory tree and exits. Can be combined with " +
-                    "-deep, --partial, --paths,\nand --all.",
-                    x => { tree = true; } },
-                { "?|h|help",
-                    $"Prints this message and exits.",
-                    x => { printHelp = true; } },
-            };
-            inputPaths = optionSet.Parse(args);
-            if (inputPaths.Count == 0)
-            {
-                inputPaths.Add(".");
-            }
-            return optionSet;
         }
 
         private static void Run()
@@ -160,7 +77,7 @@ namespace Extractor
                 }
                 extractor.PrintContentSummary();
 
-                if (listEntries)
+                if (opt.ListEntries)
                 {
                     if (extractor is HashFsExtractor)
                     {
@@ -171,26 +88,26 @@ namespace Extractor
                         Console.WriteLine("--list can only be used with HashFS archives.");
                     }
                 }
-                else if (listPaths)
+                else if (opt.ListPaths)
                 {
-                    extractor.PrintPaths(pathFilter, listAll);
+                    extractor.PrintPaths(opt.PathFilter, opt.ListAll);
                 }
-                else if (tree)
+                else if (opt.PrintTree)
                 {
-                    if (rawExtractor)
+                    if (opt.UseRawExtractor)
                     {
                         Console.WriteLine("--tree and --raw cannot be combined.");
                     }
                     else
                     {
-                        var trees = extractor.GetDirectoryTree(pathFilter);
+                        var trees = extractor.GetDirectoryTree(opt.PathFilter);
                         var scsName = Path.GetFileName(scsPath);
                         Tree.TreePrinter.Print(trees, scsName);
                     }
                 }
                 else
                 {
-                    extractor.Extract(pathFilter, destination);
+                    extractor.Extract(opt.PathFilter, opt.Destination);
                     extractor.PrintExtractionResult();
                 }
             }
@@ -217,7 +134,7 @@ namespace Extractor
             }
             else
             {
-                extractor = new ZipExtractor(scsPath, !skipIfExists);
+                extractor = new ZipExtractor(scsPath, !opt.SkipIfExists);
             }
 
             return extractor;
@@ -225,30 +142,30 @@ namespace Extractor
 
         private static Extractor CreateHashFsExtractor(string scsPath)
         {
-            if (rawExtractor)
+            if (opt.UseRawExtractor)
             {
-                return new HashFsRawExtractor(scsPath, !skipIfExists)
+                return new HashFsRawExtractor(scsPath, !opt.SkipIfExists)
                 {
-                    ForceEntryTableAtEnd = forceEntryTableAtEnd,
-                    Salt = salt,
-                    PrintNotFoundMessage = !extractAllInDir,
+                    ForceEntryTableAtEnd = opt.ForceEntryTableAtEnd,
+                    Salt = opt.Salt,
+                    PrintNotFoundMessage = !opt.ExtractAllInDir,
                 };
             }
-            else if (deepExtractor)
+            else if (opt.UseDeepExtractor)
             {
-                return new HashFsDeepExtractor(scsPath, !skipIfExists)
+                return new HashFsDeepExtractor(scsPath, !opt.SkipIfExists)
                 {
-                    ForceEntryTableAtEnd = forceEntryTableAtEnd,
-                    Salt = salt,
-                    PrintNotFoundMessage = !extractAllInDir,
-                    AdditionalStartPaths = additionalStartPaths,
+                    ForceEntryTableAtEnd = opt.ForceEntryTableAtEnd,
+                    Salt = opt.Salt,
+                    PrintNotFoundMessage = !opt.ExtractAllInDir,
+                    AdditionalStartPaths = opt.AdditionalStartPaths,
                 };
             }
-            return new HashFsExtractor(scsPath, !skipIfExists)
+            return new HashFsExtractor(scsPath, !opt.SkipIfExists)
             {
-                ForceEntryTableAtEnd = forceEntryTableAtEnd,
-                Salt = salt,
-                PrintNotFoundMessage = !extractAllInDir,
+                ForceEntryTableAtEnd = opt.ForceEntryTableAtEnd,
+                Salt = opt.Salt,
+                PrintNotFoundMessage = !opt.ExtractAllInDir,
             };
         }
 
@@ -268,10 +185,10 @@ namespace Extractor
         private static IEnumerable<string> GetScsPathsFromArgs()
         {
             List<string> scsPaths;
-            if (extractAllInDir)
+            if (opt.ExtractAllInDir)
             {
                 scsPaths = [];
-                foreach (var inputPath in inputPaths)
+                foreach (var inputPath in opt.InputPaths)
                 {
                     if (!Directory.Exists(inputPath))
                     {
@@ -283,7 +200,7 @@ namespace Extractor
             }
             else
             {
-                scsPaths = inputPaths;
+                scsPaths = opt.InputPaths;
             }
             return scsPaths.Distinct();
         }
@@ -295,31 +212,6 @@ namespace Extractor
                 Console.WriteLine("Press any key to continue ...");
                 Console.Read();
             }
-        }
-
-        private static List<string> LoadPathsFromFile(string file)
-        {
-            if (!File.Exists(file))
-            {
-                Console.Error.WriteLine($"File {file} does not exist");
-            }
-
-            List<string> paths = new(); 
-            using var reader = new StreamReader(file);
-            while (!reader.EndOfStream)
-            {
-                var path = reader.ReadLine();
-
-                if (string.IsNullOrEmpty(path))
-                    continue;
-
-                if (!path.StartsWith("/"))
-                    path = $"/{path}";
-
-                paths.Add(path);
-            }
-
-            return paths;
         }
     }
 }
