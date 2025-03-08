@@ -13,7 +13,7 @@ namespace Extractor
         {
         }
 
-        public override void Extract(string[] startPaths, string destination)
+        public override void Extract(IList<string> pathFilter, string destination)
         {
             DeleteJunkEntries();
 
@@ -42,7 +42,7 @@ namespace Extractor
             Console.WriteLine($"{extracted} extracted, {skipped} skipped, {duplicate} junk, {failed} failed");
         }
 
-        public override void PrintPaths(string[] startPaths, bool includeAll)
+        public override void PrintPaths(IList<string> pathFilter, bool includeAll)
         {
             Console.WriteLine("--list and --raw cannot be combined.");
         }

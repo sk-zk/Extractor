@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -97,6 +98,8 @@ namespace Extractor.Deep
         /// </summary>
         private IHashFsReader reader;
 
+        private IList<string> additionalStartPaths;
+
         /// <summary>
         /// Paths that have been visited so far.
         /// </summary>
@@ -128,9 +131,11 @@ namespace Extractor.Deep
         private readonly HashSet<string> ignorableUnitClasses =
             ["cargo_def", "traffic_spawn_condition"];
 
-        public PathFinder(IHashFsReader reader, Dictionary<ulong, IEntry> junkEntries = null)
+        public PathFinder(IHashFsReader reader, IList<string> additionalStartPaths = null, 
+            Dictionary<ulong, IEntry> junkEntries = null)
         {
             this.reader = reader;
+            this.additionalStartPaths = additionalStartPaths;
             this.junkEntries = junkEntries;
         }
 
@@ -147,6 +152,8 @@ namespace Extractor.Deep
             ReferencedFiles = [];
 
             var potentialPaths = LoadStartPaths();
+            if (additionalStartPaths is not null)
+                potentialPaths.UnionWith(additionalStartPaths);
             ExplorePotentialPaths(potentialPaths);
 
             var morePaths = FindPathsInUnvisited();

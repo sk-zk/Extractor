@@ -101,11 +101,11 @@ namespace Extractor
         }
 
         /// <inheritdoc/>
-        public override void Extract(string[] startPaths, string destination)
+        public override void Extract(IList<string> pathFilter, string destination)
         {
             DeleteJunkEntries();
 
-            if (startPaths.Length == 1 && startPaths[0] == "/" 
+            if (pathFilter.Count == 1 && pathFilter[0] == "/" 
                 && Reader.EntryExists("/") == EntryType.Directory)
             {
                 var listing = Reader.GetDirectoryListing("/");
@@ -120,9 +120,9 @@ namespace Extractor
 
             var scsName = Path.GetFileName(scsPath);
 
-            foreach (var startPath in startPaths)
+            foreach (var path in pathFilter)
             {
-                Reader.Traverse(startPath,
+                Reader.Traverse(path,
                     (dir) => PrintExtractionMessage(dir, scsName),
                     (file) =>
                     {
@@ -280,13 +280,13 @@ namespace Extractor
             PrintRenameSummary(renamed);
         }
 
-        public override void PrintPaths(string[] startPaths, bool includeAll)
+        public override void PrintPaths(IList<string> pathFilter, bool includeAll)
         {
             DeleteJunkEntries();
 
-            foreach (var startPath in startPaths)
+            foreach (var path in pathFilter)
             {
-                Reader.Traverse(startPath,
+                Reader.Traverse(path,
                     (dir) => Console.WriteLine(ReplaceControlChars(dir)),
                     (file) => Console.WriteLine(ReplaceControlChars(file)),
                     (nonexistent) =>
@@ -304,12 +304,12 @@ namespace Extractor
             }
         }
 
-        public override List<Tree.Directory> GetDirectoryTree(string[] startPaths)
+        public override List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter)
         {
             DeleteJunkEntries();
 
-            var trees = startPaths
-                .Select(startPath => GetDirectoryTree(startPath))
+            var trees = pathFilter
+                .Select(path => GetDirectoryTree(path))
                 .ToList();
             return trees;
         }

@@ -28,13 +28,13 @@ namespace Extractor
         /// <summary>
         /// Extracts the archive to the given directory.
         /// </summary>
-        /// <param name="startPaths">A list of paths to extract. Pass ["/"] to extract the entire archive.</param>
+        /// <param name="pathFilter">A list of paths to extract. Pass ["/"] to extract the entire archive.</param>
         /// <param name="destination">The directory to which the extracted files will be written.</param>
-        public abstract void Extract(string[] startPaths, string destination);
+        public abstract void Extract(IList<string> pathFilter, string destination);
 
-        public abstract List<Directory> GetDirectoryTree(string[] startPaths);
+        public abstract List<Directory> GetDirectoryTree(IList<string> pathFilter);
 
-        public abstract void PrintPaths(string[] startPaths, bool includeAll);
+        public abstract void PrintPaths(IList<string> pathFilter, bool includeAll);
 
         public abstract void PrintContentSummary();
 

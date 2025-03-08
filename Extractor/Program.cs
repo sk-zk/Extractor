@@ -16,6 +16,7 @@ namespace Extractor
         const string Version = "2025-03-03";
 
         static bool launchedByExplorer = false;
+
         static string destination = "./extracted";
         static bool skipIfExists = false;
         static bool forceEntryTableAtEnd = false;
@@ -24,12 +25,13 @@ namespace Extractor
         static bool listAll = false;
         static List<string> inputPaths;
         static bool extractAllInDir = false;
-        static string[] startPaths = ["/"];
+        static IList<string> pathFilter = ["/"];
         static bool printHelp = false;
         static bool rawExtractor = false;
         static bool tree = false;
         static ushort? salt = null;
         static bool deepExtractor = false;
+        static IList<string> additionalStartPaths;
 
         static void Main(string[] args)
         {
@@ -66,6 +68,10 @@ namespace Extractor
         {
             var optionSet = new OptionSet()
             {
+                 { "additional=",
+                    "When using --deep, specifies additional start paths to search. " +
+                    "Expects a text file containing paths to extract, separated by line breaks.",
+                    x => { additionalStartPaths = LoadPathsFromFile(x); } },
                 { "a|all",
                     "Extract all .scs archives in the specified directory.",
                     x => { extractAllInDir = true; } },
@@ -87,15 +93,15 @@ namespace Extractor
                     "even if they are not contained in it.",
                     x => { listPaths = true; listAll = true; } },
                 { "p=|partial=",
-                    "Partial extraction, e.g.:\n" +
+                    "Limits extraction to the given files and/or directories, e.g.:\n" +
                     "-p=/locale\n" +
                     "-p=/def,/map\n" +
                     "-p=/def/world/road.sii",
-                    x => { startPaths = x.Split(","); } },
+                    x => { pathFilter = x.Split(","); } },
                  { "P=|paths=",
                     "Same as --partial, but expects a text file containing paths to extract, " +
                     "separated by line breaks.",
-                    x => { startPaths = LoadStartPathsFromFile(x); } },
+                    x => { pathFilter = LoadPathsFromFile(x); } },
                 { "r|raw",
                     "[HashFS] Directly dumps the contained files with their hashed " +
                     "filenames rather than traversing the archive's directory tree.",
@@ -128,8 +134,6 @@ namespace Extractor
 
         private static void Run()
         {
-            startPaths = startPaths.Select(x => x.StartsWith('/') ? x : $"/{x}").ToArray();
-
             var scsPaths = GetScsPathsFromArgs();
             foreach (var scsPath in scsPaths)
             {
@@ -169,7 +173,7 @@ namespace Extractor
                 }
                 else if (listPaths)
                 {
-                    extractor.PrintPaths(startPaths, listAll);
+                    extractor.PrintPaths(pathFilter, listAll);
                 }
                 else if (tree)
                 {
@@ -179,14 +183,14 @@ namespace Extractor
                     }
                     else
                     {
-                        var trees = extractor.GetDirectoryTree(startPaths);
+                        var trees = extractor.GetDirectoryTree(pathFilter);
                         var scsName = Path.GetFileName(scsPath);
                         Tree.TreePrinter.Print(trees, scsName);
                     }
                 }
                 else
                 {
-                    extractor.Extract(startPaths, destination);
+                    extractor.Extract(pathFilter, destination);
                     extractor.PrintExtractionResult();
                 }
             }
@@ -237,6 +241,7 @@ namespace Extractor
                     ForceEntryTableAtEnd = forceEntryTableAtEnd,
                     Salt = salt,
                     PrintNotFoundMessage = !extractAllInDir,
+                    AdditionalStartPaths = additionalStartPaths,
                 };
             }
             return new HashFsExtractor(scsPath, !skipIfExists)
@@ -292,13 +297,29 @@ namespace Extractor
             }
         }
 
-        private static string[] LoadStartPathsFromFile(string file)
+        private static List<string> LoadPathsFromFile(string file)
         {
             if (!File.Exists(file))
             {
                 Console.Error.WriteLine($"File {file} does not exist");
             }
-            return File.ReadAllLines(file).Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
+
+            List<string> paths = new(); 
+            using var reader = new StreamReader(file);
+            while (!reader.EndOfStream)
+            {
+                var path = reader.ReadLine();
+
+                if (string.IsNullOrEmpty(path))
+                    continue;
+
+                if (!path.StartsWith("/"))
+                    path = $"/{path}";
+
+                paths.Add(path);
+            }
+
+            return paths;
         }
     }
 }

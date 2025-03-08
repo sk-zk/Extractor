@@ -48,15 +48,11 @@ namespace Extractor
         }
 
         /// <inheritdoc/>
-        public override void Extract(string[] startPaths, string destination)
+        public override void Extract(IList<string> pathFilter, string destination)
         {
             string scsName = Path.GetFileName(scsPath);
 
-            startPaths = startPaths.Select(x => 
-                x.StartsWith('/') || x.StartsWith('\\') 
-                    ? x[1..] 
-                    : x
-                ).ToArray();
+            RemoveInitialSlash(pathFilter);
 
             extracted = 0;
             skipped = 0;
@@ -70,7 +66,7 @@ namespace Extractor
                     continue;
                 }
 
-                if (!startPaths.Any(entry.FileName.StartsWith))
+                if (!pathFilter.Any(entry.FileName.StartsWith))
                 {
                     continue;
                 }
@@ -286,7 +282,7 @@ namespace Extractor
             return offset;
         }
 
-        public override void PrintPaths(string[] startPaths, bool includeAll)
+        public override void PrintPaths(IList<string> pathFilter, bool includeAll)
         {
             foreach (var entry in Entries)
             {
@@ -294,24 +290,29 @@ namespace Extractor
             }
         }
 
-        public override List<Tree.Directory> GetDirectoryTree(string[] startPaths)
+        public override List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter)
         {
-            for (int i = 0; i < startPaths.Length; i++)
-            {
-                if (startPaths[i] != "/" && startPaths[i].StartsWith('/'))
-                {
-                    startPaths[i] = startPaths[i][1..];
-                }
-            }
+            RemoveInitialSlash(pathFilter);
 
             var paths = Entries
                 .Where(e => e.UncompressedSize > 0) // filter out directory metadata
                 .Select(e => e.FileName);
             File.WriteAllLines("c:/users/daniel/desktop/bla.txt", paths.ToArray());
-            var trees = startPaths
+            var trees = pathFilter
                 .Select(startPath => PathListToTree(startPath, paths))
                 .ToList();
             return trees;
+        }
+
+        private static void RemoveInitialSlash(IList<string> pathFilter)
+        {
+            for (int i = 0; i < pathFilter.Count; i++)
+            {
+                if (pathFilter[i] != "/" && pathFilter[i].StartsWith('/'))
+                {
+                    pathFilter[i] = pathFilter[i][1..];
+                }
+            }
         }
 
         public override void Dispose()

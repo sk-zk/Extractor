@@ -21,6 +21,8 @@ namespace Extractor.Deep
     /// </summary>
     public class HashFsDeepExtractor : HashFsExtractor
     {
+        public IList<string> AdditionalStartPaths { get; set; } = [];
+
         /// <summary>
         /// The directory to which files whose paths were not discovered
         /// will be written.
@@ -44,30 +46,30 @@ namespace Extractor.Deep
             PrintExtractedFiles = true;
         }
 
-        public override void Extract(string[] startPaths, string destination)
+        public override void Extract(IList<string> pathFilter, string destination)
         {
             Console.WriteLine("Searching for paths ...");
 
             DeleteJunkEntries();
 
-            var finder = new PathFinder(Reader, junkEntries);
+            var finder = new PathFinder(Reader, AdditionalStartPaths, junkEntries);
             finder.Find();
 
-            bool startPathsSet = !startPaths.SequenceEqual(["/"]);
+            bool filtersSet = !pathFilter.SequenceEqual(["/"]);
 
             var foundFiles = finder.FoundFiles.Order().ToArray();
-            if (startPathsSet)
+            if (filtersSet)
             {
                 foundFiles = foundFiles
-                    .Where(f => startPaths.Any(f.StartsWith)).ToArray();
+                    .Where(f => pathFilter.Any(f.StartsWith)).ToArray();
             }
             base.Extract(foundFiles, destination);
 
             var foundDecoyFiles = finder.FoundDecoyFiles.Order().ToArray();
-            if (startPathsSet)
+            if (filtersSet)
             {
                 foundDecoyFiles = foundDecoyFiles
-                    .Where(f => startPaths.Any(f.StartsWith)).ToArray();
+                    .Where(f => pathFilter.Any(f.StartsWith)).ToArray();
             }
             var decoyDestination = Path.Combine(destination, DecoyDirectory);
             foreach (var decoyFile in foundDecoyFiles)
@@ -75,7 +77,7 @@ namespace Extractor.Deep
                 base.ExtractFile(decoyFile, decoyDestination);
             }
 
-            if (!startPathsSet)
+            if (!filtersSet)
             {
                 DumpUnrecovered(destination, foundFiles.Concat(foundDecoyFiles));
             }
@@ -137,7 +139,7 @@ namespace Extractor.Deep
             }
         }
 
-        public override void PrintPaths(string[] startPaths, bool includeAll)
+        public override void PrintPaths(IList<string> pathFilter, bool includeAll)
         {
             DeleteJunkEntries();
 
@@ -160,14 +162,14 @@ namespace Extractor.Deep
             PrintRenameSummary(renamed);
         }
 
-        public override List<Tree.Directory> GetDirectoryTree(string[] startPaths)
+        public override List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter)
         {
             DeleteJunkEntries();
 
             var finder = new PathFinder(Reader);
             finder.Find();
 
-            var trees = startPaths
+            var trees = pathFilter
                 .Select(startPath => PathListToTree(startPath, finder.FoundFiles))
                 .ToList();
             return trees;
