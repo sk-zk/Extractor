@@ -557,7 +557,7 @@ namespace Extractor.Deep
                 ))
             {
                 #if DEBUG
-                    Console.WriteLine($"Not a sii file: {filePath}");
+                    Console.Error.WriteLine($"Not a sii file: {filePath}");
                 #endif
                 return [];
             }
