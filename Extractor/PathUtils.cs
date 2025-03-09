@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Extractor
 {
-    internal static class PathUtils
+    public static class PathUtils
     {
         public static readonly char[] InvalidPathChars =
             Path.GetInvalidFileNameChars().Except(['/', '\\']).ToArray();
@@ -87,13 +87,21 @@ namespace Extractor
 
         public static string GetParent(string filePath)
         {
-            if (string.IsNullOrEmpty(filePath)) 
-               return filePath;
+            if (string.IsNullOrWhiteSpace(filePath)) 
+               return "";
+
+            filePath = RemoveTrailingSlash(filePath);
 
             var lastSlash = filePath.LastIndexOf('/');
-            var parent = lastSlash != -1
-                ? filePath[..filePath.LastIndexOf('/')]
-                : null;
+
+            string parent;
+            if (lastSlash == -1)
+                parent = "";
+            else if (lastSlash == 0)
+                parent = "/";
+            else
+                parent = filePath[..filePath.LastIndexOf('/')];
+
             return parent;
         }
 
