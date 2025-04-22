@@ -635,7 +635,7 @@ namespace Extractor.Deep
                     Add(s, potentialPaths);
                 }
             }
-            else if (attrib.Value is List<dynamic> items && items[0] is string)
+            else if (attrib.Value is IList<dynamic> items && items[0] is string)
             {
                 var strings = items.Where(x => x is string).Cast<string>();
 
