@@ -583,7 +583,7 @@ namespace Extractor.Deep
 
         private HashSet<string> FindPathsInSii(SiiFile sii)
         {
-            HashSet<string> potentialPaths = sii.Includes.ToHashSet();
+            HashSet<string> potentialPaths = new(sii.Includes);
 
             foreach (var unit in sii.Units)
             {
