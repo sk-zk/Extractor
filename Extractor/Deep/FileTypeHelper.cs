@@ -127,9 +127,9 @@ namespace Extractor.Deep
             // PMA and PMD, however, have overlapping versions. PMD is
             // on version 4, and PMA is on version 5, but version 4 still
             // exists in the wild. To distinguish between the two, I read
-            // an integer from offset 12, which in PMD is the piece count
+            // an integer from offset 12, which in PMD is the part count
             // and in PMA is the MSB of a hash, so if this integer is too
-            // large to plausibly be a piece count, the file must be a
+            // large to plausibly be a part count, the file must be a
             // PMA file.
 
             if (fileBuffer.Length < 20)
@@ -138,8 +138,8 @@ namespace Extractor.Deep
             if (BitConverter.ToInt32(fileBuffer.AsSpan()[0..4]) != 4)
                 return false;
 
-            var pieceCountMaybe = BitConverter.ToUInt32(fileBuffer.AsSpan()[12..16]);
-            return pieceCountMaybe is > 0 and <= MaxPlausiblePmdPieceCount;
+            var partCountMaybe = BitConverter.ToUInt32(fileBuffer.AsSpan()[12..16]);
+            return partCountMaybe <= MaxPlausiblePmdPieceCount;
         }
 
         private static bool IsPmaFile(byte[] fileBuffer)
