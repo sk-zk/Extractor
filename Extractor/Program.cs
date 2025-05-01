@@ -3,17 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Mono.Options;
 using System.Diagnostics;
 using static Extractor.PathUtils;
 using Extractor.Deep;
-using TruckLib.HashFs;
 
 namespace Extractor
 {
     class Program
     {
-        const string Version = "2025-04-22";
+        const string Version = "2025-05-01";
         private static bool launchedByExplorer = false;
         private static Options opt;
 
