@@ -136,7 +136,7 @@ namespace Extractor.Deep
         {
             this.reader = reader;
             this.additionalStartPaths = additionalStartPaths;
-            this.junkEntries = junkEntries;
+            this.junkEntries = junkEntries ?? [];
         }
 
         /// <summary>
