@@ -93,7 +93,7 @@ namespace Extractor
         public void Parse(string[] args)
         {
             InputPaths = OptionSet.Parse(args);
-            if (InputPaths.Count == 0)
+            if (InputPaths.Count == 0 && ExtractAllInDir)
             {
                 InputPaths.Add(".");
             }

@@ -42,6 +42,12 @@ namespace Extractor
                 PauseIfNecessary();
                 return;
             }
+            if (opt.InputPaths.Count == 0)
+            {
+                Console.WriteLine("No input paths specified.");
+                PauseIfNecessary();
+                return;
+            }
 
             Run();
             PauseIfNecessary();
@@ -50,6 +56,12 @@ namespace Extractor
         private static void Run()
         {
             var scsPaths = GetScsPathsFromArgs();
+            if (scsPaths.Length == 0)
+            {
+                Console.WriteLine("No .scs files were found.");
+                return;
+            }
+
             foreach (var scsPath in scsPaths)
             {
                 if (!File.Exists(scsPath))
@@ -180,7 +192,7 @@ namespace Extractor
             }
         }
 
-        private static IEnumerable<string> GetScsPathsFromArgs()
+        private static string[] GetScsPathsFromArgs()
         {
             List<string> scsPaths;
             if (opt.ExtractAllInDir)
@@ -200,7 +212,7 @@ namespace Extractor
             {
                 scsPaths = opt.InputPaths;
             }
-            return scsPaths.Distinct();
+            return scsPaths.Distinct().ToArray();
         }
 
         private static void PauseIfNecessary()
