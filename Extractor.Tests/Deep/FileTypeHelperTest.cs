@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Extractor.Deep;
 
-namespace Extractor.Tests
+namespace Extractor.Tests.Deep
 {
     public class FileTypeHelperTest
     {

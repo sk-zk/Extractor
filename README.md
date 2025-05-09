@@ -55,6 +55,9 @@ extractor path... [options]
   <code>-p=/locale</code><br>
   <code>-p=/def,/map</code><br>
   <code>-p=/def/world/road.sii</code><br>
+  When extracting a HashFS archive (without <code>--deep</code>), directory traversal begins at the given paths, allowing for
+  extraction of known directories and files not discoverable from the top level. In all other cases, extraction is limited to
+  files whose paths begin with any of the paths given to this parameter. 
   </td>
 </tr>
 <tr>

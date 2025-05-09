@@ -6,6 +6,7 @@ using System.Text;
 using System.Diagnostics;
 using static Extractor.PathUtils;
 using Extractor.Deep;
+using Extractor.Zip;
 
 namespace Extractor
 {

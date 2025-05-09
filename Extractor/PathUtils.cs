@@ -13,11 +13,20 @@ namespace Extractor
             Path.GetInvalidFileNameChars().Except(['/', '\\']).ToArray();
         private static readonly char[] problematicControlChars =
             [(char)0x07, (char)0x08, (char)0x09, (char)0x0a, (char)0x0d, (char)0x1b, '\u200b'];
-    
-        public static string SanitizePath(string input)
+
+        /// <summary>
+        /// Replaces invalid or problematic portions of a HashFS or ZIP file path.
+        /// </summary>
+        /// <param name="path">The path.</param>
+        /// <param name="invalidPathChars">Characters which cannot be used in paths.
+        /// Defaults to <see cref="InvalidPathChars"/>.</param>
+        /// <returns>The sanitized path.</returns>
+        public static string SanitizePath(string path, char[] invalidPathChars = null)
         {
-            input = RemoveInitialSlash(input);
-            return ReplaceCharsUnambiguously(input, InvalidPathChars);
+            path = ReplaceCharsUnambiguously(path, invalidPathChars ?? InvalidPathChars);
+            // prevent traversing upwards with ".."
+            path = string.Join('/', path.Split(['/', '\\']).Select(x => x == ".." ? "__" : x));
+            return path;
         }
 
         public static string ReplaceControlChars(string input)

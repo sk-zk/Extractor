@@ -2,11 +2,11 @@
 using Sprache;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -258,15 +258,15 @@ namespace Extractor.Deep
                 var cleaned = RemoveNonAsciiOrInvalidChars(path);
                 if (cleaned != path)
                 {
-                    if (reader.FileExists(cleaned))
+                    if (junkEntries.ContainsKey(reader.HashPath(cleaned)))
+                    {
+                        decoyPaths.Add(cleaned);
+                    }
+                    else if (reader.FileExists(cleaned))
                     {
                         var entry = reader.GetEntry(cleaned);
                         visited.Add(cleaned);
                         visitedEntries.Add(entry);
-                        decoyPaths.Add(cleaned);
-                    }
-                    else if (junkEntries.ContainsKey(reader.HashPath(cleaned)))
-                    {
                         decoyPaths.Add(cleaned);
                     }
                 }
@@ -332,10 +332,17 @@ namespace Extractor.Deep
         private HashSet<string> FindPathsInFile(string filePath)
         {
             visited.Add(filePath);
+
+            if (junkEntries.ContainsKey(reader.HashPath(filePath)))
+            {
+                return [];
+            }
+
             if (!reader.FileExists(filePath))
             {
                 return [];
             }
+
             FoundFiles.Add(filePath);
             var fileEntry = reader.GetEntry(filePath);
             visitedEntries.Add(fileEntry);
@@ -574,7 +581,7 @@ namespace Extractor.Deep
                     Debugger.Break();
                 throw;
             }
-            catch (IndexOutOfRangeException)
+            catch (Exception)
             {
                 Debugger.Break();
                 throw;
@@ -695,6 +702,7 @@ namespace Extractor.Deep
         private void AddPathVariants(string str, HashSet<string> potentialPaths)
         {
             var extension = Path.GetExtension(str);
+
             if (extension == ".pmd")
             {
                 Add(Path.ChangeExtension(str, ".pmg"), potentialPaths);

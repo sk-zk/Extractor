@@ -9,18 +9,12 @@ namespace Extractor
 {
     internal class ConsoleUtils
     {
-        public static void PrintRenameWarning(string original, string renamed)
-        {
-            Console.Out.WriteLine($"WARN: {ReplaceControlChars(original)} renamed to " +
-                $"{ReplaceControlChars(renamed)}");
-        }
-
-        public static void PrintRenameSummary(int renamed)
+        public static void PrintRenameSummary(int renamed, int modified)
         {
             if (renamed > 0)
             {
-                Console.WriteLine($"WARN: {renamed} file{(renamed == 1 ? " was" : "s were")} renamed. " +
-                    $"Make sure to update references to affected paths accordingly.");
+                Console.WriteLine($"WARN: {renamed} {(renamed == 1 ? "file" : "files")} had to be renamed and " +
+                    $"{modified} file{(renamed == 1 ? " was" : "s were")} modified accordingly.");
             }
         }
 

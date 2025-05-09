@@ -10,7 +10,6 @@ using static Extractor.PathUtils;
 using static Extractor.ConsoleUtils;
 using TruckLib.Sii;
 using System.Data;
-using System.Reflection.PortableExecutable;
 using TruckLib.HashFs;
 
 namespace Extractor.Deep
@@ -42,28 +41,28 @@ namespace Extractor.Deep
 
         public HashFsDeepExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
-            dumped = 0;
-            PrintExtractedFiles = true;
         }
 
         public override void Extract(IList<string> pathFilter, string destination)
         {
             Console.WriteLine("Searching for paths ...");
 
+            bool filtersSet = !pathFilter.SequenceEqual(["/"]);
+
             DeleteJunkEntries();
 
             var finder = new PathFinder(Reader, AdditionalStartPaths, junkEntries);
             finder.Find();
-
-            bool filtersSet = !pathFilter.SequenceEqual(["/"]);
-
             var foundFiles = finder.FoundFiles.Order().ToArray();
+
+            substitutions = DeterminePathSubstitutions(foundFiles);
+
             if (filtersSet)
             {
                 foundFiles = foundFiles
                     .Where(f => pathFilter.Any(f.StartsWith)).ToArray();
             }
-            base.Extract(foundFiles, destination);
+            ExtractFiles(foundFiles, destination);
 
             var foundDecoyFiles = finder.FoundDecoyFiles.Order().ToArray();
             if (filtersSet)
@@ -74,7 +73,7 @@ namespace Extractor.Deep
             var decoyDestination = Path.Combine(destination, DecoyDirectory);
             foreach (var decoyFile in foundDecoyFiles)
             {
-                base.ExtractFile(decoyFile, decoyDestination);
+                ExtractFile(decoyFile, decoyDestination);
             }
 
             if (!filtersSet)
@@ -91,16 +90,16 @@ namespace Extractor.Deep
         private void DumpUnrecovered(string destination, IEnumerable<string> foundFiles)
         {
             var notRecovered = Reader.Entries.Values
-                            .Where(e => !e.IsDirectory)
-                            .Except(foundFiles.Select(f =>
-                            {
-                                if (Reader.EntryExists(f) != EntryType.NotFound)
-                                {
-                                    return Reader.GetEntry(f);
-                                }
-                                junkEntries.TryGetValue(Reader.HashPath(f), out var retval);
-                                return retval;
-                            }));
+                .Where(e => !e.IsDirectory)
+                .Except(foundFiles.Select(f =>
+                {
+                    if (Reader.EntryExists(f) != EntryType.NotFound)
+                    {
+                        return Reader.GetEntry(f);
+                    }
+                    junkEntries.TryGetValue(Reader.HashPath(f), out var retval);
+                    return retval;
+                }));
 
             HashSet<ulong> visitedOffsets = [];
 
@@ -108,11 +107,8 @@ namespace Extractor.Deep
 
             foreach (var entry in notRecovered)
             {
-                if (!visitedOffsets.Add(entry.Offset))
-                {
-                    duplicate++;
+                if (junkEntries.ContainsKey(entry.Hash))
                     continue;
-                }
 
                 var fileBuffer = Reader.Extract(entry, "")[0];
                 var fileType = FileTypeHelper.Infer(fileBuffer);
@@ -126,14 +122,7 @@ namespace Extractor.Deep
                 }
                 else
                 {
-                    ExtractToDisk(fileName, outputPath, () =>
-                    {
-                        if (fileType == FileType.Sii)
-                        {
-                            fileBuffer = SiiFile.Decode(fileBuffer);
-                        }
-                        File.WriteAllBytes(outputPath, fileBuffer);
-                    });
+                    ExtractToDisk(entry, fileName, outputPath);
                     dumped++;
                 }
             }
@@ -147,7 +136,7 @@ namespace Extractor.Deep
             finder.Find();
             var paths = (includeAll 
                 ? finder.FoundFiles.Union(finder.ReferencedFiles) 
-                : finder.FoundFiles).Order().ToArray();
+                : finder.FoundFiles).Order();
 
             foreach (var path in paths)
             {
@@ -157,9 +146,9 @@ namespace Extractor.Deep
 
         public override void PrintExtractionResult()
         {
-            Console.WriteLine($"{extracted} extracted ({renamed} renamed, {dumped} dumped), " +
+            Console.WriteLine($"{extracted} extracted ({renamed} renamed, {modified} modified, {dumped} dumped), " +
                 $"{skipped} skipped, {duplicate} junk, {failed} failed");
-            PrintRenameSummary(renamed);
+            PrintRenameSummary(renamed, modified);
         }
 
         public override List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter)

@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using TruckLib.HashFs;
 using static Extractor.PathUtils;
 using static Extractor.ConsoleUtils;
-using TruckLib.Sii;
 
 namespace Extractor
 {
@@ -41,7 +40,17 @@ namespace Extractor
         /// </summary>
         public bool PrintNotFoundMessage { get; set; } = true;
 
-        protected bool PrintExtractedFiles { get; set; } = false;
+        /// <summary>
+        /// Junk entries identified by DeleteJunkEntries.
+        /// </summary>
+        protected Dictionary<ulong, IEntry> junkEntries = [];
+
+        private bool hasRemovedJunk;
+
+        /// <summary>
+        /// Paths which will need to be renamed.
+        /// </summary>
+        protected Dictionary<string, string> substitutions;
 
         /// <summary>
         /// The number of files which have been extracted successfully.
@@ -77,22 +86,14 @@ namespace Extractor
         protected int duplicate;
 
         /// <summary>
-        /// Junk entries identified by DeleteJunkEntries.
+        /// The number of files which were modified to replace references to paths
+        /// which had to be renamed.
         /// </summary>
-        protected Dictionary<ulong, IEntry> junkEntries = [];
-
-        private bool hasRemovedJunk;
+        protected int modified;
 
         public HashFsExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
             Reader = HashFsReader.Open(scsPath, ForceEntryTableAtEnd);
-
-            extracted = 0;
-            skipped = 0;
-            failed = 0;
-            notFound = 0;
-            renamed = 0;
-            duplicate = 0;
 
             if (Salt is not null)
             {
@@ -101,143 +102,168 @@ namespace Extractor
         }
 
         /// <inheritdoc/>
-        public override void Extract(IList<string> pathFilter, string destination)
+        public override void Extract(IList<string> pathFilter, string outputRoot)
         {
             DeleteJunkEntries();
 
-            if (pathFilter.Count == 1 && pathFilter[0] == "/" 
-                && Reader.EntryExists("/") == EntryType.Directory)
+            if (pathFilter.Count == 1 && pathFilter[0] == "/")
             {
-                var listing = Reader.GetDirectoryListing("/");
-                if (listing.Subdirectories.Count == 0 && listing.Files.Count == 0)
+                if (Reader.EntryExists("/") == EntryType.Directory)
                 {
-                    Console.Error.WriteLine("Top level directory listing is empty; " +
-                        "use --deep to scan contents for paths before extraction " +
-                        "or --partial to extract known paths");
+                    var listing = Reader.GetDirectoryListing("/");
+                    if (listing.Subdirectories.Count == 0 && listing.Files.Count == 0)
+                    {
+                        Console.Error.WriteLine("Top level directory is empty; " +
+                            "use --deep to scan contents for paths before extraction " +
+                            "or --partial to extract known paths");
+                        return;
+                    }
+                }
+                else
+                {
+                    PrintNoTopLevelError();
                     return;
                 }
             }
 
-            var scsName = Path.GetFileName(scsPath);
+            var pathsToExtract = GetPathsToExtract(Reader, pathFilter,
+                (nonexistent) =>
+                {
+                    if (PrintNotFoundMessage)
+                    {
+                        Console.Error.WriteLine($"Path {ReplaceControlChars(nonexistent)} " +
+                            $"was not found");
+                        notFound++;
+                    }
+                }
+            );
+            substitutions = DeterminePathSubstitutions(pathsToExtract);
 
+            ExtractFiles(pathsToExtract, outputRoot);
+        }
+
+        protected void ExtractFiles(IList<string> pathsToExtract, string outputRoot)
+        {
+            var scsName = Path.GetFileName(scsPath);
+            foreach (var archivePath in pathsToExtract)
+            {
+                PrintExtractionMessage(archivePath, scsName);
+                ExtractFile(archivePath, outputRoot);
+            }
+        }
+
+        internal static Dictionary<string, string> DeterminePathSubstitutions(IList<string> pathsToExtract)
+        {
+            Dictionary<string, string> substitutions = [];
+            foreach (var path in pathsToExtract)
+            {
+                var sanitized = SanitizePath(path);
+                if (sanitized != path)
+                {
+                    substitutions.Add(path, sanitized);
+                }
+            }
+            return substitutions;
+        }
+
+        internal static List<string> GetPathsToExtract(IHashFsReader reader, IList<string> pathFilter, 
+            Action<string> onVisitNonexistent)
+        {
+            List<string> pathsToExtract = [];
             foreach (var path in pathFilter)
             {
-                Reader.Traverse(path,
-                    (dir) => PrintExtractionMessage(dir, scsName),
-                    (file) =>
-                    {
-                        if (PrintExtractedFiles)
-                        {
-                            PrintExtractionMessage(file, scsName);
-                        }
-                        ExtractFile(file, destination);
-                    },
-                    (nonexistent) =>
-                    {
-                        if (nonexistent == "/")
-                        {
-                            PrintNoTopLevelError();
-                        }
-                        else if (PrintNotFoundMessage)
-                        {
-                            Console.Error.WriteLine($"Path {ReplaceControlChars(nonexistent)} " +
-                                $"was not found");
-                            notFound++;
-                        }
-                    });
+                reader.Traverse(path, 
+                    (_) => { }, 
+                    (file) => 
+                    { 
+                        if (file != "/")
+                            pathsToExtract.Add(file); 
+                    }, 
+                    onVisitNonexistent);
             }
+            return pathsToExtract;
         }
 
-        protected void ExtractFile(string file, string destination)
+        protected void ExtractFile(string archivePath, string outputRoot)
         {
-            // The directory listing of core.scs only lists itself, but as a file, breaking everything
-            if (file == "/") return;
-
-            var fileWithoutSlash = RemoveInitialSlash(file);
-            var sanitized = SanitizePath(fileWithoutSlash);
-            var outputPath = Path.Combine(destination, sanitized);
-            if (fileWithoutSlash != sanitized)
+            if (!substitutions.TryGetValue(archivePath, out string filePath))
             {
-                PrintRenameWarning(file, sanitized);
+                filePath = archivePath;
+            }
+            var outputPath = Path.Combine(outputRoot, RemoveInitialSlash(filePath));
+            if (archivePath != filePath)
+            {
                 renamed++;
             }
-            ExtractToDisk(file, outputPath, () => ExtractToDiskInner(file, outputPath));
-        }
 
-        protected void ExtractToDisk(string displayedPath, string outputPath,
-            Action innerCall)
-        {
             if (!Overwrite && File.Exists(outputPath))
             {
                 skipped++;
                 return;
             }
 
-            displayedPath = RemoveInitialSlash(displayedPath);
-
-            try
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-                innerCall();
-                extracted++;
-            }
-            catch (InvalidDataException idex)
-            {
-                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(displayedPath)}:");
-                Console.Error.WriteLine(idex.Message);
-                failed++;
-            }
-            catch (AggregateException agex)
-            {
-                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(displayedPath)}:");
-                Console.Error.WriteLine(agex.ToString());
-                failed++;
-            }
-            catch (IOException ioex)
-            {
-                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(displayedPath)}:");
-                Console.Error.WriteLine(ioex.Message);
-                failed++;
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(displayedPath)}:");
-                Console.Error.WriteLine(ex.ToString());
-                failed++;
-            }
+            ExtractToDisk(archivePath, outputPath);
         }
 
-        private void ExtractToDiskInner(string file, string outputPath, 
+        protected void ExtractToDisk(string archivePath, string outputPath, 
             bool allowExtractingJunk = true)
         {
-            IEntry entry;
-            if (Reader.EntryExists(file) != EntryType.NotFound)
+            var type = Reader.TryGetEntry(archivePath, out var entry);
+            if (type == EntryType.NotFound)
             {
-                entry = Reader.GetEntry(file);
-            }
-            else if (allowExtractingJunk)
-            {
-                var hash = Reader.HashPath(file);
-                if (!junkEntries.TryGetValue(hash, out entry))
+                if (allowExtractingJunk)
+                {
+                    var hash = Reader.HashPath(archivePath);
+                    if (!junkEntries.TryGetValue(hash, out entry))
+                    {
+                        throw new FileNotFoundException();
+                    }
+                }
+                else
                 {
                     throw new FileNotFoundException();
                 }
             }
-            else
-            {
-                throw new FileNotFoundException();
-            }
+            ExtractToDisk(entry, archivePath, outputPath);       
+        }
 
-            if (Path.GetExtension(file) == ".sii")
+        protected void ExtractToDisk(IEntry entry, string archivePath, string outputPath)
+        {
+            try
             {
-                var sii = Reader.Extract(entry, file)[0];
-                sii = SiiFile.Decode(sii);
-                File.WriteAllBytes(outputPath, sii);
+                var buffer = Reader.Extract(entry, archivePath)[0];
+
+                Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
+                var wasModified = ExtractWithSubstitutionsIfRequired(archivePath, outputPath, buffer, substitutions);
+
+                extracted++;
+                if (wasModified)
+                    modified++;
             }
-            else
+            catch (InvalidDataException idex)
             {
-                Reader.ExtractToFile(entry, file, outputPath);
+                PrintExtractionFailure(archivePath, idex.Message);
             }
+            catch (AggregateException agex)
+            {
+                PrintExtractionFailure(archivePath, agex.ToString());
+            }
+            catch (IOException ioex)
+            {
+                PrintExtractionFailure(archivePath, ioex.Message);
+            }
+            catch (Exception ex)
+            {
+                PrintExtractionFailure(archivePath, ex.ToString());
+            }
+        }
+
+        private void PrintExtractionFailure(string archivePath, string errorMessage)
+        {
+            archivePath = RemoveInitialSlash(archivePath);
+            Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
+            Console.Error.WriteLine(errorMessage);
+            failed++;
         }
 
         protected void DeleteJunkEntries()
@@ -257,7 +283,7 @@ namespace Extractor
             }
             foreach (var (hash, entry) in junk)
             {
-                Reader.Entries.Remove(hash);
+                // Reader.Entries.Remove(hash);
                 junkEntries.Add(hash, entry);
                 duplicate++;
             }
@@ -275,9 +301,9 @@ namespace Extractor
 
         public override void PrintExtractionResult()
         {
-            Console.Error.WriteLine($"{extracted} extracted ({renamed} renamed), {skipped} skipped, " +
-                $"{notFound} not found, {duplicate} junk, {failed} failed");
-            PrintRenameSummary(renamed);
+            Console.Error.WriteLine($"{extracted} extracted ({renamed} renamed, {modified} modified), " +
+                $"{skipped} skipped, {notFound} not found, {duplicate} junk, {failed} failed");
+            PrintRenameSummary(renamed, modified);
         }
 
         public override void PrintPaths(IList<string> pathFilter, bool includeAll)
