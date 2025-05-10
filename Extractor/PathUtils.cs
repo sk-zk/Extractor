@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Extractor
 {
@@ -11,8 +10,23 @@ namespace Extractor
     {
         public static readonly char[] InvalidPathChars =
             Path.GetInvalidFileNameChars().Except(['/', '\\']).ToArray();
-        private static readonly char[] problematicControlChars =
+
+        private static readonly char[] ProblematicControlChars =
             [(char)0x07, (char)0x08, (char)0x09, (char)0x0a, (char)0x0d, (char)0x1b, '\u200b'];
+
+        /// <summary>
+        /// Names which, in Windows, are reserved and cannot be used as the name of
+        /// a file or directory
+        /// </summary>
+        private static readonly HashSet<string> ReservedNames = [
+            "con", "prn", "aux", "nul",
+            "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9",
+            "com¹", "com²", "com³",
+            "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9",
+            "lpt¹", "lpt²", "lpt³"
+        ];
+
+        private static readonly bool IsWindows = OperatingSystem.IsWindows();
 
         /// <summary>
         /// Replaces invalid or problematic portions of a HashFS or ZIP file path.
@@ -21,16 +35,33 @@ namespace Extractor
         /// <param name="invalidPathChars">Characters which cannot be used in paths.
         /// Defaults to <see cref="InvalidPathChars"/>.</param>
         /// <returns>The sanitized path.</returns>
-        public static string SanitizePath(string path, char[] invalidPathChars = null)
+        public static string SanitizePath(string path, char[] invalidPathChars = null, bool? isWindows = null)
         {
             path = ReplaceCharsUnambiguously(path, invalidPathChars ?? InvalidPathChars);
-            // prevent traversing upwards with ".."
-            path = string.Join('/', path.Split(['/', '\\']).Select(x => x == ".." ? "__" : x));
+            isWindows ??= IsWindows;
+
+            var parts = path.Split('/');
+            for (int i = 0; i < parts.Length; i++)
+            {
+                // prevent traversing upwards with ".."
+                if (parts[i] == "..")
+                {
+                    parts[i] = "__";
+                }
+                // append underscore to reserved names in Windows
+                else if (isWindows.Value && ReservedNames.Contains(
+                    Path.GetFileNameWithoutExtension(parts[i]).ToLowerInvariant()))
+                {
+                    parts[i] = AppendBeforeExtension(parts[i], "_");
+                }
+            }
+            path = string.Join('/', parts);
+
             return path;
         }
 
         public static string ReplaceControlChars(string input)
-            => ReplaceChars(input, problematicControlChars, '�');
+            => ReplaceChars(input, ProblematicControlChars, '�');
 
         public static string ReplaceChars(string input, char[] toReplace, char replacement)
         {
@@ -205,19 +236,27 @@ namespace Extractor
             if (!File.Exists(path))
                 return path;
 
-            var dot = path.LastIndexOf('.');
-            if (dot == -1) 
-                dot = path.Length - 1;
-            var pathWithoutExtension = path[..dot];
-            var extension = path[dot..];
-
             for (int i = 2; i < 9999; i++)
             {
-                path = $"{pathWithoutExtension}{i}{extension}";
-                if (!File.Exists(path))
-                    return path;
+                var newPath = AppendBeforeExtension(path, i.ToString());
+                if (!File.Exists(newPath))
+                    return newPath;
             }
             throw new IOException("bruh.");
+        }
+
+        /// <summary>
+        /// Appends a string to a path before the extension.
+        /// </summary>
+        /// <param name="path">The path.</param>
+        /// <param name="addition">The string to add before the extension.</param>
+        /// <returns>The modified path.</returns>
+        public static string AppendBeforeExtension(string path, string addition)
+        {
+            var dot = path.LastIndexOf('.');
+            if (dot == -1)
+                return $"{path}{addition}";
+            return $"{path[..dot]}{addition}{path[dot..]}";
         }
     }
 }
