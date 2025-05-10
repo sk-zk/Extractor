@@ -42,18 +42,6 @@ namespace Extractor.Zip
         /// </summary>
         private int failed;
 
-        /// <summary>
-        /// The number of files whose paths had to be changed because they contained
-        /// invalid characters.
-        /// </summary>
-        private int renamed;
-
-        /// <summary>
-        /// The number of files which were modified to replace references to paths
-        /// which had to be renamed.
-        /// </summary>
-        private int modified;
-
         public ZipExtractor(string scsPath, bool overwrite) 
             : base(scsPath, overwrite)
         {
@@ -85,6 +73,9 @@ namespace Extractor.Zip
                     failed++;
                 }
             }
+
+            WriteRenamedSummary(outputRoot);
+            WriteModifiedSummary(outputRoot);
         }
 
         internal static Dictionary<string, string> DeterminePathSubstitutions(
@@ -142,7 +133,7 @@ namespace Extractor.Zip
 
             if (fileName != entry.FileName)
             {
-                renamed++;
+                renamedFiles.Add((entry.FileName, fileName));
             }
 
             var outputDir = Path.GetDirectoryName(outputPath);
@@ -158,7 +149,7 @@ namespace Extractor.Zip
 
             extracted++;
             if (wasModified)
-                modified++;
+                modifiedFiles.Add(entry.FileName);
         }
 
         public override void PrintContentSummary()
@@ -169,9 +160,10 @@ namespace Extractor.Zip
 
         public override void PrintExtractionResult()
         {
-            Console.Error.WriteLine($"{extracted} extracted ({renamed} renamed, {modified} modified), " +
+            Console.Error.WriteLine($"{extracted} extracted " +
+                $"({renamedFiles.Count} renamed, {modifiedFiles.Count} modified), " +
                 $"{skipped} skipped, {failed} failed");
-            PrintRenameSummary(renamed, modified);
+            PrintRenameSummary(renamedFiles.Count, modifiedFiles.Count);
         }
 
         public override void PrintPaths(IList<string> pathFilter, bool includeAll)

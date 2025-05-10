@@ -193,5 +193,31 @@ namespace Extractor
 
         public static IEnumerable<string> GetAllScsFiles(string directory) 
             => Directory.EnumerateFiles(directory, "*.scs");
+
+        /// <summary>
+        /// If the given path exists, a number is added to its end which increases
+        /// until a path is found which does not yet exist.
+        /// </summary>
+        /// <param name="path">The path to increment.</param>
+        /// <returns>The original path if it did not exist, or an incremented path if it did.</returns>
+        public static string IncrementPathIfExists(string path)
+        {
+            if (!File.Exists(path))
+                return path;
+
+            var dot = path.LastIndexOf('.');
+            if (dot == -1) 
+                dot = path.Length - 1;
+            var pathWithoutExtension = path[..dot];
+            var extension = path[dot..];
+
+            for (int i = 2; i < 9999; i++)
+            {
+                path = $"{pathWithoutExtension}{i}{extension}";
+                if (!File.Exists(path))
+                    return path;
+            }
+            throw new IOException("bruh.");
+        }
     }
 }

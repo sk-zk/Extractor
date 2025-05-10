@@ -43,7 +43,7 @@ namespace Extractor.Deep
         {
         }
 
-        public override void Extract(IList<string> pathFilter, string destination)
+        public override void Extract(IList<string> pathFilter, string outputRoot)
         {
             Console.WriteLine("Searching for paths ...");
 
@@ -62,7 +62,7 @@ namespace Extractor.Deep
                 foundFiles = foundFiles
                     .Where(f => pathFilter.Any(f.StartsWith)).ToArray();
             }
-            ExtractFiles(foundFiles, destination);
+            ExtractFiles(foundFiles, outputRoot);
 
             var foundDecoyFiles = finder.FoundDecoyFiles.Order().ToArray();
             if (filtersSet)
@@ -70,7 +70,7 @@ namespace Extractor.Deep
                 foundDecoyFiles = foundDecoyFiles
                     .Where(f => pathFilter.Any(f.StartsWith)).ToArray();
             }
-            var decoyDestination = Path.Combine(destination, DecoyDirectory);
+            var decoyDestination = Path.Combine(outputRoot, DecoyDirectory);
             foreach (var decoyFile in foundDecoyFiles)
             {
                 ExtractFile(decoyFile, decoyDestination);
@@ -78,8 +78,11 @@ namespace Extractor.Deep
 
             if (!filtersSet)
             {
-                DumpUnrecovered(destination, foundFiles.Concat(foundDecoyFiles));
+                DumpUnrecovered(outputRoot, foundFiles.Concat(foundDecoyFiles));
             }
+
+            WriteRenamedSummary(outputRoot);
+            WriteModifiedSummary(outputRoot);
         }
 
         /// <summary>
@@ -122,7 +125,7 @@ namespace Extractor.Deep
                 }
                 else
                 {
-                    ExtractToDisk(entry, fileName, outputPath);
+                    ExtractToDisk(entry, $"/{DumpDirectory}/{fileName}", outputPath);
                     dumped++;
                 }
             }
@@ -146,9 +149,10 @@ namespace Extractor.Deep
 
         public override void PrintExtractionResult()
         {
-            Console.WriteLine($"{extracted} extracted ({renamed} renamed, {modified} modified, {dumped} dumped), " +
+            Console.WriteLine($"{extracted} extracted " +
+                $"({renamedFiles.Count} renamed, {modifiedFiles.Count} modified, {dumped} dumped), " +
                 $"{skipped} skipped, {duplicate} junk, {failed} failed");
-            PrintRenameSummary(renamed, modified);
+            PrintRenameSummary(renamedFiles.Count, modifiedFiles.Count);
         }
 
         public override List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter)

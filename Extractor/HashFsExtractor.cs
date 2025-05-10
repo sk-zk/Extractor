@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -74,22 +73,10 @@ namespace Extractor
         protected int notFound;
 
         /// <summary>
-        /// The number of files whose paths had to be changed because they contained
-        /// invalid characters.
-        /// </summary>
-        protected int renamed;
-
-        /// <summary>
         /// The number of files which were skipped because they pointed to
         /// the same offset as another entry.
         /// </summary>
         protected int duplicate;
-
-        /// <summary>
-        /// The number of files which were modified to replace references to paths
-        /// which had to be renamed.
-        /// </summary>
-        protected int modified;
 
         public HashFsExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
@@ -140,6 +127,9 @@ namespace Extractor
             substitutions = DeterminePathSubstitutions(pathsToExtract);
 
             ExtractFiles(pathsToExtract, outputRoot);
+
+            WriteRenamedSummary(outputRoot);
+            WriteModifiedSummary(outputRoot);
         }
 
         protected void ExtractFiles(IList<string> pathsToExtract, string outputRoot)
@@ -193,7 +183,7 @@ namespace Extractor
             var outputPath = Path.Combine(outputRoot, RemoveInitialSlash(filePath));
             if (archivePath != filePath)
             {
-                renamed++;
+                renamedFiles.Add((archivePath, filePath));
             }
 
             if (!Overwrite && File.Exists(outputPath))
@@ -238,7 +228,7 @@ namespace Extractor
 
                 extracted++;
                 if (wasModified)
-                    modified++;
+                    modifiedFiles.Add(archivePath);
             }
             catch (InvalidDataException idex)
             {
@@ -301,9 +291,10 @@ namespace Extractor
 
         public override void PrintExtractionResult()
         {
-            Console.Error.WriteLine($"{extracted} extracted ({renamed} renamed, {modified} modified), " +
+            Console.Error.WriteLine($"{extracted} extracted " +
+                $"({renamedFiles.Count} renamed, {modifiedFiles.Count} modified), " +
                 $"{skipped} skipped, {notFound} not found, {duplicate} junk, {failed} failed");
-            PrintRenameSummary(renamed, modified);
+            PrintRenameSummary(renamedFiles.Count, modifiedFiles.Count);
         }
 
         public override void PrintPaths(IList<string> pathFilter, bool includeAll)

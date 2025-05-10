@@ -21,6 +21,17 @@ namespace Extractor
         /// </summary>
         protected string scsPath;
 
+        /// <summary>
+        /// Files which were renamed because they contained invalid characters.
+        /// </summary>
+        protected List<(string ArchivePath, string SanitizedPath)> renamedFiles = [];
+
+        /// <summary>
+        /// Files which were modified to replace references to paths which had 
+        /// to be renamed.
+        /// </summary>
+        protected List<string> modifiedFiles = [];
+
         public Extractor(string scsPath, bool overwrite) 
         { 
             this.scsPath = scsPath;
@@ -68,6 +79,36 @@ namespace Extractor
 
             File.WriteAllBytes(outputPath, buffer);
             return wasModified;
+        }
+
+        protected void WriteRenamedSummary(string outputRoot)
+        {
+            if (renamedFiles.Count == 0)
+                return;
+
+            var path = Path.Combine(outputRoot, "_renamed.txt");
+            path = PathUtils.IncrementPathIfExists(path);
+
+            using var sw = new StreamWriter(path);
+            foreach (var (before, after) in renamedFiles)
+            {
+                sw.WriteLine($"{before}\t{after}");
+            }         
+        }
+
+        protected void WriteModifiedSummary(string outputRoot)
+        {
+            if (modifiedFiles.Count == 0)
+                return;
+
+            var path = Path.Combine(outputRoot, "_modified.txt");
+            path = PathUtils.IncrementPathIfExists(path);
+
+            using var sw = new StreamWriter(path);
+            foreach (var file in modifiedFiles)
+            {
+                sw.WriteLine(file);
+            }
         }
     }
 }
