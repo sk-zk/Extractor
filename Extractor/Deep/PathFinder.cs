@@ -123,14 +123,6 @@ namespace Extractor.Deep
         /// </summary>
         private HashSet<string> dirsToSearchForRelativeTobj;
 
-        private readonly HashSet<string> ignorableUnitKeys = 
-            ["category", "sign_name", "display_name", "ferry_name", 
-            "static_lod_name", "city_names", "city_name_localized", "board_name",
-            "vehicle_brands", "package_version", "compatible_versions"];
-
-        private readonly HashSet<string> ignorableUnitClasses =
-            ["cargo_def", "traffic_spawn_condition"];
-
         public PathFinder(IHashFsReader reader, IList<string> additionalStartPaths = null, 
             Dictionary<ulong, IEntry> junkEntries = null)
         {
@@ -228,7 +220,7 @@ namespace Extractor.Deep
                     var paths = FindPathsInFile(null, fileBuffer, type);
                     foreach (var path in paths)
                     {
-                        Add(path, potentialPaths);
+                        Add(path, potentialPaths, visited);
                     }
                 }
                 catch (Exception ex)
@@ -384,7 +376,12 @@ namespace Extractor.Deep
 
             var finders = new Dictionary<FileType, Func<byte[], HashSet<string>>>()
             {
-                { FileType.Sii, (fileBuffer) => FindPathsInSii(fileBuffer, filePath) },
+                { FileType.Sii, (fileBuffer) =>
+                    {
+                        var potentialPaths = SiiPathFinder.FindPathsInSii(fileBuffer, filePath, reader);
+                        potentialPaths.ExceptWith(visited);
+                        return potentialPaths;
+                    } },
                 { FileType.SoundRef, FindPathsInSoundref },
                 { FileType.Pmd, FindPathsInPmd },
                 { FileType.Tobj, FindPathsInTobj },
@@ -428,7 +425,7 @@ namespace Extractor.Deep
                         || i == fileBuffer.Length - 1)
                     {
                         var potentialPath = Encoding.UTF8.GetString(fileBuffer, start, i - start);
-                        Add(potentialPath, potentialPaths);
+                        Add(potentialPath, potentialPaths, visited);
                         inPotentialPath = false;
                     }
                 }
@@ -450,10 +447,10 @@ namespace Extractor.Deep
             foreach (Match match in matches)
             {
                 var path = match.Groups[1].Value;
-                Add(path, potentialPaths);
+                Add(path, potentialPaths, visited);
                 if (path.EndsWith(".mat"))
                 {
-                    Add(Path.ChangeExtension(path, ".font"), potentialPaths);
+                    Add(Path.ChangeExtension(path, ".font"), potentialPaths, visited);
                 }
             }
 
@@ -482,7 +479,7 @@ namespace Extractor.Deep
                 {
                     if (path.StartsWith('/'))
                     {
-                        Add(path, potentialPaths);
+                        Add(path, potentialPaths, visited);
                     }
                     else
                     {
@@ -493,7 +490,7 @@ namespace Extractor.Deep
                                 var potentialAbsPath = $"{dir}/{path}";
                                 if (reader.FileExists(potentialAbsPath))
                                 {
-                                    Add(potentialAbsPath, potentialPaths);
+                                    Add(potentialAbsPath, potentialPaths, visited);
                                 }
                             }
                         }
@@ -501,7 +498,7 @@ namespace Extractor.Deep
                         {
                             var matDirectory = GetParent(filePath);
                             path = $"{matDirectory}/{path}";
-                            Add(path, potentialPaths);
+                            Add(path, potentialPaths, visited);
                         }
                     }
                 }
@@ -547,140 +544,14 @@ namespace Extractor.Deep
                 if (line.StartsWith("source="))
                 {
                     var path = line[(line.IndexOf('"') + 1)..line.IndexOf('#')];
-                    Add(path, potentialPaths);
+                    Add(path, potentialPaths, visited);
                 }
             }
 
             return potentialPaths;
         }
 
-        private HashSet<string> FindPathsInSii(byte[] fileBuffer, string filePath)
-        {
-            var magic = Encoding.UTF8.GetString(fileBuffer[0..4]);
-            if (!(magic == "SiiN" // regular sii
-                || magic == "\uFEFFS" // regular sii with fucking BOM
-                || magic == "ScsC" // encrypted sii
-                || magic.StartsWith("3nK") // 3nK-encoded sii
-                ))
-            {
-                #if DEBUG
-                    Console.Error.WriteLine($"Not a sii file: {filePath}");
-                #endif
-                return [];
-            }
-
-            var siiDirectory = GetParent(filePath);
-            try
-            {
-                var sii = SiiFile.Load(fileBuffer, siiDirectory, reader, true);
-                return FindPathsInSii(sii);
-            }
-            catch (ParseException)
-            {
-                if (!filePath.StartsWith("/ui/template"))
-                    Debugger.Break();
-                throw;
-            }
-            catch (Exception)
-            {
-                Debugger.Break();
-                throw;
-            }
-        }
-
-        private HashSet<string> FindPathsInSii(SiiFile sii)
-        {
-            HashSet<string> potentialPaths = new(sii.Includes);
-
-            foreach (var unit in sii.Units)
-            {
-                foreach (var attrib in unit.Attributes)
-                {
-                    ProcessSiiUnitAttribute(unit.Class, attrib, potentialPaths);
-                }
-            }
-
-            return potentialPaths;
-        }
-
-        private void ProcessSiiUnitAttribute(string unitClass, KeyValuePair<string, dynamic> attrib,
-            HashSet<string> potentialPaths)
-        {
-            if (ignorableUnitClasses.Contains(unitClass))
-                return;
-
-            if (ignorableUnitKeys.Contains(attrib.Key))
-                return;
-
-            if (attrib.Value is string s)
-            {
-                if (unitClass == "ui::text"
-                    || unitClass == "ui::text_template"
-                    || unitClass == "ui_text_bar")
-                {
-                    // Extract paths from img and font tags of the faux-HTML
-                    // used in UI strings.
-                    var matches = Regex.Matches(s, @"(?:src|face)=(\S*)");
-                    foreach (Match match in matches)
-                    {
-                        Add(match.Groups[1].Value, potentialPaths);
-                    }
-                }
-                else if (attrib.Key == "icon" && unitClass != "mod_package")
-                {
-                    // See https://modding.scssoft.com/wiki/Documentation/Engine/Units/trailer_configuration
-                    // and https://modding.scssoft.com/wiki/Documentation/Engine/Units/accessory_data
-                    var iconPath = $"/material/ui/accessory/{attrib.Value}";
-                    if (Path.GetExtension(iconPath) == "")
-                    {
-                        iconPath += ".mat";
-                    }
-                    Add(iconPath, potentialPaths);
-                }
-                else
-                {
-                    Add(s, potentialPaths);
-                }
-            }
-            else if (attrib.Value is IList<dynamic> items && items[0] is string)
-            {
-                var strings = items.Where(x => x is string).Cast<string>();
-
-                if (unitClass == "license_plate_data")
-                {
-                    if (attrib.Key.StartsWith("def"))
-                    {
-                        foreach (var str in strings)
-                        {
-                            // Extract paths from img and font tags of the faux-HTML
-                            // used in UI strings.
-                            var matches = Regex.Matches(str, @"(?:src|face)=(\S*)");
-                            foreach (Match match in matches)
-                            {
-                                Add(match.Groups[1].Value, potentialPaths);
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (var str in strings)
-                    {
-                        if (attrib.Key == "sounds")
-                        {
-                            var soundPath = str.Contains('|') ? str.Split('|')[1] : str;
-                            Add(soundPath, potentialPaths);
-                        }
-                        else
-                        {
-                            Add(str, potentialPaths);
-                        }
-                    }
-                }
-            }
-        }
-
-        private void Add(string str, HashSet<string> potentialPaths)
+        internal static void Add(string str, HashSet<string> potentialPaths, HashSet<string> visited)
         {
             if (!ResemblesPath(str))
             {
@@ -695,46 +566,46 @@ namespace Extractor.Deep
             if (!potentialPaths.Contains(str) && !visited.Contains(str))
             {
                 potentialPaths.Add(str);
-                AddPathVariants(str, potentialPaths);
+                AddPathVariants(str, potentialPaths, visited);
             }
         }
 
-        private void AddPathVariants(string str, HashSet<string> potentialPaths)
+        private static void AddPathVariants(string str, HashSet<string> potentialPaths, HashSet<string> visited)
         {
             var extension = Path.GetExtension(str);
 
             if (extension == ".pmd")
             {
-                Add(Path.ChangeExtension(str, ".pmg"), potentialPaths);
-                Add(Path.ChangeExtension(str, ".pmc"), potentialPaths);
-                Add(Path.ChangeExtension(str, ".pma"), potentialPaths);
-                Add(Path.ChangeExtension(str, ".ppd"), potentialPaths);
+                Add(Path.ChangeExtension(str, ".pmg"), potentialPaths, visited);
+                Add(Path.ChangeExtension(str, ".pmc"), potentialPaths, visited);
+                Add(Path.ChangeExtension(str, ".pma"), potentialPaths, visited);
+                Add(Path.ChangeExtension(str, ".ppd"), potentialPaths, visited);
             }
             else if (extension == ".pmg")
             {
-                Add(Path.ChangeExtension(str, ".pmd"), potentialPaths);
-                Add(Path.ChangeExtension(str, ".pmc"), potentialPaths);
-                Add(Path.ChangeExtension(str, ".pma"), potentialPaths);
-                Add(Path.ChangeExtension(str, ".ppd"), potentialPaths);
+                Add(Path.ChangeExtension(str, ".pmd"), potentialPaths, visited);
+                Add(Path.ChangeExtension(str, ".pmc"), potentialPaths, visited);
+                Add(Path.ChangeExtension(str, ".pma"), potentialPaths, visited);
+                Add(Path.ChangeExtension(str, ".ppd"), potentialPaths, visited);
             }
             else if (extension == ".bank")
             {
-                Add(Path.ChangeExtension(str, ".bank.guids"), potentialPaths);
+                Add(Path.ChangeExtension(str, ".bank.guids"), potentialPaths, visited);
             }
             else if (extension == ".mat")
             {
-                Add(Path.ChangeExtension(str, ".tobj"), potentialPaths);
-                Add(Path.ChangeExtension(str, ".dds"), potentialPaths);
+                Add(Path.ChangeExtension(str, ".tobj"), potentialPaths, visited);
+                Add(Path.ChangeExtension(str, ".dds"), potentialPaths, visited);
             }
             else if (extension == ".tobj")
             {
-                Add(Path.ChangeExtension(str, ".mat"), potentialPaths);
-                Add(Path.ChangeExtension(str, ".dds"), potentialPaths);
+                Add(Path.ChangeExtension(str, ".mat"), potentialPaths, visited);
+                Add(Path.ChangeExtension(str, ".dds"), potentialPaths, visited);
             }
             else if (extension == ".dds")
             {
-                Add(Path.ChangeExtension(str, ".mat"), potentialPaths);
-                Add(Path.ChangeExtension(str, ".tobj"), potentialPaths);
+                Add(Path.ChangeExtension(str, ".mat"), potentialPaths, visited);
+                Add(Path.ChangeExtension(str, ".tobj"), potentialPaths, visited);
             }
         }
 
