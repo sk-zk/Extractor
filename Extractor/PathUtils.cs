@@ -8,11 +8,24 @@ namespace Extractor
 {
     public static class PathUtils
     {
-        public static readonly char[] InvalidPathChars =
-            Path.GetInvalidFileNameChars().Except(['/', '\\']).ToArray();
-
         private static readonly char[] ProblematicControlChars =
             [(char)0x07, (char)0x08, (char)0x09, (char)0x0a, (char)0x0d, (char)0x1b, '\u200b'];
+
+        public static readonly char[] ProblematicUnicodeChars = [
+            // whitespace / invisible characters
+            '\u00a0', '\u00ad', '\u034f', '\u061c', '\u180e', '\u2000',
+            '\u2001', '\u2002', '\u2003', '\u2004', '\u2005', '\u2006',
+            '\u2007', '\u2008', '\u2009', '\u200A', '\u200B', '\u200C',
+            '\u200D', '\u202F', '\u205F', '\u2060', '\u2061', '\u2062',
+            '\u2063', '\u2064', '\u2065', '\u2800', '\u3000', '\ufeff',
+        ];
+
+        public static readonly char[] InvalidPathChars =
+            Path.GetInvalidFileNameChars()
+            .Except(['/', '\\'])
+            .Concat(ProblematicUnicodeChars)
+            .Order()
+            .ToArray();
 
         /// <summary>
         /// Names which, in Windows, are reserved and cannot be used as the name of
@@ -81,7 +94,7 @@ namespace Extractor
             var output = new StringBuilder();
             foreach (char c in input)
             {
-                if (Array.IndexOf(toReplace, c) > -1)
+                if (Array.BinarySearch(toReplace, c) > -1)
                     output.Append($"x{(int)c:X2}");
                 else
                     output.Append(c);
