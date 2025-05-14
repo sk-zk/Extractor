@@ -18,7 +18,8 @@ namespace Extractor.Deep
         private static readonly HashSet<string> ignorableUnitKeys =
             ["category", "sign_name", "display_name", "ferry_name",
             "static_lod_name", "city_names", "city_name_localized", "board_name",
-            "vehicle_brands", "package_version", "compatible_versions"];
+            "vehicle_brands", "package_version", "compatible_versions", 
+            "suitable_for", "conflict_with"];
 
         private static readonly HashSet<string> ignorableUnitClasses =
             ["cargo_def", "traffic_spawn_condition"];
