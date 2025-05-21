@@ -28,7 +28,7 @@ namespace Extractor.Zip
         {
             var zip = new ZipReader();
 
-            zip.reader = new BinaryReader(new FileStream(path, FileMode.Open, FileAccess.Read));
+            zip.reader = new BinaryReader(File.OpenRead(path));
             zip.reader.BaseStream.Position = 0;
 
             zip.endOfCentralDirOffset = BinaryUtils.FindBytesBackwards(zip.reader, EndOfCentralDirectory.Signature);

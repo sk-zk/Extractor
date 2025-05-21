@@ -12,8 +12,8 @@
 
 	<ItemGroup>
 		<PackageReference Include="Mono.Options" Version="6.12.0.148" />
-		<PackageReference Include="TruckLib.HashFs" Version="0.1.14" />
-		<PackageReference Include="TruckLib.Sii" Version="0.1.9" />
+		<PackageReference Include="TruckLib.HashFs" Version="0.1.15" />
+		<PackageReference Include="TruckLib.Sii" Version="0.1.10" />
 	</ItemGroup>
 
 	<ItemGroup>

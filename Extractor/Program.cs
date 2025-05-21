@@ -133,7 +133,7 @@ namespace Extractor
             // would miss zip files with invalid local file headers.
          
             char[] magic;
-            using (var fs = new FileStream(scsPath, FileMode.Open, FileAccess.Read))
+            using (var fs = File.OpenRead(scsPath))
             using (var r = new BinaryReader(fs, Encoding.ASCII))
             {
                 magic = r.ReadChars(4);
