@@ -1,4 +1,5 @@
 ﻿using Extractor.Properties;
+using GisDeflate;
 using Sprache;
 using System;
 using System.Collections.Generic;
@@ -203,7 +204,27 @@ namespace Extractor.Deep
                 {
                     continue;
                 }
-                var fileBuffer = reader.Extract(entry, "")[0];
+
+                byte[] fileBuffer;
+                try
+                {
+                    fileBuffer = reader.Extract(entry, "")[0];
+                }
+                catch (InvalidDataException)
+                {
+                    #if DEBUG
+                        Console.WriteLine($"Unable to decompress, likely junk: {entry.Hash:X16}");
+                    #endif
+                    junkEntries.TryAdd(entry.Hash, entry);
+                    continue;
+                }
+                catch (Exception)
+                {
+                    #if DEBUG
+                        Debugger.Break();
+                    #endif
+                    continue;
+                }
 
                 var type = FileTypeHelper.Infer(fileBuffer);
                 if (type == FileType.Material)
