@@ -142,14 +142,13 @@ namespace Extractor
             Dictionary<string, string> substitutions)
         {
             var modified = false;
-            if (substitutions.Count > 0)
+
+            var ranges = FindQuotedPaths(text);
+            if (ranges.Count > 0)
             {
-                var ranges = FindQuotedPaths(text);
-                if (ranges.Count > 0)
-                {
-                    (text, modified) = ReplaceStrings(text, ranges, substitutions);
-                }
+                (text, modified) = ReplaceStrings(text, ranges, substitutions);
             }
+
             return (text, modified);
         }
     }

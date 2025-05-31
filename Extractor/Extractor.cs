@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using TruckLib.Models;
 using TruckLib.Sii;
+using static Extractor.PathSubstitution;
 
 namespace Extractor
 {
@@ -60,21 +62,17 @@ namespace Extractor
         {
             var wasModified = false;
 
-            var extension = Path.GetExtension(archivePath).ToLowerInvariant();
-            var isSii = extension == ".sii";
-            var isOtherTextFormat = extension == ".sui" || extension == ".mat";
-
-            if (isSii || isOtherTextFormat)
+            if (substitutions.Count > 0)
             {
-                if (isSii)
+                var extension = Path.GetExtension(archivePath).ToLowerInvariant();
+                if (extension == ".sii" || extension == ".sui" || extension == ".mat")
                 {
-                    buffer = SiiFile.Decode(buffer);
+                    (wasModified, buffer) = SubstitutePathsInTextFormats(buffer, substitutions, extension);
                 }
-
-                var content = Encoding.UTF8.GetString(buffer);
-                (content, wasModified) = TextUtils.ReplaceRenamedPaths(content, substitutions);
-
-                buffer = Encoding.UTF8.GetBytes(content);
+                else if (extension == ".tobj")
+                {
+                    (wasModified, buffer) = SubstitutePathsInTobj(buffer, substitutions);
+                }
             }
 
             File.WriteAllBytes(outputPath, buffer);

@@ -31,6 +31,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Data\PathSubstitutionTest\subst_after.tobj">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\PathSubstitutionTest\subst_before.tobj">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Data\FileTypeHelperTest\sample.pma">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
