@@ -12,7 +12,7 @@ namespace Extractor
 {
     class Program
     {
-        const string Version = "2025-05-22";
+        const string Version = "2025-05-31";
         private static bool launchedByExplorer = false;
         private static Options opt;
 
