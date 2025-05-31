@@ -221,10 +221,27 @@ namespace Extractor
         {
             try
             {
-                var buffer = Reader.Extract(entry, archivePath)[0];
+                var buffers = Reader.Extract(entry, archivePath);
 
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-                var wasModified = ExtractWithSubstitutionsIfRequired(archivePath, outputPath, buffer, substitutions);
+                var wasModified = ExtractWithSubstitutionsIfRequired(archivePath, outputPath, buffers[0], substitutions);
+
+                if (entry is EntryV2 v2 && v2.TobjMetadata is not null)
+                {
+                    var ddsPath = Path.ChangeExtension(outputPath, "dds");
+                    if (Overwrite || !File.Exists(ddsPath))
+                    {
+                        try
+                        {
+                            File.WriteAllBytes(ddsPath, buffers[1]);
+                        }
+                        catch (IOException ioex)
+                        {
+                            PrintExtractionFailure(Path.ChangeExtension(archivePath, "dds"),
+                                ioex.Message);
+                        }
+                    }
+                }
 
                 extracted++;
                 if (wasModified)
