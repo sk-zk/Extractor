@@ -45,6 +45,11 @@ namespace Extractor.Deep
 
         public override void Extract(IList<string> pathFilter, string outputRoot)
         {
+            if (Salt is not null)
+            {
+                Reader.Salt = Salt.Value;
+            }
+
             Console.WriteLine("Searching for paths ...");
 
             bool filtersSet = !pathFilter.SequenceEqual(["/"]);

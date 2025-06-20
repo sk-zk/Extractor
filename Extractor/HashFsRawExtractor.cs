@@ -15,17 +15,17 @@ namespace Extractor
 
         public override void Extract(IList<string> pathFilter, string destination)
         {
+            if (Salt is not null)
+            {
+                Reader.Salt = Salt.Value;
+            }
+
             DeleteJunkEntries();
 
             var scsName = Path.GetFileName(scsPath);
             Console.Out.WriteLine($"Extracting {scsName} ...");
             var outputDir = Path.Combine(destination, scsName);
             Directory.CreateDirectory(outputDir);
-
-            if (Salt is not null)
-            {
-                Reader.Salt = Salt.Value;
-            }
 
             foreach (var (key, entry) in Reader.Entries)
             {

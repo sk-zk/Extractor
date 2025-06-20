@@ -81,16 +81,16 @@ namespace Extractor
         public HashFsExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
         {
             Reader = HashFsReader.Open(scsPath, ForceEntryTableAtEnd);
-
-            if (Salt is not null)
-            {
-                Reader.Salt = Salt.Value;
-            }
         }
 
         /// <inheritdoc/>
         public override void Extract(IList<string> pathFilter, string outputRoot)
         {
+            if (Salt is not null)
+            {
+                Reader.Salt = Salt.Value;
+            }
+
             DeleteJunkEntries();
 
             if (pathFilter.Count == 1 && pathFilter[0] == "/")
