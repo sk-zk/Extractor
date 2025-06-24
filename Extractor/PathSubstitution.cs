@@ -19,13 +19,13 @@ namespace Extractor
             var isSii = extension == ".sii";
             var isOtherTextFormat = extension == ".sui" || extension == ".mat";
 
+            if (isSii)
+            {
+                buffer = SiiFile.Decode(buffer);
+            }
+
             if (isSii || isOtherTextFormat)
             {
-                if (isSii)
-                {
-                    buffer = SiiFile.Decode(buffer);
-                }
-
                 var content = Encoding.UTF8.GetString(buffer);
                 (content, wasModified) = TextUtils.ReplaceRenamedPaths(content, substitutions);
 
