@@ -20,7 +20,7 @@ namespace Extractor.Deep
 
             // names
             "category", "sign_name", "display_name", "ferry_name",
-            "static_lod_name", "city_names", "city_name_localized", "board_name",
+            "static_lod_name", "city_name", "city_names", "city_name_localized", "board_name",
             "sign_template_names",
 
             // curve_model stuff
@@ -29,6 +29,7 @@ namespace Extractor.Deep
             "color_variant", // model stuff 
             "allowed_vehicle", // traffic logic stuff
             "overlay_schemes", // road stuff
+            "truck_lp_template", // city stuff
         ];
 
         private static readonly HashSet<string> ignorableUnitClasses = [
