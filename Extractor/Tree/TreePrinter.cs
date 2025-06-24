@@ -47,8 +47,14 @@ namespace Extractor.Tree
             {
                 var file = sortedFiles[i];
                 WriteIndent(indent, i == root.Files.Count - 1);
-                Console.WriteLine(file[(file.LastIndexOf('/') + 1)..]);
+                PrintFilePath(file);
             }
+        }
+
+        private static void PrintFilePath(string path)
+        {
+            var fileName = path[(path.LastIndexOf('/') + 1)..];
+            Console.WriteLine(PathUtils.ReplaceControlChars(fileName));
         }
 
         private static void PrintDirectoryPath(string path)
@@ -60,7 +66,7 @@ namespace Extractor.Tree
 
         private static void PrintDirectoryName(string name)
         {
-            PrintWithColor($"[{name}]", ConsoleColor.Yellow);
+            PrintWithColor($"[{PathUtils.ReplaceControlChars(name)}]", ConsoleColor.Yellow);
         }
 
         private static void PrintWithColor(string str, ConsoleColor color)
