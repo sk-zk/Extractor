@@ -109,8 +109,8 @@ extractor path... [options]
 <tr>
   <td></td>
   <td><code>--list-all</code></td>
-  <td>When using <code>--deep</code>, lists all paths referenced by files in the archive,
-  even if they are not contained in it.</td>
+  <td>Lists all paths referenced by files in the archive, even if they are not contained in it.
+  Implicitly activates <code>--deep</code>.</td>
 </tr>
 <tr>
   <td></td>

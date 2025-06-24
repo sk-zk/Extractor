@@ -50,9 +50,9 @@ namespace Extractor
                     "Lists paths contained in the archive. Can be combined with --deep.",
                     x => { ListPaths = true; } },
                 { "list-all",
-                    "[HashFS] When using --deep, lists all paths referenced by files in the archive, " +
-                    "even if they are not contained in it.",
-                    x => { ListPaths = true; ListAll = true; } },
+                    "[HashFS] Lists all paths referenced by files in the archive, " +
+                    "even if they are not contained in it. Implicitly activates --deep.",
+                    x => { ListPaths = true; ListAll = true; UseDeepExtractor = true;  } },
                 { "list-entries",
                     "[HashFS] Lists entries contained in the archive.",
                     x => { ListEntries = true; } },
