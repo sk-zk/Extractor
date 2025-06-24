@@ -15,14 +15,25 @@ namespace Extractor.Deep
 {
     internal class SiiPathFinder
     {
-        private static readonly HashSet<string> ignorableUnitKeys =
-            ["category", "sign_name", "display_name", "ferry_name",
-            "static_lod_name", "city_names", "city_name_localized", "board_name",
-            "vehicle_brands", "package_version", "compatible_versions", 
-            "suitable_for", "conflict_with"];
+        private static readonly HashSet<string> ignorableUnitKeys = [
+            "vehicle_brands", "package_version", "compatible_versions", "suitable_for", "conflict_with",
 
-        private static readonly HashSet<string> ignorableUnitClasses =
-            ["cargo_def", "traffic_spawn_condition"];
+            // names
+            "category", "sign_name", "display_name", "ferry_name",
+            "static_lod_name", "city_names", "city_name_localized", "board_name",
+            "sign_template_names",
+
+            // curve_model stuff
+            "variation", "vegetation", "overlay",
+
+            "color_variant", // model stuff 
+            "allowed_vehicle", // traffic logic stuff
+            "overlay_schemes", // road stuff
+        ];
+
+        private static readonly HashSet<string> ignorableUnitClasses = [
+            "cargo_def", "traffic_spawn_condition", "traffic_rule_data",
+        ];
 
         public static HashSet<string> FindPathsInSii(byte[] fileBuffer, string filePath, IFileSystem fs)
         {
