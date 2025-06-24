@@ -144,6 +144,22 @@ namespace Extractor.Deep
                         var soundPath = str[pipeIdx..hashIdx];
                         PathFinder.Add(soundPath, potentialPaths, []);
                     }
+                    else if (attrib.Key == "adr_info_icon" || attrib.Key == "fallback")
+                    {
+                        var parts = str.Split("|");
+                        if (parts.Length == 2)
+                            PathFinder.Add(parts[1], potentialPaths, []);
+                        else
+                            Debugger.Break();
+                    }
+                    else if (unitClass == "company_permanent" && attrib.Key == "sound")
+                    {
+                        var parts = str.Split("|");
+                        if (parts.Length == 2)
+                            PathFinder.Add(parts[1], potentialPaths, []);
+                        else
+                            Debugger.Break();
+                    }
                     else
                     {
                         PathFinder.Add(str, potentialPaths, []);
@@ -156,8 +172,8 @@ namespace Extractor.Deep
             string unitClass, HashSet<string> potentialPaths)
         {
             if (unitClass == "ui::text"
-                                || unitClass == "ui::text_template"
-                                || unitClass == "ui_text_bar")
+                || unitClass == "ui::text_template"
+                || unitClass == "ui_text_bar")
             {
                 // Extract paths from img and font tags of the faux-HTML
                 // used in UI strings.
