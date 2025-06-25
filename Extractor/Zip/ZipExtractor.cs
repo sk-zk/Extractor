@@ -46,6 +46,7 @@ namespace Extractor.Zip
             : base(scsPath, overwrite)
         {
             zip = ZipReader.Open(scsPath);
+            PrintContentSummary();
         }
 
         /// <inheritdoc/>

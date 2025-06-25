@@ -39,17 +39,13 @@ namespace Extractor.Deep
         /// </summary>
         private int dumped;
 
-        public HashFsDeepExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
+        public HashFsDeepExtractor(string scsPath, bool overwrite, ushort? salt) 
+            : base(scsPath, overwrite, salt)
         {
         }
 
         public override void Extract(IList<string> pathFilter, string outputRoot)
         {
-            if (Salt is not null)
-            {
-                Reader.Salt = Salt.Value;
-            }
-
             Console.WriteLine("Searching for paths ...");
 
             bool filtersSet = !pathFilter.SequenceEqual(["/"]);

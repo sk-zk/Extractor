@@ -86,7 +86,6 @@ namespace Extractor
                     Console.Error.WriteLine($"Unable to open {scsPath}: {ex.Message}");
                     continue;
                 }
-                extractor.PrintContentSummary();
 
                 if (opt.ListEntries)
                 {
@@ -155,27 +154,24 @@ namespace Extractor
         {
             if (opt.UseRawExtractor)
             {
-                return new HashFsRawExtractor(scsPath, !opt.SkipIfExists)
+                return new HashFsRawExtractor(scsPath, !opt.SkipIfExists, opt.Salt)
                 {
                     ForceEntryTableAtEnd = opt.ForceEntryTableAtEnd,
-                    Salt = opt.Salt,
                     PrintNotFoundMessage = !opt.ExtractAllInDir,
                 };
             }
             else if (opt.UseDeepExtractor)
             {
-                return new HashFsDeepExtractor(scsPath, !opt.SkipIfExists)
+                return new HashFsDeepExtractor(scsPath, !opt.SkipIfExists, opt.Salt)
                 {
                     ForceEntryTableAtEnd = opt.ForceEntryTableAtEnd,
-                    Salt = opt.Salt,
                     PrintNotFoundMessage = !opt.ExtractAllInDir,
                     AdditionalStartPaths = opt.AdditionalStartPaths,
                 };
             }
-            return new HashFsExtractor(scsPath, !opt.SkipIfExists)
+            return new HashFsExtractor(scsPath, !opt.SkipIfExists, opt.Salt)
             {
                 ForceEntryTableAtEnd = opt.ForceEntryTableAtEnd,
-                Salt = opt.Salt,
                 PrintNotFoundMessage = !opt.ExtractAllInDir,
             };
         }

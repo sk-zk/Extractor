@@ -9,17 +9,13 @@ namespace Extractor
 {
     public class HashFsRawExtractor : HashFsExtractor
     {
-        public HashFsRawExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
+        public HashFsRawExtractor(string scsPath, bool overwrite, ushort? salt) 
+            : base(scsPath, overwrite, salt)
         {
         }
 
         public override void Extract(IList<string> pathFilter, string destination)
         {
-            if (Salt is not null)
-            {
-                Reader.Salt = Salt.Value;
-            }
-
             DeleteJunkEntries();
 
             var scsName = Path.GetFileName(scsPath);

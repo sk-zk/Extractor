@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using TruckLib.HashFs;
 using static Extractor.PathUtils;
 using static Extractor.ConsoleUtils;
+using System.Reflection.PortableExecutable;
 
 namespace Extractor
 {
@@ -19,12 +20,6 @@ namespace Extractor
         /// The underlying HashFsReader.
         /// </summary>
         public IHashFsReader Reader { get; private set; }
-
-        /// <summary>
-        /// Overrides the salt found in the header with this one.
-        /// </summary>
-        /// <remarks>Solves #1.</remarks>
-        public ushort? Salt { get; set; } = null;
 
         /// <summary>
         /// Gets or sets whether the entry table should be read from the end of the file
@@ -78,19 +73,24 @@ namespace Extractor
         /// </summary>
         protected int duplicate;
 
-        public HashFsExtractor(string scsPath, bool overwrite) : base(scsPath, overwrite)
+        public HashFsExtractor(string scsPath, bool overwrite) : this(scsPath, overwrite, null) 
+        { 
+        }
+
+        public HashFsExtractor(string scsPath, bool overwrite, ushort? salt) : base(scsPath, overwrite)
         {
             Reader = HashFsReader.Open(scsPath, ForceEntryTableAtEnd);
+            PrintContentSummary();
+
+            if (salt is not null)
+                Reader.Salt = salt.Value;
+            else
+                FixSaltIfNecessary();
         }
 
         /// <inheritdoc/>
         public override void Extract(IList<string> pathFilter, string outputRoot)
         {
-            if (Salt is not null)
-            {
-                Reader.Salt = Salt.Value;
-            }
-
             DeleteJunkEntries();
 
             if (pathFilter.Count == 1 && pathFilter[0] == "/")
@@ -265,14 +265,6 @@ namespace Extractor
             }
         }
 
-        private void PrintExtractionFailure(string archivePath, string errorMessage)
-        {
-            archivePath = RemoveInitialSlash(archivePath);
-            Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
-            Console.Error.WriteLine(errorMessage);
-            failed++;
-        }
-
         protected void DeleteJunkEntries()
         {
             if (hasRemovedJunk)
@@ -298,6 +290,44 @@ namespace Extractor
             hasRemovedJunk = true;
         }
 
+        protected void FixSaltIfNecessary()
+        {
+            const string fileToTest = "manifest.sii";
+
+            if (Reader.TryGetEntry(fileToTest, out var entry) == EntryType.NotFound)
+            {
+                // No manifest => don't need to run this
+                return;
+            }
+
+            try
+            {
+                // Decompresses correctly => no change needed
+                Reader.Extract(fileToTest);
+                return;
+            }
+            catch
+            {
+                // Otherwise, iterate all salts until we find the good one
+                Console.Error.WriteLine("Salt may be incorrect; attempting to fix ...");
+                for (int i = 0; i < ushort.MaxValue; i++)
+                {
+                    Reader.Salt = (ushort)i;
+                    if (Reader.EntryExists(fileToTest) == EntryType.File)
+                    {
+                        try
+                        {
+                            Reader.Extract(fileToTest);
+                            Console.Error.WriteLine($"Salt set to {i}");
+                            return;
+                        }
+                        catch { /* Failed to decompress => continue */ }
+                    }
+                }
+                Console.Error.WriteLine("Unable to find true salt");
+            }
+        }
+
         public override void PrintContentSummary()
         {
             var dirCount = Reader.Entries.Count(x => x.Value.IsDirectory);
@@ -312,6 +342,14 @@ namespace Extractor
                 $"({renamedFiles.Count} renamed, {modifiedFiles.Count} modified), " +
                 $"{skipped} skipped, {notFound} not found, {duplicate} junk, {failed} failed");
             PrintRenameSummary(renamedFiles.Count, modifiedFiles.Count);
+        }
+
+        private void PrintExtractionFailure(string archivePath, string errorMessage)
+        {
+            archivePath = RemoveInitialSlash(archivePath);
+            Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
+            Console.Error.WriteLine(errorMessage);
+            failed++;
         }
 
         public override void PrintPaths(IList<string> pathFilter, bool includeAll)
