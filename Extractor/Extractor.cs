@@ -63,7 +63,7 @@ namespace Extractor
             var wasModified = false;
 
             var extension = Path.GetExtension(archivePath).ToLowerInvariant();
-            if (substitutions.Count > 0)
+            if (substitutions is not null && substitutions.Count > 0)
             {
                 if (extension == ".sii" || extension == ".sui" || extension == ".mat")
                 {
