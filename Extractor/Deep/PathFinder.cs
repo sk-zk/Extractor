@@ -533,8 +533,8 @@ namespace Extractor.Deep
             HashSet<string> potentialPaths = [];
 
             var tobj = Tobj.Load(fileBuffer);
-            potentialPaths.UnionWith(tobj.TexturePaths);
-            ReferencedFiles.UnionWith(tobj.TexturePaths);
+            potentialPaths.Add(tobj.TexturePath);
+            ReferencedFiles.Add(tobj.TexturePath);
 
             return potentialPaths;
         }

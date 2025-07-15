@@ -41,13 +41,10 @@ namespace Extractor
             var wasModified = false;
 
             var tobj = Tobj.Load(buffer);
-            for (int i = 0; i < tobj.TexturePaths.Count; i++)
+            if (substitutions.TryGetValue(tobj.TexturePath, out var substitution))
             {
-                if (substitutions.TryGetValue(tobj.TexturePaths[i], out var substitution))
-                {
-                    tobj.TexturePaths[i] = substitution;
-                    wasModified = true;
-                }
+                tobj.TexturePath = substitution;
+                wasModified = true;
             }
 
             if (wasModified)
