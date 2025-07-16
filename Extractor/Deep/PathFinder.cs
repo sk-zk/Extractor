@@ -48,6 +48,7 @@ namespace Extractor.Deep
             FileType.Bmp,
             FileType.Dds,
             FileType.Fbx,
+            FileType.Fso,
             FileType.GimpXcf,
             FileType.Ini,
             FileType.Jpeg,
@@ -74,6 +75,7 @@ namespace Extractor.Deep
             FileType.Psd,
             FileType.Rar,
             FileType.Replay,
+            FileType.Rfx,
             FileType.Sct,
             FileType.SoundBank,
             FileType.SoundBankGuids,
@@ -81,6 +83,7 @@ namespace Extractor.Deep
             FileType.Sui, // handled by the including .sii files
             FileType.Svg,
             FileType.TgaMask,
+            FileType.Vso,
             FileType.WxWidgetsResource,
             FileType.ZlibBlob,
             ];

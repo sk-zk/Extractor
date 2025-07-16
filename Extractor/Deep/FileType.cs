@@ -8,6 +8,7 @@
         Font,
         Fbx,
         Ini,
+        Fso,
         GimpXcf,
         Jpeg,
         MapRoot,
@@ -36,6 +37,7 @@
         Psd,
         Rar,
         Replay,
+        Rfx,
         Sct,
         Sii,
         SoundBank,
@@ -46,6 +48,7 @@
         Svg,
         TgaMask,
         Tobj,
+        Vso,
         WxWidgetsResource,
         ZlibBlob,
     }
