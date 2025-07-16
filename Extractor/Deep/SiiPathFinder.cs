@@ -195,6 +195,7 @@ namespace Extractor.Deep
 
             if (unitClass == "ui::text"
                 || unitClass == "ui::text_template"
+                || unitClass == "ui::text_common"
                 || unitClass == "ui_text_bar"
                 || (unitClass == "sign_template_text" && attrib.Key == "text")
                 || attrib.Key == "offence_message")
