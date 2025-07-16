@@ -422,45 +422,16 @@ namespace Extractor.Deep
                 catch (Exception ex)
                 {
                     #if DEBUG
-                        Console.Error.WriteLine($"Unable to parse {filePath} (falling back to FindPathsInBlob): " +
+                        Console.Error.WriteLine($"Unable to parse {filePath}: " +
                             $"{ex.GetType().Name}: {ex.Message.Trim()}");
                     #endif
-                    return FindPathsInBlob(fileBuffer);
+                    return [];
                 }
             }
             else
             {
-                return FindPathsInBlob(fileBuffer);
+                return [];
             }
-        }
-
-        private HashSet<string> FindPathsInBlob(byte[] fileBuffer)
-        {
-            HashSet<string> potentialPaths = [];
-
-            int start = 0;
-            bool inPotentialPath = false;
-            for (int i = 0; i < fileBuffer.Length; i++)
-            {
-                char c = (char)fileBuffer[i];
-                if (inPotentialPath)
-                {
-                    if (char.IsControl(c) || c == '"' 
-                        || i == fileBuffer.Length - 1)
-                    {
-                        var potentialPath = Encoding.UTF8.GetString(fileBuffer, start, i - start);
-                        Add(potentialPath, potentialPaths, visited);
-                        inPotentialPath = false;
-                    }
-                }
-                else if (c == '/')
-                {
-                    start = i;
-                    inPotentialPath = true;
-                }
-            }
-
-            return potentialPaths;
         }
 
         private HashSet<string> FindPathsInFont(byte[] fileBuffer)
@@ -492,7 +463,7 @@ namespace Extractor.Deep
             }
             catch (Exception)
             {
-                Debugger.Break();
+                //Debugger.Break();
                 throw;
             }
 
