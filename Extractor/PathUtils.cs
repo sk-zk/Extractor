@@ -167,11 +167,32 @@ namespace Extractor
             return $"{scsName}/{archivePath}";
         }
 
-        public static bool ResemblesPath(string str) =>
-            !string.IsNullOrEmpty(str)
-            && !str.Contains("//")
-            && (str.Contains('/')
-            || str.Contains('.'));
+        public static bool ResemblesPath(string str)
+        {
+            if (string.IsNullOrEmpty(str))
+                return false;
+
+            var hasSlashOrDot = false;
+            for (int i = 0; i < str.Length; i++)
+            {
+                var c = str[i];
+
+                if (c == '/')
+                {
+                    if (i > 0 && str[i - 1] == '/')
+                    {
+                        // don't allow "//"
+                        return false;
+                    }
+                    hasSlashOrDot = true;
+                }
+                else if (c == '.')
+                {
+                    hasSlashOrDot = true;
+                }
+            }
+            return hasSlashOrDot;
+        }           
 
         /// <summary>
         /// Converts a string containing lines separated by <c>\n</c> or <c>\r\n</c> to a HashSet.

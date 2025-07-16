@@ -85,6 +85,8 @@ namespace Extractor.Tests
             Assert.True(PathUtils.ResemblesPath("vehicle/truck/bla.pmd"));
             Assert.True(PathUtils.ResemblesPath("bla.pmd"));
             Assert.False(PathUtils.ResemblesPath("//"));
+            Assert.False(PathUtils.ResemblesPath("a//"));
+            Assert.False(PathUtils.ResemblesPath("//a"));
             Assert.False(PathUtils.ResemblesPath("aAaAaAa"));
             Assert.False(PathUtils.ResemblesPath(""));
             Assert.False(PathUtils.ResemblesPath("\t"));
