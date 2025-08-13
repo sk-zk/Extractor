@@ -16,7 +16,7 @@ namespace Extractor
 
         public override void Extract(IList<string> pathFilter, string destination)
         {
-            DeleteJunkEntries();
+            IdentifyJunkEntries();
 
             var scsName = Path.GetFileName(scsPath);
             Console.Out.WriteLine($"Extracting {scsName} ...");

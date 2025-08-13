@@ -50,7 +50,7 @@ namespace Extractor.Deep
 
             bool filtersSet = !pathFilter.SequenceEqual(["/"]);
 
-            DeleteJunkEntries();
+            IdentifyJunkEntries();
 
             var finder = new PathFinder(Reader, AdditionalStartPaths, junkEntries);
             finder.Find();
@@ -134,7 +134,7 @@ namespace Extractor.Deep
 
         public override void PrintPaths(IList<string> pathFilter, bool includeAll)
         {
-            DeleteJunkEntries();
+            IdentifyJunkEntries();
 
             var finder = new PathFinder(Reader);
             finder.Find();
@@ -158,7 +158,7 @@ namespace Extractor.Deep
 
         public override List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter)
         {
-            DeleteJunkEntries();
+            IdentifyJunkEntries();
 
             var finder = new PathFinder(Reader);
             finder.Find();

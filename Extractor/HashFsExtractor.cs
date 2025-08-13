@@ -39,7 +39,7 @@ namespace Extractor
         /// </summary>
         protected Dictionary<ulong, IEntry> junkEntries = [];
 
-        private bool hasRemovedJunk;
+        private bool hasIdentifiedJunk;
 
         /// <summary>
         /// Paths which will need to be renamed.
@@ -91,7 +91,7 @@ namespace Extractor
         /// <inheritdoc/>
         public override void Extract(IList<string> pathFilter, string outputRoot)
         {
-            DeleteJunkEntries();
+            IdentifyJunkEntries();
 
             if (pathFilter.Count == 1 && pathFilter[0] == "/")
             {
@@ -195,24 +195,12 @@ namespace Extractor
             ExtractToDisk(archivePath, outputPath);
         }
 
-        protected void ExtractToDisk(string archivePath, string outputPath, 
-            bool allowExtractingJunk = true)
+        protected void ExtractToDisk(string archivePath, string outputPath)
         {
             var type = Reader.TryGetEntry(archivePath, out var entry);
             if (type == EntryType.NotFound)
             {
-                if (allowExtractingJunk)
-                {
-                    var hash = Reader.HashPath(archivePath);
-                    if (!junkEntries.TryGetValue(hash, out entry))
-                    {
-                        throw new FileNotFoundException();
-                    }
-                }
-                else
-                {
-                    throw new FileNotFoundException();
-                }
+                throw new FileNotFoundException();
             }
             ExtractToDisk(entry, archivePath, outputPath);       
         }
@@ -265,9 +253,9 @@ namespace Extractor
             }
         }
 
-        protected void DeleteJunkEntries()
+        protected void IdentifyJunkEntries()
         {
-            if (hasRemovedJunk)
+            if (hasIdentifiedJunk)
                 return;
 
             var visitedOffsets = new Dictionary<ulong, IEntry>();
@@ -282,12 +270,11 @@ namespace Extractor
             }
             foreach (var (hash, entry) in junk)
             {
-                // Reader.Entries.Remove(hash);
                 junkEntries.Add(hash, entry);
                 duplicate++;
             }
 
-            hasRemovedJunk = true;
+            hasIdentifiedJunk = true;
         }
 
         protected void FixSaltIfNecessary()
@@ -354,7 +341,7 @@ namespace Extractor
 
         public override void PrintPaths(IList<string> pathFilter, bool includeAll)
         {
-            DeleteJunkEntries();
+            IdentifyJunkEntries();
 
             foreach (var path in pathFilter)
             {
@@ -378,7 +365,7 @@ namespace Extractor
 
         public override List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter)
         {
-            DeleteJunkEntries();
+            IdentifyJunkEntries();
 
             var trees = pathFilter
                 .Select(path => GetDirectoryTree(path))
