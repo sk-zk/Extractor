@@ -349,11 +349,6 @@ namespace Extractor.Deep
         {
             visited.Add(filePath);
 
-            if (junkEntries.ContainsKey(reader.HashPath(filePath)))
-            {
-                return [];
-            }
-
             if (!reader.FileExists(filePath))
             {
                 return [];
