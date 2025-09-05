@@ -7,7 +7,8 @@ using System.Threading.Tasks;
 using TruckLib.HashFs;
 using static Extractor.PathUtils;
 using static Extractor.ConsoleUtils;
-using System.Reflection.PortableExecutable;
+using System.IO.Compression;
+using System.Diagnostics;
 
 namespace Extractor
 {
@@ -38,6 +39,11 @@ namespace Extractor
         /// Junk entries identified by DeleteJunkEntries.
         /// </summary>
         protected Dictionary<ulong, IEntry> junkEntries = [];
+
+        /// <summary>
+        /// Entries idenfitied by DeleteJunkEntries which are likely to be junk, but may not be.
+        /// </summary>
+        protected Dictionary<ulong, IEntry> maybeJunkEntries = [];
 
         private bool hasIdentifiedJunk;
 
@@ -258,23 +264,105 @@ namespace Extractor
             if (hasIdentifiedJunk)
                 return;
 
+            // Find all entries with duplicate offsets and group them by offset.
             var visitedOffsets = new Dictionary<ulong, IEntry>();
-            var junk = new Dictionary<ulong, IEntry>();
-            foreach (var (hash, entry) in Reader.Entries)
+            var junk = new Dictionary<ulong, List<IEntry>>();
+            foreach (var (_, entry) in Reader.Entries)
             {
                 if (!visitedOffsets.TryAdd(entry.Offset, entry))
                 {
-                    junk.TryAdd(hash, entry);
-                    junk.TryAdd(visitedOffsets[entry.Offset].Hash, entry);
+                    if (!junk.TryGetValue(entry.Offset, out var list))
+                    {
+                        list = [visitedOffsets[entry.Offset]];
+                        junk.Add(entry.Offset, list);
+                    }
+                    list.Add(entry);
                 }
             }
-            foreach (var (hash, entry) in junk)
+
+            // At most one of these files may contain actual data, so let's try
+            // to figure out which of these entries it could be.
+            // Entries which are guaranteed to be junk are added to `junkEntries`;
+            // entries which could potentially contain the actual file are added
+            // to `maybeJunkEntries`.
+            // Nothing in `junkEntries` is ever extracted. An entry in `maybeJunkEntries` 
+            // is extracted if a path pointing to it exists.
+            if (junk.Count > 0)
             {
-                junkEntries.Add(hash, entry);
-                duplicate++;
+                var allOffsets = Reader.Entries.Select(x => x.Value.Offset).Distinct().Order().ToList();
+                foreach (var (offset, list) in junk)
+                {
+                    var idx = allOffsets.BinarySearch(offset);
+                    var nextOffset = idx == allOffsets.Count - 1
+                        ? (ulong)Reader.BaseReader.BaseStream.Length
+                        : allOffsets[idx + 1];
+
+                    Reader.BaseReader.BaseStream.Position = (long)offset;
+                    var firstByte = Reader.BaseReader.ReadByte();
+                    var isZlibCompressed = firstByte == 0x78; // probably good enough
+
+                    long decompressedLength = -1;
+                    if (isZlibCompressed)
+                    {
+                        try
+                        {
+                            Reader.BaseReader.BaseStream.Position = (long)offset;
+                            var buffer = Reader.BaseReader.ReadBytes((int)(nextOffset - offset));
+                            using var inMs = new MemoryStream(buffer);
+                            using var zlibStream = new ZLibStream(inMs, CompressionMode.Decompress);
+                            using var outMs = new MemoryStream();
+                            zlibStream.CopyTo(outMs);
+                            decompressedLength = outMs.Length;
+                            var newPos = (ulong)Reader.BaseReader.BaseStream.Position;
+                        }
+                        catch 
+                        {
+                            isZlibCompressed = false;
+                        }
+                    }
+
+                    foreach (var entry in list)
+                    {
+                        if (entry.IsCompressed != isZlibCompressed)
+                        {
+                            MarkAsConfirmedJunk(entry);
+                        }
+                        else if (nextOffset - entry.Offset < entry.CompressedSize)
+                        {
+                            MarkAsConfirmedJunk(entry);
+                        }
+                        else if (nextOffset - entry.Offset - entry.CompressedSize > 32)
+                        {
+                            MarkAsConfirmedJunk(entry);
+                        }
+                        else if (entry.IsCompressed)
+                        {
+                            if (entry.Size == decompressedLength)
+                                MarkAsMaybeJunk(entry);
+                            else
+                                MarkAsConfirmedJunk(entry);
+                        }
+                        else
+                        {
+                            MarkAsMaybeJunk(entry);
+                        }
+                    }
+                }
             }
 
             hasIdentifiedJunk = true;
+
+            void MarkAsConfirmedJunk(IEntry entry)
+            {
+                junkEntries.Add(entry.Hash, entry);
+                duplicate++;
+            }
+
+            void MarkAsMaybeJunk(IEntry entry)
+            {
+                maybeJunkEntries.Add(entry.Hash, entry);
+                duplicate++;
+            }
         }
 
         protected void FixSaltIfNecessary()

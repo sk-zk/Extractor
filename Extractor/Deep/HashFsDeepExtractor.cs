@@ -114,6 +114,9 @@ namespace Extractor.Deep
                 if (junkEntries.ContainsKey(entry.Hash))
                     continue;
 
+                if (maybeJunkEntries.ContainsKey(entry.Hash))
+                    continue;
+
                 var fileBuffer = Reader.Extract(entry, "")[0];
                 var fileType = FileTypeHelper.Infer(fileBuffer);
                 var extension = FileTypeHelper.FileTypeToExtension(fileType);
