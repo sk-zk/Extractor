@@ -104,7 +104,15 @@ namespace Extractor.Deep
 
         private static PotentialPaths FindPathsInSii(SiiFile sii)
         {
-            PotentialPaths potentialPaths = new(sii.Includes);
+            PotentialPaths potentialPaths = [];
+
+            foreach (var include in sii.Includes)
+            {
+                if (include.StartsWith('/'))
+                    potentialPaths.Add(include);
+                else
+                    potentialPaths.Add('/' + include);
+            }
 
             foreach (var unit in sii.Units)
             {

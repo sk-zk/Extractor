@@ -1,12 +1,13 @@
-﻿using System;
+﻿using Extractor.Deep;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using static Extractor.PathUtils;
 using static Extractor.ConsoleUtils;
-using System.Runtime.CompilerServices;
+using static Extractor.PathUtils;
 
 [assembly: InternalsVisibleTo("Extractor.Tests")]
 namespace Extractor.Zip
@@ -103,7 +104,7 @@ namespace Extractor.Zip
                 RemoveInitialSlash(pathFilter);
 
             List<CentralDirectoryFileHeader> entriesToExtract = [];
-            foreach (var entry in zip.Entries)
+            foreach (var (_, entry) in zip.Entries)
             {
                 // Directory metadata; ignore
                 if (entry.FileName.EndsWith('/'))
@@ -169,9 +170,23 @@ namespace Extractor.Zip
 
         public override void PrintPaths(IList<string> pathFilter, bool includeAll)
         {
-            foreach (var entry in zip.Entries)
+            if (includeAll)
             {
-                Console.WriteLine(ReplaceControlChars(entry.FileName));
+                Console.Error.WriteLine("Searching for paths ...");
+                var finder = new ZipPathFinder(zip);
+                finder.Find();
+                var all = finder.ReferencedFiles.Union(zip.Entries.Keys.Select(p => '/' + p)).Order();
+                foreach (var path in all)
+                {
+                    Console.WriteLine(ReplaceControlChars(path));
+                }
+            } 
+            else
+            {
+                foreach (var (_, entry) in zip.Entries)
+                {
+                    Console.WriteLine('/' + ReplaceControlChars(entry.FileName));
+                }
             }
         }
 
@@ -180,8 +195,8 @@ namespace Extractor.Zip
             RemoveInitialSlash(pathFilter);
 
             var paths = zip.Entries
-                .Where(e => e.UncompressedSize > 0) // filter out directory metadata
-                .Select(e => e.FileName);
+                .Where(e => e.Value.UncompressedSize > 0) // filter out directory metadata
+                .Select(e => e.Value.FileName);
             var trees = pathFilter
                 .Select(startPath => PathListToTree(startPath, paths))
                 .ToList();
@@ -191,16 +206,15 @@ namespace Extractor.Zip
         private static void RemoveInitialSlash(IList<string> pathFilter)
         {
             for (int i = 0; i < pathFilter.Count; i++)
-            {
-                if (pathFilter[i] != "/" && pathFilter[i].StartsWith('/'))
-                {
-                    pathFilter[i] = pathFilter[i][1..];
-                }
+            { 
+                pathFilter[i] = PathUtils.RemoveInitialSlash(pathFilter[i]);
             }
         }
+
         public override void Dispose()
         {
             zip?.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }
