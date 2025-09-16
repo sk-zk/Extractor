@@ -183,7 +183,7 @@ namespace Extractor.Zip
         }
 
         string IFileSystem.GetParent(string path) 
-            => throw new NotImplementedException();
+            => GetParent(path);
     }
 
     /// <summary>

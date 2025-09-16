@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TruckLib.HashFs;
+using static Extractor.PathUtils;
 
 namespace Extractor.Tree
 {
@@ -54,19 +55,19 @@ namespace Extractor.Tree
         private static void PrintFilePath(string path)
         {
             var fileName = path[(path.LastIndexOf('/') + 1)..];
-            Console.WriteLine(PathUtils.ReplaceControlChars(fileName));
+            Console.WriteLine(ReplaceControlChars(fileName));
         }
 
         private static void PrintDirectoryPath(string path)
         {
-            path = PathUtils.RemoveTrailingSlash(path);
+            RemoveTrailingSlash(ref path);
             var name = path[(path.LastIndexOf('/') + 1)..];
             PrintDirectoryName(name);
         }
 
         private static void PrintDirectoryName(string name)
         {
-            PrintWithColor($"[{PathUtils.ReplaceControlChars(name)}]", ConsoleColor.Yellow);
+            PrintWithColor($"[{ReplaceControlChars(name)}]", ConsoleColor.Yellow);
         }
 
         private static void PrintWithColor(string str, ConsoleColor color)

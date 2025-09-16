@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Extractor.PathUtils;
 
 namespace Extractor
 {
@@ -116,8 +117,7 @@ namespace Extractor
                 if (string.IsNullOrEmpty(path))
                     continue;
 
-                if (!path.StartsWith('/'))
-                    path = $"/{path}";
+                EnsureHasInitialSlash(ref path);
 
                 paths.Add(path);
             }

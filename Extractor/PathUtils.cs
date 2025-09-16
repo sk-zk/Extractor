@@ -1,5 +1,6 @@
 ﻿using Extractor.Deep;
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -32,13 +33,13 @@ namespace Extractor
         /// Names which, in Windows, are reserved and cannot be used as the name of
         /// a file or directory
         /// </summary>
-        private static readonly HashSet<string> ReservedNames = [
+        private static readonly FrozenSet<string> ReservedNames = new HashSet<string> {
             "con", "prn", "aux", "nul",
             "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9",
             "com¹", "com²", "com³",
             "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9",
             "lpt¹", "lpt²", "lpt³"
-        ];
+        }.ToFrozenSet();
 
         private static readonly bool IsWindows = OperatingSystem.IsWindows();
 
@@ -48,6 +49,7 @@ namespace Extractor
         /// <param name="path">The path.</param>
         /// <param name="invalidPathChars">Characters which cannot be used in paths.
         /// Defaults to <see cref="InvalidPathChars"/>.</param>
+        /// <param name="isWindows">Whether the path should be sanitized for Windows.</param>
         /// <returns>The sanitized path.</returns>
         public static string SanitizePath(string path, char[] invalidPathChars = null, bool? isWindows = null)
         {
@@ -129,6 +131,22 @@ namespace Extractor
             return path;
         }
 
+        public static void RemoveTrailingSlash(ref string path)
+        {
+            if (path.EndsWith('/') && path != "/")
+            {
+                path = path[..^1];
+            }
+        }
+
+        public static void EnsureHasInitialSlash(ref string path)
+        {
+            if (!path.StartsWith('/'))
+            {
+                path = '/' + path;
+            }
+        }
+
         public static string RemoveNonAsciiOrInvalidChars(string input)
         {
             // TODO don't remove non-chicanery unicode chars like 'ß' etc.
@@ -152,7 +170,7 @@ namespace Extractor
             if (string.IsNullOrWhiteSpace(filePath)) 
                return "";
 
-            filePath = RemoveTrailingSlash(filePath);
+            RemoveTrailingSlash(ref filePath);
 
             var lastSlash = filePath.LastIndexOf('/');
 
@@ -235,8 +253,7 @@ namespace Extractor
 
         public static Tree.Directory PathListToTree(string root, IEnumerable<string> paths)
         {
-            var rootDir = new Tree.Directory();
-            rootDir.Path = "/";
+            var rootDir = new Tree.Directory { Path = "/" };
 
             foreach (var path in paths)
             {

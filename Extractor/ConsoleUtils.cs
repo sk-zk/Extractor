@@ -20,10 +20,7 @@ namespace Extractor
 
         public static void PrintExtractionMessage(string path, string scsName)
         {
-            if (!path.StartsWith('/'))
-                path = $"/{path}";
-
-            Console.WriteLine($"Extracting {ReplaceControlChars($"{scsName}{path}")} ...");
+            Console.WriteLine($"Extracting {ReplaceControlChars(Combine(scsName, path))} ...");
         }
 
         public static void PrintNoTopLevelError()

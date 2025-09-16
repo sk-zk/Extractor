@@ -29,10 +29,7 @@ namespace Extractor.Deep
                 return;
             }
 
-            if (!str.StartsWith('/'))
-            {
-                str = $"/{str}";
-            }
+            EnsureHasInitialSlash(ref str);
 
             if (Add(str))
             {

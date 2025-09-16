@@ -421,7 +421,6 @@ namespace Extractor
 
         private void PrintExtractionFailure(string archivePath, string errorMessage)
         {
-            archivePath = RemoveInitialSlash(archivePath);
             Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
             Console.Error.WriteLine(errorMessage);
             failed++;

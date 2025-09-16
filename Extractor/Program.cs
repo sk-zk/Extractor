@@ -45,7 +45,7 @@ namespace Extractor
             }
             if (opt.InputPaths.Count == 0)
             {
-                Console.WriteLine("No input paths specified.");
+                Console.Error.WriteLine("No input paths specified.");
                 PauseIfNecessary();
                 return;
             }
@@ -59,7 +59,7 @@ namespace Extractor
             var scsPaths = GetScsPathsFromArgs();
             if (scsPaths.Length == 0)
             {
-                Console.WriteLine("No .scs files were found.");
+                Console.Error.WriteLine("No .scs files were found.");
                 return;
             }
 
@@ -95,7 +95,7 @@ namespace Extractor
                     }
                     else
                     {
-                        Console.WriteLine("--list can only be used with HashFS archives.");
+                        Console.Error.WriteLine("--list can only be used with HashFS archives.");
                     }
                 }
                 else if (opt.ListPaths)
@@ -106,7 +106,7 @@ namespace Extractor
                 {
                     if (opt.UseRawExtractor)
                     {
-                        Console.WriteLine("--tree and --raw cannot be combined.");
+                        Console.Error.WriteLine("--tree and --raw cannot be combined.");
                     }
                     else
                     {
