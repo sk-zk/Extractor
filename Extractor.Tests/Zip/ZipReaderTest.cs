@@ -15,12 +15,14 @@ namespace Extractor.Tests.Zip
             using var zip = ZipReader.Open("Data/ZipReaderTest/regular.zip");
 
             Assert.Single(zip.Entries);
-            Assert.Equal("foo.txt", zip.Entries[0].FileName);
-            Assert.Equal(44u, zip.Entries[0].CompressedSize);
-            Assert.Equal(53u, zip.Entries[0].UncompressedSize);
+            Assert.True(zip.Entries.ContainsKey("foo.txt"));
+            var entry = zip.Entries["foo.txt"];
+            Assert.Equal("foo.txt", entry.FileName);
+            Assert.Equal(44u, entry.CompressedSize);
+            Assert.Equal(53u, entry.UncompressedSize);
 
             using var ms = new MemoryStream();
-            zip.GetEntry(zip.Entries[0], ms);
+            zip.GetEntry(entry, ms);
             var actual = ms.ToArray();
             var expected = Encoding.UTF8.GetBytes("it was the best of times, it was the blurst of times?");
             Assert.Equal(expected, actual);
@@ -32,12 +34,14 @@ namespace Extractor.Tests.Zip
             using var zip = ZipReader.Open("Data/ZipReaderTest/corrupted.zip");
 
             Assert.Single(zip.Entries);
-            Assert.Equal("foo.txt", zip.Entries[0].FileName);
-            Assert.Equal(44u, zip.Entries[0].CompressedSize);
-            Assert.Equal(53u, zip.Entries[0].UncompressedSize);
+            Assert.True(zip.Entries.ContainsKey("foo.txt"));
+            var entry = zip.Entries["foo.txt"];
+            Assert.Equal("foo.txt", entry.FileName);
+            Assert.Equal(44u, entry.CompressedSize);
+            Assert.Equal(53u, entry.UncompressedSize);
 
             using var ms = new MemoryStream();
-            zip.GetEntry(zip.Entries[0], ms);
+            zip.GetEntry(entry, ms);
             var actual = ms.ToArray();
             var expected = Encoding.UTF8.GetBytes("it was the best of times, it was the blurst of times?");
             Assert.Equal(expected, actual);

@@ -5,18 +5,22 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TruckLib;
+using static Extractor.PathUtils;
 
 namespace Extractor.Zip
 {
     /// <summary>
     /// A ZIP archive reader which can handle archives with deliberately corrupted local file headers.
     /// </summary>
-    public class ZipReader : IDisposable
+    public class ZipReader : IDisposable, IFileSystem
     {
         /// <summary>
         /// The entries in this archive.
         /// </summary>
-        public List<CentralDirectoryFileHeader> Entries { get; private set; }
+        public Dictionary<string, CentralDirectoryFileHeader> Entries { get; private set; }
+
+        char IFileSystem.DirectorySeparator => throw new NotImplementedException();
 
         private BinaryReader reader;
         private long endOfCentralDirOffset = -1;
@@ -27,7 +31,6 @@ namespace Extractor.Zip
         public static ZipReader Open(string path)
         {
             var zip = new ZipReader();
-
             zip.reader = new BinaryReader(File.OpenRead(path));
             zip.reader.BaseStream.Position = 0;
 
@@ -131,14 +134,56 @@ namespace Extractor.Zip
                 file.FileName = Encoding.UTF8.GetString(reader.ReadBytes(file.FileNameLength));
                 file.ExtraField = reader.ReadBytes(file.ExtraFieldLength);
                 file.FileComment = reader.ReadBytes(file.FileCommentLength);
-                Entries.Add(file);
+                Entries.TryAdd(file.FileName, file);
             }
         }
 
         public void Dispose()
         {
             reader?.Dispose();
+            GC.SuppressFinalize(this);
         }
+
+        bool IFileSystem.FileExists(string path)
+        {
+            RemoveInitialSlash(ref path);
+            return Entries.ContainsKey(path);
+        }
+
+        IList<string> IFileSystem.GetFiles(string path) 
+            => throw new NotImplementedException();
+
+        byte[] IFileSystem.ReadAllBytes(string path)
+        {
+            RemoveInitialSlash(ref path);
+            var entry = Entries[path];
+            using var ms = new MemoryStream();
+            GetEntry(entry, ms);
+            var buffer = ms.ToArray();
+            return buffer;
+        }
+
+        string IFileSystem.ReadAllText(string path)
+            => (this as IFileSystem).ReadAllText(path, Encoding.UTF8);
+
+        string IFileSystem.ReadAllText(string path, Encoding encoding)
+        {
+            RemoveInitialSlash(ref path);
+            return encoding.GetString((this as IFileSystem).ReadAllBytes(path));
+        }
+
+        Stream IFileSystem.Open(string path)
+        {
+            RemoveInitialSlash(ref path);
+            var entry = Entries[path];
+            using var ms = new MemoryStream();
+            GetEntry(entry, ms);
+            ms.Position = 0;
+            return ms;
+        }
+
+        string IFileSystem.GetParent(string path) 
+            => throw new NotImplementedException();
     }
 
     /// <summary>

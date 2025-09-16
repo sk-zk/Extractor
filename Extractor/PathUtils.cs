@@ -112,6 +112,14 @@ namespace Extractor
             return path;
         }
 
+        public static void RemoveInitialSlash(ref string path)
+        {
+            if (path.StartsWith('/') && path != "/")
+            {
+                path = path[1..];
+            }
+        }
+
         public static string RemoveTrailingSlash(string path)
         {
             if (path.EndsWith('/') && path != "/")
