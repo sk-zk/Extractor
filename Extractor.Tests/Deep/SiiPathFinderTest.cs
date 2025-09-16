@@ -12,14 +12,14 @@ namespace Extractor.Tests.Deep
         [Fact]
         public void ProcessSiiSoundAttribute()
         {
-            HashSet<string> actual = [];
+            PotentialPaths actual = [];
             SiiPathFinder.ProcessSiiUnitAttribute("accessory_interior_data",
                 new("sounds", new string[] {
                     "air_warning|/def/vehicle/truck/foo/air_warning.soundref",
                     "system_warning1|/sound/truck/foo/bar.bank#interior/system_warning1",
                 }),
                 actual);
-            HashSet<string> expected = [
+            PotentialPaths expected = [
                 "/def/vehicle/truck/foo/air_warning.soundref",
                 "/sound/truck/foo/bar.bank",
                 "/sound/truck/foo/bar.bank.guids"

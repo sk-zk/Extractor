@@ -8,10 +8,11 @@ using System.Threading.Tasks;
 
 namespace Extractor.Deep
 {
+    using CheckFunc = Func<byte[], bool>;
+
     public static class FileTypeHelper
     {
-        private static readonly Dictionary<FileType, Func<byte[], bool>> FileTypeCheckers = new()
-        {
+        private static readonly Dictionary<FileType, CheckFunc> FileTypeCheckers = new() {
             { FileType.Bmp, IsBmpFile },
             { FileType.Dds, IsDdsFile },
             { FileType.OpenExr, IsExrFile },

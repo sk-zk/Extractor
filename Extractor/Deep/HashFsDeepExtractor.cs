@@ -20,6 +20,9 @@ namespace Extractor.Deep
     /// </summary>
     public class HashFsDeepExtractor : HashFsExtractor
     {
+        /// <summary>
+        /// Additional start paths which the user specified with the <c>--additional</c> parameter.
+        /// </summary>
         public IList<string> AdditionalStartPaths { get; set; } = [];
 
         /// <summary>
@@ -44,6 +47,7 @@ namespace Extractor.Deep
         {
         }
 
+        /// <inheritdoc/>
         public override void Extract(IList<string> pathFilter, string outputRoot)
         {
             Console.WriteLine("Searching for paths ...");
@@ -52,7 +56,7 @@ namespace Extractor.Deep
 
             IdentifyJunkEntries();
 
-            var finder = new PathFinder(Reader, AdditionalStartPaths, junkEntries);
+            var finder = new HashFsPathFinder(Reader, AdditionalStartPaths, junkEntries);
             finder.Find();
             var foundFiles = finder.FoundFiles.Order().ToArray();
 
@@ -139,7 +143,7 @@ namespace Extractor.Deep
         {
             IdentifyJunkEntries();
 
-            var finder = new PathFinder(Reader);
+            var finder = new HashFsPathFinder(Reader);
             finder.Find();
             var paths = (includeAll 
                 ? finder.FoundFiles.Union(finder.ReferencedFiles) 
@@ -163,7 +167,7 @@ namespace Extractor.Deep
         {
             IdentifyJunkEntries();
 
-            var finder = new PathFinder(Reader);
+            var finder = new HashFsPathFinder(Reader);
             finder.Find();
 
             var trees = pathFilter

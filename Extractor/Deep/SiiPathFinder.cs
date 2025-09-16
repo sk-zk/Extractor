@@ -1,5 +1,6 @@
 ﻿using Sprache;
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -12,9 +13,12 @@ using static Extractor.PathUtils;
 
 namespace Extractor.Deep
 {
-    internal class SiiPathFinder
+    internal partial class SiiPathFinder
     {
-        private static readonly HashSet<string> ignorableUnitKeys = [
+        /// <summary>
+        /// Unit keys whose corresponding values are never paths and can thus be skipped.
+        /// </summary>
+        private static readonly FrozenSet<string> ignorableUnitKeys = new HashSet<string> {
             "package_version", "compatible_versions", "suitable_for",
             "conflict_with", "truck_y_override",
 
@@ -24,7 +28,7 @@ namespace Extractor.Deep
             "default_name", "stamp_name",
 
             // city
-            "city_name", "city_names", "city_name_localized", "short_city_name", 
+            "city_name", "city_names", "city_name_localized", "short_city_name",
             "truck_lp_template",
 
             // curve_model
@@ -42,15 +46,29 @@ namespace Extractor.Deep
             "color_variant", // model 
             "allowed_vehicle", // traffic logic
             "overlay_schemes", // road
-        ];
+        }.ToFrozenSet();
 
-        private static readonly HashSet<string> ignorableUnitClasses = [
+        /// <summary>
+        /// Unit classes which never contain paths and can thus be skipped entirely.
+        /// </summary>
+        private static readonly FrozenSet<string> ignorableUnitClasses = new HashSet<string> {
             "cargo_def", "traffic_spawn_condition", "traffic_rule_data", "mail_text", "driver_names",
             "localization_db", "input_device_config", "default_input_config", "default_input_entry",
             "default_setup_entry", "academy_scenario_goal",
-        ];
+        }.ToFrozenSet();
 
-        public static HashSet<string> FindPathsInSii(byte[] fileBuffer, string filePath, IFileSystem fs)
+        [GeneratedRegex(@"(?:src|face)=(\S*)")]
+        private static partial Regex uiHtmlPathRegex();
+
+        /// <summary>
+        /// Returns paths referenced in the given SII file.
+        /// If the file fails to parse, an empty set is returned.
+        /// </summary>
+        /// <param name="fileBuffer">The extracted content of the file.</param>
+        /// <param name="filePath">The path of the file in the archive.</param>
+        /// <param name="fs">The archive which is being read from as <see cref="IFileSystem"/>.</param>
+        /// <returns>Paths referenced in the file.</returns>
+        public static PotentialPaths FindPathsInSii(byte[] fileBuffer, string filePath, IFileSystem fs)
         {
             var magic = Encoding.UTF8.GetString(fileBuffer[0..4]);
             if (!(magic == "SiiN" // regular sii
@@ -84,9 +102,9 @@ namespace Extractor.Deep
             }
         }
 
-        private static HashSet<string> FindPathsInSii(SiiFile sii)
+        private static PotentialPaths FindPathsInSii(SiiFile sii)
         {
-            HashSet<string> potentialPaths = new(sii.Includes);
+            PotentialPaths potentialPaths = new(sii.Includes);
 
             foreach (var unit in sii.Units)
             {
@@ -100,7 +118,7 @@ namespace Extractor.Deep
         }
 
         internal static void ProcessSiiUnitAttribute(string unitClass, 
-            KeyValuePair<string, dynamic> attrib, HashSet<string> potentialPaths)
+            KeyValuePair<string, dynamic> attrib, PotentialPaths potentialPaths)
         {
             if (ignorableUnitClasses.Contains(unitClass))
                 return;
@@ -119,7 +137,7 @@ namespace Extractor.Deep
         }
 
         private static void ProcessArrayAttribute(KeyValuePair<string, dynamic> attrib, string unitClass,
-            HashSet<string> potentialPaths)
+            PotentialPaths potentialPaths)
         {
             IList<dynamic> items = attrib.Value;
             var strings = items.Where(x => x is string).Cast<string>();
@@ -132,10 +150,10 @@ namespace Extractor.Deep
                     {
                         // Extract paths from img and font tags of the faux-HTML
                         // used in UI strings.
-                        var matches = Regex.Matches(str, @"(?:src|face)=(\S*)");
+                        var matches = uiHtmlPathRegex().Matches(str);
                         foreach (Match match in matches)
                         {
-                            PathFinder.Add(match.Groups[1].Value, potentialPaths, []);
+                            potentialPaths.Add(match.Groups[1].Value, []);
                         }
                     }
                 }
@@ -146,13 +164,13 @@ namespace Extractor.Deep
                 {
                     if (attrib.Key == "sounds" || attrib.Key == "sound_path")
                     {
-                        PathFinder.Add(GetSoundPath(str), potentialPaths, []);
+                        potentialPaths.Add(GetSoundPath(str), []);
                     }
                     else if (attrib.Key == "adr_info_icon" || attrib.Key == "fallback")
                     {
                         var parts = str.Split("|");
                         if (parts.Length == 2)
-                            PathFinder.Add(parts[1], potentialPaths, []);
+                            potentialPaths.Add(parts[1], []);
                         else
                             Debugger.Break();
                     }
@@ -160,13 +178,13 @@ namespace Extractor.Deep
                     {
                         var parts = str.Split("|");
                         if (parts.Length == 2)
-                            PathFinder.Add(parts[1], potentialPaths, []);
+                            potentialPaths.Add(parts[1], []);
                         else
                             Debugger.Break();
                     }
                     else
                     {
-                        PathFinder.Add(str, potentialPaths, []);
+                        potentialPaths.Add(str, []);
                     }
                 }
             }
@@ -189,7 +207,7 @@ namespace Extractor.Deep
         }
 
         private static void ProcessStringAttribute(KeyValuePair<string, dynamic> attrib, 
-            string unitClass, HashSet<string> potentialPaths)
+            string unitClass, PotentialPaths potentialPaths)
         {
             string str = attrib.Value;
 
@@ -205,7 +223,7 @@ namespace Extractor.Deep
                 var matches = Regex.Matches(attrib.Value, @"(?:src|face)=(\S*)");
                 foreach (Match match in matches)
                 {
-                    PathFinder.Add(match.Groups[1].Value, potentialPaths, []);
+                    potentialPaths.Add(match.Groups[1].Value, []);
                 }
             }
             else if (attrib.Key == "icon" && unitClass != "mod_package")
@@ -217,15 +235,15 @@ namespace Extractor.Deep
                 {
                     iconPath += ".mat";
                 }
-                PathFinder.Add(iconPath, potentialPaths, []);
+                potentialPaths.Add(iconPath, []);
             }
             else if (attrib.Key == "sound_path" || attrib.Key == "sound_sfx" || attrib.Key == "scene_music")
             {
-                PathFinder.Add(GetSoundPath(str), potentialPaths, []);
+                potentialPaths.Add(GetSoundPath(str), []);
             }
             else
             {
-                PathFinder.Add(str, potentialPaths, []);
+                potentialPaths.Add(str, []);
             }
         }
     }

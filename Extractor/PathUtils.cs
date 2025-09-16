@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Extractor.Deep;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -199,9 +200,9 @@ namespace Extractor
         /// </summary>
         /// <param name="input">The input string.</param>
         /// <returns>A HashSet populated with the lines contained in the input string.</returns>
-        public static HashSet<string> LinesToHashSet(string input)
+        public static PotentialPaths LinesToHashSet(string input)
         {
-            HashSet<string> output = [];
+            PotentialPaths output = [];
 
             int start = 0;
             for (int i = 0; i < input.Length; i++)
