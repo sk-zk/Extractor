@@ -163,9 +163,12 @@ Extract with deep mode:
 extractor "path\to\file.scs" --deep
 ```
 
-Extract with deep mode when the mod has a separate defs archive:
+Extract with deep mode when the mod is split into multiple archives:
 ```
-extractor "defs.scs" --deep
-extractor "defs.scs" --list-all > paths.txt
-extractor "other.scs" --deep --additional=paths.txt
+extractor "file1.scs" "file2.scs" "file3.scs" --deep
+```
+
+Or:
+```
+extractor "path\to\mod\directory" --deep -a
 ```
