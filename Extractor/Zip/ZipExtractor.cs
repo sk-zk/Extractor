@@ -20,7 +20,7 @@ namespace Extractor.Zip
         /// <summary>
         /// The underlying ZIP reader.
         /// </summary>
-        private readonly ZipReader zip;
+        public ZipReader Reader { get; init; }
 
         /// <summary>
         /// Paths which will need to be renamed.
@@ -46,17 +46,17 @@ namespace Extractor.Zip
         public ZipExtractor(string scsPath, bool overwrite) 
             : base(scsPath, overwrite)
         {
-            zip = ZipReader.Open(scsPath);
+            Reader = ZipReader.Open(scsPath);
             PrintContentSummary();
         }
 
         /// <inheritdoc/>
         public override void Extract(IList<string> pathFilter, string outputRoot)
         {
-            var entriesToExtract = GetEntriesToExtract(zip, pathFilter);
+            var entriesToExtract = GetEntriesToExtract(Reader, pathFilter);
             substitutions = DeterminePathSubstitutions(entriesToExtract);
 
-            var scsName = Path.GetFileName(scsPath);
+            var scsName = Path.GetFileName(ScsPath);
             foreach (var entry in entriesToExtract)
             {
                 try
@@ -145,7 +145,7 @@ namespace Extractor.Zip
             }
 
             using var ms = new MemoryStream();
-            zip.GetEntry(entry, ms);
+            Reader.GetEntry(entry, ms);
             var wasModified = ExtractWithSubstitutionsIfRequired(entry.FileName, outputPath, 
                 ms.ToArray(), substitutions);
 
@@ -156,8 +156,8 @@ namespace Extractor.Zip
 
         public override void PrintContentSummary()
         {
-            Console.Error.WriteLine($"Opened {Path.GetFileName(scsPath)}: " +
-                $"ZIP archive; {zip.Entries.Count} entries");
+            Console.Error.WriteLine($"Opened {Path.GetFileName(ScsPath)}: " +
+                $"ZIP archive; {Reader.Entries.Count} entries");
         }
 
         public override void PrintExtractionResult()
@@ -173,9 +173,9 @@ namespace Extractor.Zip
             if (includeAll)
             {
                 Console.Error.WriteLine("Searching for paths ...");
-                var finder = new ZipPathFinder(zip);
+                var finder = new ZipPathFinder(Reader);
                 finder.Find();
-                var all = finder.ReferencedFiles.Union(zip.Entries.Keys.Select(p => '/' + p)).Order();
+                var all = finder.ReferencedFiles.Union(Reader.Entries.Keys.Select(p => '/' + p)).Order();
                 foreach (var path in all)
                 {
                     Console.WriteLine(ReplaceControlChars(path));
@@ -183,7 +183,7 @@ namespace Extractor.Zip
             } 
             else
             {
-                foreach (var (_, entry) in zip.Entries)
+                foreach (var (_, entry) in Reader.Entries)
                 {
                     Console.WriteLine('/' + ReplaceControlChars(entry.FileName));
                 }
@@ -194,7 +194,7 @@ namespace Extractor.Zip
         {
             RemoveInitialSlash(pathFilter);
 
-            var paths = zip.Entries
+            var paths = Reader.Entries
                 .Where(e => e.Value.UncompressedSize > 0) // filter out directory metadata
                 .Select(e => e.Value.FileName);
             var trees = pathFilter
@@ -213,7 +213,7 @@ namespace Extractor.Zip
 
         public override void Dispose()
         {
-            zip?.Dispose();
+            Reader?.Dispose();
             GC.SuppressFinalize(this);
         }
     }
