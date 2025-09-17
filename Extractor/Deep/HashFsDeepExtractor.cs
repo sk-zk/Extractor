@@ -42,23 +42,28 @@ namespace Extractor.Deep
         /// </summary>
         private int dumped;
 
+        private HashFsPathFinder finder;
+
+        private bool hasSearchedForPaths;
+
         public HashFsDeepExtractor(string scsPath, bool overwrite, ushort? salt) 
             : base(scsPath, overwrite, salt)
         {
+            IdentifyJunkEntries();
         }
 
         /// <inheritdoc/>
         public override void Extract(IList<string> pathFilter, string outputRoot)
         {
             Console.WriteLine("Searching for paths ...");
-
-            bool filtersSet = !pathFilter.SequenceEqual(["/"]);
-
-            IdentifyJunkEntries();
-
-            var finder = new HashFsPathFinder(Reader, AdditionalStartPaths, junkEntries);
-            finder.Find();
+            FindPaths();
             var foundFiles = finder.FoundFiles.Order().ToArray();
+            Extract(foundFiles, pathFilter, outputRoot, false);
+        }
+
+        public void Extract(string[] foundFiles, IList<string> pathFilter, string outputRoot, bool ignoreMissing)
+        {
+            bool filtersSet = !pathFilter.SequenceEqual(["/"]);
 
             substitutions = DeterminePathSubstitutions(foundFiles);
 
@@ -67,7 +72,7 @@ namespace Extractor.Deep
                 foundFiles = foundFiles
                     .Where(f => pathFilter.Any(f.StartsWith)).ToArray();
             }
-            ExtractFiles(foundFiles, outputRoot);
+            ExtractFiles(foundFiles, outputRoot, ignoreMissing);
 
             var foundDecoyFiles = finder.FoundDecoyFiles.Order().ToArray();
             if (filtersSet)
@@ -88,6 +93,17 @@ namespace Extractor.Deep
 
             WriteRenamedSummary(outputRoot);
             WriteModifiedSummary(outputRoot);
+        }
+
+        public (HashSet<string> FoundFiles, HashSet<string> ReferencedFiles) FindPaths()
+        {
+            if (!hasSearchedForPaths)
+            {
+                finder = new HashFsPathFinder(Reader, AdditionalStartPaths, junkEntries);
+                finder.Find();
+                hasSearchedForPaths = true;
+            }
+            return (finder.FoundFiles, finder.ReferencedFiles);
         }
 
         /// <summary>
@@ -141,8 +157,6 @@ namespace Extractor.Deep
 
         public override void PrintPaths(IList<string> pathFilter, bool includeAll)
         {
-            IdentifyJunkEntries();
-
             var finder = new HashFsPathFinder(Reader);
             finder.Find();
             var paths = (includeAll 
@@ -165,8 +179,6 @@ namespace Extractor.Deep
 
         public override List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter)
         {
-            IdentifyJunkEntries();
-
             var finder = new HashFsPathFinder(Reader);
             finder.Find();
 

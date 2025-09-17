@@ -49,6 +49,12 @@ extractor path... [options]
   <td>Lists paths contained in the archive. Can be combined with <code>--deep</code>.</td>
 </tr>
 <tr>
+  <td></td>
+  <td><code>--list-all</code></td>
+  <td>Lists all paths referenced by files in the archive, even if they are not contained in it.
+  (Implicitly activates <code>--deep</code>.)</td>
+</tr>
+<tr>
   <td><code>-p</code></td>
   <td><code>--partial</code></td>
   <td>Limits extraction to the comma-separated list of files and/or directories specified. Examples:<br>
@@ -105,12 +111,6 @@ extractor path... [options]
   <td><code>--deep</code></td>
   <td>An extraction mode which scans the contained entries for referenced paths instead of traversing
   the directory tree from <code>/</code>. Use this option to extract archives without a top level directory listing.</td>
-</tr>
-<tr>
-  <td></td>
-  <td><code>--list-all</code></td>
-  <td>Lists all paths referenced by files in the archive, even if they are not contained in it.
-  Implicitly activates <code>--deep</code>.</td>
 </tr>
 <tr>
   <td></td>

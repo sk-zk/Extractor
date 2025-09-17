@@ -21,7 +21,7 @@ namespace Extractor
         /// <summary>
         /// The absolute path of the archive file.
         /// </summary>
-        protected string scsPath;
+        public string ScsPath { get; init; }
 
         /// <summary>
         /// Files which were renamed because they contained invalid characters.
@@ -36,7 +36,7 @@ namespace Extractor
 
         public Extractor(string scsPath, bool overwrite) 
         { 
-            this.scsPath = scsPath;
+            ScsPath = scsPath;
             Overwrite = overwrite; 
         }
 

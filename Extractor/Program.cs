@@ -12,7 +12,7 @@ namespace Extractor
 {
     class Program
     {
-        const string Version = "2025-09-06";
+        private const string Version = "2025-09-06";
         private static bool launchedByExplorer = false;
         private static Options opt;
 
@@ -63,29 +63,17 @@ namespace Extractor
                 return;
             }
 
+            if (opt.UseDeepExtractor && scsPaths.Length > 1)
+            {
+                DoMultiDeepExtraction(scsPaths);
+                return;
+            }
+
             foreach (var scsPath in scsPaths)
             {
-                if (!File.Exists(scsPath))
-                {
-                    Console.Error.WriteLine($"{scsPath} is not a file or does not exist.");
+                var extractor = CreateExtractor(scsPath);
+                if (extractor is null)
                     continue;
-                }
-
-                Extractor extractor;
-                try
-                {
-                    extractor = CreateExtractor(scsPath);
-                }
-                catch (InvalidDataException)
-                {
-                    Console.Error.WriteLine($"Unable to open {scsPath}: Not a HashFS or ZIP archive");
-                    continue;
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine($"Unable to open {scsPath}: {ex.Message}");
-                    continue;
-                }
 
                 if (opt.ListEntries)
                 {
@@ -111,7 +99,7 @@ namespace Extractor
                     else
                     {
                         var trees = extractor.GetDirectoryTree(opt.PathFilter);
-                        var scsName = Path.GetFileName(scsPath);
+                        var scsName = Path.GetFileName(extractor.ScsPath);
                         Tree.TreePrinter.Print(trees, scsName);
                     }
                 }
@@ -125,29 +113,99 @@ namespace Extractor
 
         private static Extractor CreateExtractor(string scsPath)
         {
-            Extractor extractor;
-
-            // check if the file begins with "SCS#", the magic bytes of a HashFS file.
-            // anything else is assumed to be a zip file because simply checking for "PK"
-            // would miss zip files with invalid local file headers.
-         
-            char[] magic;
-            using (var fs = File.OpenRead(scsPath))
-            using (var r = new BinaryReader(fs, Encoding.ASCII))
+            if (!File.Exists(scsPath))
             {
-                magic = r.ReadChars(4);
+                Console.Error.WriteLine($"{scsPath} is not a file or does not exist.");
+                return null;
             }
 
-            if (magic.SequenceEqual(['S', 'C', 'S', '#']))
+            Extractor extractor = null;
+            try
             {
-                extractor = CreateHashFsExtractor(scsPath);
-            }
-            else
-            {
-                extractor = new ZipExtractor(scsPath, !opt.SkipIfExists);
-            }
+                // Check if the file begins with "SCS#", the magic bytes of a HashFS file.
+                // Anything else is assumed to be a ZIP file because simply checking for "PK"
+                // would miss ZIP files with invalid local file headers.
+                char[] magic;
+                using (var fs = File.OpenRead(scsPath))
+                using (var r = new BinaryReader(fs, Encoding.ASCII))
+                {
+                    magic = r.ReadChars(4);
+                }
 
+                if (magic.SequenceEqual(['S', 'C', 'S', '#']))
+                {
+                    extractor = CreateHashFsExtractor(scsPath);
+                }
+                else
+                {
+                    extractor = new ZipExtractor(scsPath, !opt.SkipIfExists);
+                }
+            }
+            catch (InvalidDataException)
+            {
+                Console.Error.WriteLine($"Unable to open {scsPath}: Not a HashFS or ZIP archive");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Unable to open {scsPath}: {ex.Message}");
+            }
             return extractor;
+        }
+
+        private static void DoMultiDeepExtraction(string[] scsPaths)
+        {
+            // If you're reading this ... maybe don't.
+
+            List<Extractor> extractors = [];
+            foreach (var scsPath in scsPaths)
+            {
+                var extractor = CreateExtractor(scsPath);
+                if (extractor is not null)
+                    extractors.Add(extractor);
+            }
+
+            HashSet<string> everything = [];
+            foreach (var extractor in extractors)
+            {
+                Console.WriteLine($"Searching for paths in {Path.GetFileName(extractor.ScsPath)} ...");
+                if (extractor is HashFsDeepExtractor hashFs)
+                {
+                    var (found, referenced) = hashFs.FindPaths();
+                    everything.UnionWith(found);
+                    everything.UnionWith(referenced);
+                }
+                else if (extractor is ZipExtractor zip)
+                {
+                    var finder = new ZipPathFinder(zip.Reader);
+                    finder.Find();
+                    var paths = finder.ReferencedFiles
+                        .Union(zip.Reader.Entries.Keys.Select(p => '/' + p));
+                    everything.UnionWith(paths);
+                }
+                else
+                {
+                    throw new ArgumentException("Unhandled extractor type");
+                }
+            }
+
+            var everythingArr = everything.ToArray();
+            foreach (var extractor in extractors)
+            {
+                if (extractor is HashFsDeepExtractor hashFs)
+                {
+                    hashFs.Extract(everythingArr, opt.PathFilter, opt.Destination, true);
+                }
+                else
+                {
+                    extractor.Extract(opt.PathFilter, opt.Destination);
+                }
+            }
+
+            foreach (var extractor in extractors)
+            {
+                Console.Write($"{Path.GetFileName(extractor.ScsPath)}: ");
+                extractor.PrintExtractionResult();
+            }
         }
 
         private static Extractor CreateHashFsExtractor(string scsPath)

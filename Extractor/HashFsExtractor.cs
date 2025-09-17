@@ -92,13 +92,13 @@ namespace Extractor
                 Reader.Salt = salt.Value;
             else
                 FixSaltIfNecessary();
+
+            IdentifyJunkEntries();
         }
 
         /// <inheritdoc/>
         public override void Extract(IList<string> pathFilter, string outputRoot)
         {
-            IdentifyJunkEntries();
-
             if (pathFilter.Count == 1 && pathFilter[0] == "/")
             {
                 if (Reader.EntryExists("/") == EntryType.Directory)
@@ -138,13 +138,11 @@ namespace Extractor
             WriteModifiedSummary(outputRoot);
         }
 
-        protected void ExtractFiles(IList<string> pathsToExtract, string outputRoot)
+        protected void ExtractFiles(IList<string> pathsToExtract, string outputRoot, bool ignoreMissing = false)
         {
-            var scsName = Path.GetFileName(scsPath);
             foreach (var archivePath in pathsToExtract)
             {
-                PrintExtractionMessage(archivePath, scsName);
-                ExtractFile(archivePath, outputRoot);
+                ExtractFile(archivePath, outputRoot, ignoreMissing);
             }
         }
 
@@ -180,8 +178,16 @@ namespace Extractor
             return pathsToExtract;
         }
 
-        protected void ExtractFile(string archivePath, string outputRoot)
+        protected void ExtractFile(string archivePath, string outputRoot, bool ignoreMissing = false)
         {
+            if (!Reader.FileExists(archivePath))
+            {
+                if (ignoreMissing)
+                    return;
+                else
+                    throw new FileNotFoundException();
+            }
+
             if (!substitutions.TryGetValue(archivePath, out string filePath))
             {
                 filePath = archivePath;
@@ -191,6 +197,9 @@ namespace Extractor
             {
                 renamedFiles.Add((archivePath, filePath));
             }
+
+            var scsName = Path.GetFileName(ScsPath);
+            PrintExtractionMessage(archivePath, scsName);
 
             if (!Overwrite && File.Exists(outputPath))
             {
@@ -203,11 +212,7 @@ namespace Extractor
 
         protected void ExtractToDisk(string archivePath, string outputPath)
         {
-            var type = Reader.TryGetEntry(archivePath, out var entry);
-            if (type == EntryType.NotFound)
-            {
-                throw new FileNotFoundException();
-            }
+            Reader.TryGetEntry(archivePath, out var entry);
             ExtractToDisk(entry, archivePath, outputPath);       
         }
 
@@ -406,7 +411,7 @@ namespace Extractor
         public override void PrintContentSummary()
         {
             var dirCount = Reader.Entries.Count(x => x.Value.IsDirectory);
-            Console.Error.WriteLine($"Opened {Path.GetFileName(scsPath)}: " +
+            Console.Error.WriteLine($"Opened {Path.GetFileName(ScsPath)}: " +
                 $"HashFS v{Reader.Version} archive; {Reader.Entries.Count} entries " +
                 $"({Reader.Entries.Count - dirCount} files, {dirCount} directory listings)");
         }
@@ -428,8 +433,6 @@ namespace Extractor
 
         public override void PrintPaths(IList<string> pathFilter, bool includeAll)
         {
-            IdentifyJunkEntries();
-
             foreach (var path in pathFilter)
             {
                 Reader.Traverse(path,
@@ -452,8 +455,6 @@ namespace Extractor
 
         public override List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter)
         {
-            IdentifyJunkEntries();
-
             var trees = pathFilter
                 .Select(path => GetDirectoryTree(path))
                 .ToList();
