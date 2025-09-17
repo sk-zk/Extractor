@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using TruckLib;
 using static Extractor.ConsoleUtils;
 using static Extractor.PathUtils;
 
@@ -21,6 +22,8 @@ namespace Extractor.Zip
         /// The underlying ZIP reader.
         /// </summary>
         public ZipReader Reader { get; init; }
+
+        public override IFileSystem FileSystem => Reader;
 
         /// <summary>
         /// Paths which will need to be renamed.

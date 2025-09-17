@@ -1,12 +1,14 @@
-﻿using System;
+﻿using Extractor.Deep;
+using Extractor.Zip;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
-using System.Diagnostics;
+using TruckLib;
 using static Extractor.PathUtils;
-using Extractor.Deep;
-using Extractor.Zip;
 
 namespace Extractor
 {
@@ -188,23 +190,44 @@ namespace Extractor
                 }
             }
 
-            var everythingArr = everything.ToArray();
             foreach (var extractor in extractors)
             {
-                if (extractor is HashFsDeepExtractor hashFs)
+                var existing = everything.Where(extractor.FileSystem.FileExists);
+
+                if (opt.ListPaths)
                 {
-                    hashFs.Extract(everythingArr, opt.PathFilter, opt.Destination, true);
+                    foreach (var path in existing.Order())
+                    {
+                        Console.WriteLine(ReplaceControlChars(path));
+                    }
+                }
+                else if (opt.PrintTree)
+                {
+                    var trees = opt.PathFilter
+                        .Select(startPath => PathListToTree(startPath, existing))
+                        .ToList();
+                    Tree.TreePrinter.Print(trees, Path.GetFileName(extractor.ScsPath));
                 }
                 else
                 {
-                    extractor.Extract(opt.PathFilter, opt.Destination);
+                    if (extractor is HashFsDeepExtractor hashFs)
+                    {
+                        hashFs.Extract(existing.ToArray(), opt.PathFilter, opt.Destination, true);
+                    }
+                    else
+                    {
+                        extractor.Extract(opt.PathFilter, opt.Destination);
+                    }
                 }
             }
 
-            foreach (var extractor in extractors)
+            if (!opt.ListPaths && !opt.PrintTree)
             {
-                Console.Write($"{Path.GetFileName(extractor.ScsPath)}: ");
-                extractor.PrintExtractionResult();
+                foreach (var extractor in extractors)
+                {
+                    Console.Write($"{Path.GetFileName(extractor.ScsPath)}: ");
+                    extractor.PrintExtractionResult();
+                }
             }
         }
 

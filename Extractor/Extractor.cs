@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using TruckLib;
 using TruckLib.Models;
 using TruckLib.Sii;
 using static Extractor.PathSubstitution;
@@ -13,6 +14,8 @@ namespace Extractor
     /// </summary>
     public abstract class Extractor : IDisposable
     {
+        public abstract IFileSystem FileSystem { get; }
+
         /// <summary>
         /// Gets or sets whether existing files should be overwritten.
         /// </summary>

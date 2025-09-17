@@ -276,7 +276,10 @@ namespace Extractor
                         subdir = newDir;
                     }
                 }
-                subdir.Files.Add(path);
+                if (!path.EndsWith('/'))
+                {
+                    subdir.Files.Add(path);
+                }
             }
 
             return rootDir;

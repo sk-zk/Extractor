@@ -9,6 +9,7 @@ using static Extractor.PathUtils;
 using static Extractor.ConsoleUtils;
 using System.IO.Compression;
 using System.Diagnostics;
+using TruckLib;
 
 namespace Extractor
 {
@@ -21,6 +22,8 @@ namespace Extractor
         /// The underlying HashFsReader.
         /// </summary>
         public IHashFsReader Reader { get; private set; }
+
+        public override IFileSystem FileSystem => Reader;
 
         /// <summary>
         /// Gets or sets whether the entry table should be read from the end of the file
@@ -456,7 +459,7 @@ namespace Extractor
         public override List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter)
         {
             var trees = pathFilter
-                .Select(path => GetDirectoryTree(path))
+                .Select(GetDirectoryTree)
                 .ToList();
             return trees;
         }
