@@ -41,7 +41,7 @@ namespace Extractor
                 { "a|all",
                     "Extract all .scs archives in the specified directory.",
                     x => { ExtractAllInDir = true; } },
-                { "deep",
+                { "D|deep",
                     $"[HashFS] Scans contained files for paths before extracting. Use this option " +
                     $"to extract archives without a top level directory listing.",
                     x => { UseDeepExtractor = true; } },

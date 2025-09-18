@@ -112,6 +112,7 @@ extractor path... [options]
   Expects a text file containing paths to extract, separated by line breaks.</td>
 </tr>
 <tr>
+  <td><code>-D</code></td>
   <td><code>--deep</code></td>
   <td>An extraction mode which scans the contained entries for referenced paths instead of traversing
   the directory tree from <code>/</code>. Use this option to extract archives without a top level directory listing.</td>
@@ -154,7 +155,7 @@ extractor "path\to\file1.scs" "path\to\file2.scs"
 
 Extract all .scs files in a directory:
 ```
-extractor "path\to\directory" -a
+extractor "path\to\directory" --all
 ```
 
 Extract `def` and `manifest.sii` only:
@@ -174,5 +175,5 @@ extractor "file1.scs" "file2.scs" "file3.scs" --deep --separate
 
 Alternatively:
 ```
-extractor "path\to\mod\directory" --deep --all --separate
+extractor "path\to\mod\directory" --all --deep --separate
 ```
