@@ -5,16 +5,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
-using TruckLib;
 using static Extractor.PathUtils;
 
 namespace Extractor
 {
     class Program
     {
-        private const string Version = "2025-09-06";
+        private const string Version = "2025-09-18";
         private static bool launchedByExplorer = false;
         private static Options opt;
 
