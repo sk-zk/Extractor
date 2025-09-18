@@ -28,6 +28,7 @@ namespace Extractor
         public bool UseRawExtractor { get; set; } = false;
         public string Destination { get; set; } = "./extracted";
         public ushort? Salt { get; set; } = null;
+        public bool Separate { get; set; } = false;
 
         public Options()
         {
@@ -74,6 +75,9 @@ namespace Extractor
                 { "salt=",
                     "[HashFS] Ignores the salt in the archive header and uses this one instead.",
                     x => { Salt = ushort.Parse(x); } },
+                { "S|separate",
+                    "When extracting multiple archives, extract each archive to a separate directory.",
+                    x => { Separate = true; } },
                 { "s|skip-existing",
                     "Don't overwrite existing files.",
                     x => { SkipIfExists = true; } },

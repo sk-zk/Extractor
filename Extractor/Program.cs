@@ -107,10 +107,21 @@ namespace Extractor
                 }
                 else
                 {
-                    extractor.Extract(opt.PathFilter, opt.Destination);
+                    extractor.Extract(opt.PathFilter, GetDestination(scsPath));
                     extractor.PrintExtractionResult();
                 }
             }
+        }
+
+        private static string GetDestination(string scsPath)
+        {
+            if (opt.Separate)
+            {
+                var scsName = Path.GetFileNameWithoutExtension(scsPath);
+                var destination = Path.Combine(opt.Destination, scsName);
+                return destination;
+            }
+            return opt.Destination;
         }
 
         private static Extractor CreateExtractor(string scsPath)
@@ -212,11 +223,11 @@ namespace Extractor
                 {
                     if (extractor is HashFsDeepExtractor hashFs)
                     {
-                        hashFs.Extract(existing.ToArray(), opt.PathFilter, opt.Destination, true);
+                        hashFs.Extract(existing.ToArray(), opt.PathFilter, GetDestination(extractor.ScsPath), true);
                     }
                     else
                     {
-                        extractor.Extract(opt.PathFilter, opt.Destination);
+                        extractor.Extract(opt.PathFilter, GetDestination(extractor.ScsPath));
                     }
                 }
             }

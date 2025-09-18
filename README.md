@@ -73,6 +73,11 @@ extractor path... [options]
   line breaks.</td>
 </tr>
 <tr>
+  <td><code>-S</code></td>
+  <td><code>--separate</code></td>
+  <td>When extracting multiple archives, extract each archive to a separate directory.</td>
+</tr>
+<tr>
   <td><code>-s</code></td>
   <td><code>--skip-existing</code></td>
   <td>Don't overwrite existing files.</td>
@@ -107,7 +112,6 @@ extractor path... [options]
   Expects a text file containing paths to extract, separated by line breaks.</td>
 </tr>
 <tr>
-  <td></td>
   <td><code>--deep</code></td>
   <td>An extraction mode which scans the contained entries for referenced paths instead of traversing
   the directory tree from <code>/</code>. Use this option to extract archives without a top level directory listing.</td>
@@ -165,10 +169,10 @@ extractor "path\to\file.scs" --deep
 
 Extract with deep mode when the mod is split into multiple archives:
 ```
-extractor "file1.scs" "file2.scs" "file3.scs" --deep
+extractor "file1.scs" "file2.scs" "file3.scs" --deep --separate
 ```
 
-Or:
+Alternatively:
 ```
-extractor "path\to\mod\directory" --deep -a
+extractor "path\to\mod\directory" --deep --all --separate
 ```
