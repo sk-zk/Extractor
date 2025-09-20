@@ -13,7 +13,7 @@
 	<ItemGroup>
 		<PackageReference Include="Mono.Options" Version="6.12.0.148" />
 		<PackageReference Include="TruckLib.HashFs" Version="0.1.17" />
-		<PackageReference Include="TruckLib.Sii" Version="0.1.11" />
+		<PackageReference Include="TruckLib.Sii" Version="0.1.12" />
 	</ItemGroup>
 
 	<ItemGroup>
