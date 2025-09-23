@@ -22,9 +22,59 @@ namespace Extractor
         public bool Overwrite { get; set; } = true;
 
         /// <summary>
+        /// If true, skip writing files to disk during extraction.
+        /// </summary>
+        public bool DryRun { get; set; } = false;
+
+        /// <summary>
         /// The absolute path of the archive file.
         /// </summary>
         public string ScsPath { get; init; }
+
+        /// <summary>
+        /// Timing: time spent opening the archive.
+        /// </summary>
+        public TimeSpan? OpenTime { get; set; }
+
+        /// <summary>
+        /// Timing: time spent searching for paths (when applicable).
+        /// </summary>
+        public TimeSpan? SearchTime { get; set; }
+
+        /// <summary>
+        /// Timing: time spent extracting files.
+        /// </summary>
+        public TimeSpan? ExtractTime { get; set; }
+
+        /// <summary>
+        /// Timing detail: time spent in search while decompressing/reading entries.
+        /// </summary>
+        public TimeSpan? SearchExtractTime { get; set; }
+
+        /// <summary>
+        /// Timing detail: time spent in search while parsing entries.
+        /// </summary>
+        public TimeSpan? SearchParseTime { get; set; }
+
+        /// <summary>
+        /// Detail: number of files parsed during search.
+        /// </summary>
+        public int? SearchFilesParsed { get; set; }
+
+        /// <summary>
+        /// Detail: total decompressed bytes read during search.
+        /// </summary>
+        public long? SearchBytesInflated { get; set; }
+
+        /// <summary>
+        /// Detail: wall-clock time window spent performing IO/decompression during search.
+        /// </summary>
+        public TimeSpan? SearchExtractWallTime { get; set; }
+
+        /// <summary>
+        /// Detail: unique files parsed during search.
+        /// </summary>
+        public int? SearchUniqueFilesParsed { get; set; }
 
         /// <summary>
         /// Files which were renamed because they contained invalid characters.
@@ -91,6 +141,8 @@ namespace Extractor
 
         protected void WriteRenamedSummary(string outputRoot)
         {
+            if (DryRun)
+                return;
             if (renamedFiles.Count == 0)
                 return;
 
@@ -106,6 +158,8 @@ namespace Extractor
 
         protected void WriteModifiedSummary(string outputRoot)
         {
+            if (DryRun)
+                return;
             if (modifiedFiles.Count == 0)
                 return;
 

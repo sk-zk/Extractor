@@ -29,6 +29,11 @@ namespace Extractor
         public string Destination { get; set; } = "./extracted";
         public ushort? Salt { get; set; } = null;
         public bool Separate { get; set; } = false;
+        public bool SingleThread { get; set; } = false;
+        public bool Times { get; set; } = false;
+        public bool DryRun { get; set; } = false;
+        public bool Benchmark { get; set; } = false;
+        public int IoReaders { get; set; } = 0; // 0 = auto
 
         public Options()
         {
@@ -89,6 +94,21 @@ namespace Extractor
                     "Prints the directory tree and exits. Can be combined with " +
                     "-deep, --partial, --paths,\nand --all.",
                     x => { PrintTree = true; } },
+                { "single-thread",
+                    "Force single-threaded path search (slower, legacy behavior).",
+                    x => { SingleThread = true; } },
+                { "times",
+                    "Print timing for open, search, and extraction stages.",
+                    x => { Times = true; } },
+                { "dry-run",
+                    "Run without writing files (skips actual extraction).",
+                    x => { DryRun = true; } },
+                { "benchmark",
+                    "Run a dry-run deep scan twice (single-thread and multi-thread) and compare timings.",
+                    x => { Benchmark = true; Times = true; UseDeepExtractor = true; } },
+                { "io-readers=",
+                    "[HashFS + --deep] Number of parallel readers to use for IO/decompression (default: number of logical CPUs).",
+                    x => { if (int.TryParse(x, out var n)) IoReaders = Math.Max(0, n); } },
                 { "?|h|help",
                     $"Prints this message and exits.",
                     x => { PrintHelp = true; } },

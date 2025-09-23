@@ -70,15 +70,15 @@ namespace Extractor.Deep
         /// </summary>
         private readonly FrozenDictionary<FileType, FinderFunc> finders;
 
-        /// <summary>
-        /// Paths that have been visited so far.
-        /// </summary>
-        private readonly HashSet<string> visited;
+        // Note: 'visited' was previously used to filter discovered paths early.
+        // To simplify thread-safety, we now avoid consulting it here and rely on callers
+        // to de-duplicate via their own visited sets.
 
         /// <summary>
         /// File paths that are referenced by files in this archive.
         /// </summary>
         private readonly HashSet<string> referencedFiles;
+        private readonly object referencedFilesLock;
 
         /// <summary>
         /// Directories discovered during the first phase which might contain tobj files.
@@ -87,6 +87,7 @@ namespace Extractor.Deep
         /// relative path only.
         /// </summary>
         private readonly HashSet<string> dirsToSearchForRelativeTobj;
+        private readonly object dirsToSearchForRelativeTobjLock;
 
         /// <summary>
         /// The archive which is being analyzed.
@@ -105,12 +106,15 @@ namespace Extractor.Deep
         ///     (of the parenting PathFinder).</param>
         /// <param name="fs">The archive which is being analyzed as <see cref="IFileSystem"/>
         ///     (of the parenting PathFinder).</param>
-        public FilePathFinder(HashSet<string> visited, HashSet<string> referencedFiles,
-            HashSet<string> dirsToSearchForRelativeTobj, IFileSystem fs)
+        public FilePathFinder(HashSet<string> referencedFiles,
+            HashSet<string> dirsToSearchForRelativeTobj, IFileSystem fs,
+            object referencedFilesLock,
+            object dirsToSearchForRelativeTobjLock)
         {
-            this.visited = visited;
             this.dirsToSearchForRelativeTobj = dirsToSearchForRelativeTobj;
             this.referencedFiles = referencedFiles;
+            this.referencedFilesLock = referencedFilesLock;
+            this.dirsToSearchForRelativeTobjLock = dirsToSearchForRelativeTobjLock;
             this.fs = fs;
             finders = new Dictionary<FileType, FinderFunc>()
             {
@@ -144,7 +148,11 @@ namespace Extractor.Deep
                 {
                     return finder(fileBuffer, filePath);
                 }
+                #if DEBUG
                 catch (Exception ex)
+                #else
+                catch (Exception)
+                #endif
                 {
                     #if DEBUG
                     Console.Error.WriteLine($"Unable to parse {filePath}: " +
@@ -168,7 +176,6 @@ namespace Extractor.Deep
         private PotentialPaths FindPathsInSii(byte[] fileBuffer, string filePath)
         {
             var potentialPaths = SiiPathFinder.FindPathsInSii(fileBuffer, filePath, fs);
-            potentialPaths.ExceptWith(visited);
             return potentialPaths;
         }
 
@@ -186,10 +193,10 @@ namespace Extractor.Deep
             foreach (Match match in matches)
             {
                 var path = match.Groups[1].Value;
-                potentialPaths.Add(path, visited);
+                potentialPaths.AddWithVariants(path);
                 if (path.EndsWith(".mat"))
                 {
-                    potentialPaths.Add(Path.ChangeExtension(path, ".font"), visited);
+                    potentialPaths.AddWithVariants(Path.ChangeExtension(path, ".font"));
                 }
             }
 
@@ -227,18 +234,21 @@ namespace Extractor.Deep
 
                 if (path.StartsWith('/'))
                 {
-                    potentialPaths.Add(path, visited);
+                    potentialPaths.AddWithVariants(path);
                 }
                 else
                 {
                     if (filePath == null)
                     {
-                        foreach (var dir in dirsToSearchForRelativeTobj)
+                        lock (dirsToSearchForRelativeTobjLock)
                         {
-                            var potentialAbsPath = $"{dir}/{path}";
-                            if (fs.FileExists(potentialAbsPath))
+                            foreach (var dir in dirsToSearchForRelativeTobj)
                             {
-                                potentialPaths.Add(potentialAbsPath, visited);
+                                var potentialAbsPath = $"{dir}/{path}";
+                                if (fs.FileExists(potentialAbsPath))
+                                {
+                                    potentialPaths.AddWithVariants(potentialAbsPath);
+                                }
                             }
                         }
                     }
@@ -246,7 +256,7 @@ namespace Extractor.Deep
                     {
                         var matDirectory = GetParent(filePath);
                         path = $"{matDirectory}/{path}";
-                        potentialPaths.Add(path, visited);
+                        potentialPaths.AddWithVariants(path);
                     }
                 }
             }
@@ -266,7 +276,10 @@ namespace Extractor.Deep
 
             var tobj = Tobj.Load(fileBuffer);
             potentialPaths.Add(tobj.TexturePath);
-            referencedFiles.Add(tobj.TexturePath);
+            lock (referencedFilesLock)
+            {
+                referencedFiles.Add(tobj.TexturePath);
+            }
 
             return potentialPaths;
         }
@@ -285,7 +298,10 @@ namespace Extractor.Deep
             foreach (var look in model.Looks)
             {
                 potentialPaths.UnionWith(look.Materials);
-                referencedFiles.UnionWith(look.Materials);
+                lock (referencedFilesLock)
+                {
+                    referencedFiles.UnionWith(look.Materials);
+                }
             }
 
             return potentialPaths;
@@ -309,7 +325,7 @@ namespace Extractor.Deep
                 if (line.StartsWith("source="))
                 {
                     var path = line[(line.IndexOf('"') + 1)..line.IndexOf('#')];
-                    potentialPaths.Add(path, visited);
+                    potentialPaths.AddWithVariants(path);
                 }
             }
 

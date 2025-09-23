@@ -202,7 +202,10 @@ namespace Extractor
             }
 
             var scsName = Path.GetFileName(ScsPath);
-            PrintExtractionMessage(archivePath, scsName);
+            if (!DryRun)
+            {
+                PrintExtractionMessage(archivePath, scsName);
+            }
 
             if (!Overwrite && File.Exists(outputPath))
             {
@@ -223,6 +226,13 @@ namespace Extractor
         {
             try
             {
+                if (DryRun)
+                {
+                    // Simulate extraction without touching disk or decompressing
+                    extracted++;
+                    return;
+                }
+
                 var buffers = Reader.Extract(entry, archivePath);
 
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
@@ -421,9 +431,20 @@ namespace Extractor
 
         public override void PrintExtractionResult()
         {
+            var times = (OpenTime.HasValue || SearchTime.HasValue || ExtractTime.HasValue)
+                ? $" | open={OpenTime?.TotalMilliseconds:F0}ms" +
+                  (SearchTime.HasValue
+                    ? $", search={SearchTime?.TotalMilliseconds:F0}ms" +
+                      (SearchExtractTime.HasValue || SearchParseTime.HasValue || SearchFilesParsed.HasValue || SearchBytesInflated.HasValue
+                        ? $" (decomp={SearchExtractTime?.TotalMilliseconds:F0}ms, parse={SearchParseTime?.TotalMilliseconds:F0}ms, files={SearchFilesParsed?.ToString() ?? "-"}, bytes={SearchBytesInflated?.ToString() ?? "-"})"
+                        : string.Empty)
+                    : string.Empty)
+                  + $", extract={ExtractTime?.TotalMilliseconds:F0}ms"
+                : string.Empty;
             Console.Error.WriteLine($"{extracted} extracted " +
                 $"({renamedFiles.Count} renamed, {modifiedFiles.Count} modified), " +
-                $"{skipped} skipped, {notFound} not found, {duplicate} junk, {failed} failed");
+                $"{skipped} skipped, {notFound} not found, {duplicate} junk, {failed} failed" +
+                times);
             PrintRenameSummary(renamedFiles.Count, modifiedFiles.Count);
         }
 

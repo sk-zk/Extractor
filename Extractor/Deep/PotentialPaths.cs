@@ -37,6 +37,58 @@ namespace Extractor.Deep
             }
         }
 
+        /// <summary>
+        /// Adds a path and common variant paths (e.g., related material/tobj/dds files),
+        /// without consulting any external visited set. Caller should de-duplicate later.
+        /// </summary>
+        /// <param name="path">The path to add.</param>
+        public void AddWithVariants(string path)
+        {
+            if (!ResemblesPath(path))
+                return;
+
+            EnsureHasInitialSlash(ref path);
+
+            if (!Add(path))
+                return;
+
+            var extension = Path.GetExtension(path);
+
+            if (extension == ".pmd")
+            {
+                Add(Path.ChangeExtension(path, ".pmg"));
+                Add(Path.ChangeExtension(path, ".pmc"));
+                Add(Path.ChangeExtension(path, ".pma"));
+                Add(Path.ChangeExtension(path, ".ppd"));
+            }
+            else if (extension == ".pmg")
+            {
+                Add(Path.ChangeExtension(path, ".pmd"));
+                Add(Path.ChangeExtension(path, ".pmc"));
+                Add(Path.ChangeExtension(path, ".pma"));
+                Add(Path.ChangeExtension(path, ".ppd"));
+            }
+            else if (extension == ".bank")
+            {
+                Add(Path.ChangeExtension(path, ".bank.guids"));
+            }
+            else if (extension == ".mat")
+            {
+                Add(Path.ChangeExtension(path, ".tobj"));
+                Add(Path.ChangeExtension(path, ".dds"));
+            }
+            else if (extension == ".tobj")
+            {
+                Add(Path.ChangeExtension(path, ".mat"));
+                Add(Path.ChangeExtension(path, ".dds"));
+            }
+            else if (extension == ".dds")
+            {
+                Add(Path.ChangeExtension(path, ".mat"));
+                Add(Path.ChangeExtension(path, ".tobj"));
+            }
+        }
+
         private void AddPathVariants(string path, HashSet<string> visited)
         {
             var extension = Path.GetExtension(path);

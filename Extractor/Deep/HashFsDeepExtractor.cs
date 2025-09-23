@@ -21,6 +21,14 @@ namespace Extractor.Deep
     public class HashFsDeepExtractor : HashFsExtractor
     {
         /// <summary>
+        /// If true, perform path search in a single thread.
+        /// </summary>
+        public bool SingleThreadedPathSearch { get; set; } = false;
+        /// <summary>
+        /// Number of parallel readers to use for deep search. Default: logical CPU count.
+        /// </summary>
+        public int ReaderPoolSize { get; set; } = Math.Max(1, Environment.ProcessorCount);
+        /// <summary>
         /// Additional start paths which the user specified with the <c>--additional</c> parameter.
         /// </summary>
         public IList<string> AdditionalStartPaths { get; set; } = [];
@@ -99,8 +107,18 @@ namespace Extractor.Deep
         {
             if (!hasSearchedForPaths)
             {
-                finder = new HashFsPathFinder(Reader, AdditionalStartPaths, junkEntries);
+                finder = new HashFsPathFinder(Reader, AdditionalStartPaths, junkEntries,
+                    SingleThreadedPathSearch, CreateReaderClone, ReaderPoolSize);
                 finder.Find();
+                // Populate detailed timing metrics
+                SearchExtractTime = finder.ExtractTime;
+                SearchParseTime = finder.ParseTime;
+                SearchFilesParsed = finder.FilesParsed;
+                SearchBytesInflated = finder.BytesInflated;
+                SearchExtractWallTime = finder.ExtractWallTime;
+                // Report unique as the number of unique discovered files (stable across ST/MT)
+                SearchUniqueFilesParsed = finder.FoundFiles?.Count;
+                SearchTime = (finder.ExtractTime + finder.ParseTime);
                 hasSearchedForPaths = true;
             }
             return (finder.FoundFiles, finder.ReferencedFiles);
@@ -113,6 +131,9 @@ namespace Extractor.Deep
         /// <param name="foundFiles">All discovered paths.</param>
         private void DumpUnrecovered(string destination, IEnumerable<string> foundFiles)
         {
+            if (DryRun)
+                return;
+
             var notRecovered = Reader.Entries.Values
                 .Where(e => !e.IsDirectory)
                 .Except(foundFiles.Select(f =>
@@ -157,10 +178,13 @@ namespace Extractor.Deep
 
         public override void PrintPaths(IList<string> pathFilter, bool includeAll)
         {
-            var finder = new HashFsPathFinder(Reader);
+            var finder = new HashFsPathFinder(Reader,
+                singleThreaded: SingleThreadedPathSearch,
+                readerFactory: CreateReaderClone,
+                readerPoolSize: ReaderPoolSize);
             finder.Find();
-            var paths = (includeAll 
-                ? finder.FoundFiles.Union(finder.ReferencedFiles) 
+            var paths = (includeAll
+                ? finder.FoundFiles.Union(finder.ReferencedFiles)
                 : finder.FoundFiles).Order();
 
             foreach (var path in paths)
@@ -171,15 +195,26 @@ namespace Extractor.Deep
 
         public override void PrintExtractionResult()
         {
+            var times = (OpenTime.HasValue || SearchTime.HasValue || ExtractTime.HasValue)
+                ? $" | open={OpenTime?.TotalMilliseconds:F0}ms, " +
+                  $"search={SearchTime?.TotalMilliseconds:F0}ms" +
+                  (SearchExtractTime.HasValue || SearchParseTime.HasValue || SearchFilesParsed.HasValue || SearchBytesInflated.HasValue
+                    ? $" (decomp={SearchExtractTime?.TotalMilliseconds:F0}ms, decomp_wall={SearchExtractWallTime?.TotalMilliseconds:F0}ms, parse={SearchParseTime?.TotalMilliseconds:F0}ms, files={SearchFilesParsed?.ToString() ?? "-"}, unique={SearchUniqueFilesParsed?.ToString() ?? "-"}, bytes={SearchBytesInflated?.ToString() ?? "-"})"
+                    : string.Empty)
+                  + $", extract={ExtractTime?.TotalMilliseconds:F0}ms"
+                : string.Empty;
             Console.WriteLine($"{extracted} extracted " +
                 $"({renamedFiles.Count} renamed, {modifiedFiles.Count} modified, {dumped} dumped), " +
-                $"{skipped} skipped, {duplicate} junk, {failed} failed");
+                $"{skipped} skipped, {duplicate} junk, {failed} failed" + times);
             PrintRenameSummary(renamedFiles.Count, modifiedFiles.Count);
         }
 
         public override List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter)
         {
-            var finder = new HashFsPathFinder(Reader);
+            var finder = new HashFsPathFinder(Reader,
+                singleThreaded: SingleThreadedPathSearch,
+                readerFactory: CreateReaderClone,
+                readerPoolSize: ReaderPoolSize);
             finder.Find();
 
             var trees = pathFilter
@@ -187,5 +222,13 @@ namespace Extractor.Deep
                 .ToList();
             return trees;
         }
+
+        private TruckLib.HashFs.IHashFsReader CreateReaderClone()
+        {
+            var r = TruckLib.HashFs.HashFsReader.Open(ScsPath, ForceEntryTableAtEnd);
+            r.Salt = Reader.Salt;
+            return r;
+        }
     }
 }
+

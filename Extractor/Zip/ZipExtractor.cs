@@ -64,7 +64,10 @@ namespace Extractor.Zip
             {
                 try
                 {
-                    PrintExtractionMessage(entry.FileName, scsName);
+                    if (!DryRun)
+                    {
+                        PrintExtractionMessage(entry.FileName, scsName);
+                    }
                     if (!substitutions.TryGetValue(entry.FileName, out string fileName))
                     {
                         fileName = entry.FileName;
@@ -141,6 +144,12 @@ namespace Extractor.Zip
                 renamedFiles.Add((entry.FileName, fileName));
             }
 
+            if (DryRun)
+            {
+                extracted++;
+                return;
+            }
+
             var outputDir = Path.GetDirectoryName(outputPath);
             if (outputDir != null)
             {
@@ -165,9 +174,14 @@ namespace Extractor.Zip
 
         public override void PrintExtractionResult()
         {
+            var times = (OpenTime.HasValue || SearchTime.HasValue || ExtractTime.HasValue)
+                ? $" | open={OpenTime?.TotalMilliseconds:F0}ms, " +
+                  $"search={SearchTime?.TotalMilliseconds:F0}ms, " +
+                  $"extract={ExtractTime?.TotalMilliseconds:F0}ms"
+                : string.Empty;
             Console.Error.WriteLine($"{extracted} extracted " +
                 $"({renamedFiles.Count} renamed, {modifiedFiles.Count} modified), " +
-                $"{skipped} skipped, {failed} failed");
+                $"{skipped} skipped, {failed} failed" + times);
             PrintRenameSummary(renamedFiles.Count, modifiedFiles.Count);
         }
 

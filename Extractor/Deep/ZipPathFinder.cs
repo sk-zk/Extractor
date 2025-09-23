@@ -31,7 +31,7 @@ namespace Extractor.Deep
         {
             this.reader = reader;
             ReferencedFiles = [];
-            fpf = new FilePathFinder([], ReferencedFiles, [], reader);
+            fpf = new FilePathFinder(ReferencedFiles, [], reader, new object(), new object());
         }
 
         /// <summary>

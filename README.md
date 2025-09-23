@@ -24,7 +24,7 @@ dotnet publish -c Release
 extractor path... [options]
 ```
 
-### General options
+### General Options
 <table>
 <thead>
   <tr>
@@ -41,7 +41,12 @@ extractor path... [options]
 <tr>
   <td><code>-d</code></td>
   <td><code>--dest</code></td>
-  <td>Sets the output directory. Defaults to <code>./extracted</code>.</td>
+  <td>Sets the output directory. Default: <code>./extracted</code>.</td>
+</tr>
+<tr>
+  <td></td>
+  <td><code>--dry-run</code></td>
+  <td>Simulates extraction without writing files to disk.</td>
 </tr>
 <tr>
   <td></td>
@@ -69,8 +74,7 @@ extractor path... [options]
 <tr>
   <td><code>-P</code></td>
   <td><code>--paths</code></td>
-  <td>Same as <code>--partial</code>, but expects a text file containing paths to extract, separated by
-  line breaks.</td>
+  <td>Same as <code>--partial</code>, but expects a text file containing paths to extract, separated by line breaks.</td>
 </tr>
 <tr>
   <td><code>-S</code></td>
@@ -85,8 +89,7 @@ extractor path... [options]
 <tr>
   <td></td>
   <td><code>--tree</code></td>
-  <td>Prints the directory tree and exits. Can be combined with <code>--deep</code>, <code>--partial</code>, 
-  <code>--paths</code>, and <code>--all</code>.</td>
+  <td>Prints the directory tree and exits. Can be combined with <code>--deep</code>, <code>--partial</code>, <code>--paths</code>, and <code>--all</code>.</td>
 </tr>
 <tr>
   <td><code>-?</code>, <code>-h</code></td>
@@ -96,7 +99,7 @@ extractor path... [options]
 </table>
 
 
-### HashFS options
+### HashFS Options
 <table>
 <thead>
   <tr>
@@ -108,14 +111,17 @@ extractor path... [options]
 <tr>
   <td></td>
   <td><code>--additional</code></td>
-  <td>When using <code>--deep</code>, specifies additional start paths to search.
-  Expects a text file containing paths to extract, separated by line breaks.</td>
+  <td>When using <code>--deep</code>, specifies additional start paths to search. Expects a text file containing paths to extract, separated by line breaks.</td>
 </tr>
 <tr>
   <td><code>-D</code></td>
   <td><code>--deep</code></td>
-  <td>An extraction mode which scans the contained entries for referenced paths instead of traversing
-  the directory tree from <code>/</code>. Use this option to extract archives without a top level directory listing.</td>
+  <td>Scans contained entries for referenced paths instead of traversing from <code>/</code>. Use this to extract archives without a top-level directory listing.</td>
+</tr>
+<tr>
+  <td></td>
+  <td><code>--single-thread</code></td>
+  <td>When using <code>--deep</code>, forces single-threaded path search (slower, legacy behavior). Default: multi-threaded.</td>
 </tr>
 <tr>
   <td></td>
@@ -131,7 +137,7 @@ extractor path... [options]
 <tr>
   <td></td>
   <td><code>--salt</code></td>
-  <td>Ignores the salt specified in the archive header and uses the given one instead.</td>
+  <td>Ignores the salt in the archive header and uses the given one instead.</td>
 </tr>
 <tr>
   <td></td>
@@ -177,3 +183,9 @@ Alternatively:
 ```
 extractor "path\to\mod\directory" --all --deep --separate
 ```
+
+## Performance Options
+- <code>--times</code>: Print stage timing summary.
+- <code>--benchmark</code>: Deep-scan benchmark (HashFS, dry-run; single vs multi-thread).
+- <code>--single-thread</code>: Single-threaded deep search (HashFS).
+- <code>--io-readers=N</code>: Number of parallel readers for IO/decompression. Applies only to HashFS with <code>--deep</code>. Default: logical CPU count; set <code>N=0</code> to auto.
