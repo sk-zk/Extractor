@@ -406,13 +406,13 @@ namespace Extractor
                 void PrintBench(string title, HashFsDeepExtractor e, int found)
                 {
                     Console.WriteLine(
-                        $"  {title}: search={e.SearchTime?.TotalMilliseconds:F0}ms " +
-                        $"(decomp={e.SearchExtractTime?.TotalMilliseconds:F0}ms, " +
-                        $"decomp_wall={e.SearchExtractWallTime?.TotalMilliseconds:F0}ms, " +
-                        $"parse={e.SearchParseTime?.TotalMilliseconds:F0}ms, " +
-                        $"files={e.SearchFilesParsed?.ToString() ?? "-"}, " +
-                        $"unique={e.SearchUniqueFilesParsed?.ToString() ?? "-"}, " +
-                        $"bytes={e.SearchBytesInflated?.ToString() ?? "-"}), " +
+                        $"  {title}: search={e.SearchTime.Value.TotalMilliseconds:F0}ms " +
+                        $"(decomp={e.SearchExtractTime.Value.TotalMilliseconds:F0}ms, " +
+                        $"decomp_wall={e.SearchExtractWallTime.Value.TotalMilliseconds:F0}ms, " +
+                        $"parse={e.SearchParseTime.Value.TotalMilliseconds:F0}ms, " +
+                        $"files={e.SearchFilesParsed.Value}, " +
+                        $"unique={e.SearchUniqueFilesParsed.Value}, " +
+                        $"bytes={e.SearchBytesInflated.Value}), " +
                         $"found={found}");
                 }
 

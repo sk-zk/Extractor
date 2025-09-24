@@ -110,18 +110,15 @@ namespace Extractor.Deep
                 finder = new HashFsPathFinder(Reader, AdditionalStartPaths, junkEntries,
                     SingleThreadedPathSearch, CreateReaderClone, ReaderPoolSize);
                 finder.Find();
-                if (PrintTimesEnabled)
-                {
-                    // Populate detailed timing metrics
-                    SearchExtractTime = finder.ExtractTime;
-                    SearchParseTime = finder.ParseTime;
-                    SearchFilesParsed = finder.FilesParsed;
-                    SearchBytesInflated = finder.BytesInflated;
-                    SearchExtractWallTime = finder.ExtractWallTime;
-                    // Report unique as the number of unique discovered files (stable across ST/MT)
-                    SearchUniqueFilesParsed = finder.FoundFiles?.Count;
-                    SearchTime = (finder.ExtractTime + finder.ParseTime);
-                }
+                // Always populate detailed timing/metric fields for downstream reporting
+                SearchExtractTime = finder.ExtractTime;
+                SearchParseTime = finder.ParseTime;
+                SearchFilesParsed = finder.FilesParsed;
+                SearchBytesInflated = finder.BytesInflated;
+                SearchExtractWallTime = finder.ExtractWallTime;
+                // Report unique as the number of unique discovered files (stable across ST/MT)
+                SearchUniqueFilesParsed = finder.FoundFiles?.Count;
+                SearchTime = (finder.ExtractTime + finder.ParseTime);
                 hasSearchedForPaths = true;
             }
             return (finder.FoundFiles, finder.ReferencedFiles);
