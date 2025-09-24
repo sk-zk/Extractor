@@ -12,13 +12,14 @@ namespace Extractor.Tests
         [Fact]
         public void DeterminePathSubstitutions()
         {
+            PathUtils.ResetNameCounter();
             List<string> paths = [
                 "/bla?.txt",
                 "/def/country.sii"
                 ];
             var actual = HashFsExtractor.DeterminePathSubstitutions(paths);
             Assert.Single(actual);
-            Assert.Equal("/blax3F.txt", actual["/bla?.txt"]);
+            Assert.Matches("^/F\\d{8}\\.txt$", actual["/bla?.txt"]);
         }
 
         [Fact]

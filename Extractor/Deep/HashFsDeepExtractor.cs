@@ -110,15 +110,18 @@ namespace Extractor.Deep
                 finder = new HashFsPathFinder(Reader, AdditionalStartPaths, junkEntries,
                     SingleThreadedPathSearch, CreateReaderClone, ReaderPoolSize);
                 finder.Find();
-                // Populate detailed timing metrics
-                SearchExtractTime = finder.ExtractTime;
-                SearchParseTime = finder.ParseTime;
-                SearchFilesParsed = finder.FilesParsed;
-                SearchBytesInflated = finder.BytesInflated;
-                SearchExtractWallTime = finder.ExtractWallTime;
-                // Report unique as the number of unique discovered files (stable across ST/MT)
-                SearchUniqueFilesParsed = finder.FoundFiles?.Count;
-                SearchTime = (finder.ExtractTime + finder.ParseTime);
+                if (PrintTimesEnabled)
+                {
+                    // Populate detailed timing metrics
+                    SearchExtractTime = finder.ExtractTime;
+                    SearchParseTime = finder.ParseTime;
+                    SearchFilesParsed = finder.FilesParsed;
+                    SearchBytesInflated = finder.BytesInflated;
+                    SearchExtractWallTime = finder.ExtractWallTime;
+                    // Report unique as the number of unique discovered files (stable across ST/MT)
+                    SearchUniqueFilesParsed = finder.FoundFiles?.Count;
+                    SearchTime = (finder.ExtractTime + finder.ParseTime);
+                }
                 hasSearchedForPaths = true;
             }
             return (finder.FoundFiles, finder.ReferencedFiles);
@@ -195,14 +198,33 @@ namespace Extractor.Deep
 
         public override void PrintExtractionResult()
         {
-            var times = (OpenTime.HasValue || SearchTime.HasValue || ExtractTime.HasValue)
-                ? $" | open={OpenTime?.TotalMilliseconds:F0}ms, " +
-                  $"search={SearchTime?.TotalMilliseconds:F0}ms" +
-                  (SearchExtractTime.HasValue || SearchParseTime.HasValue || SearchFilesParsed.HasValue || SearchBytesInflated.HasValue
-                    ? $" (decomp={SearchExtractTime?.TotalMilliseconds:F0}ms, decomp_wall={SearchExtractWallTime?.TotalMilliseconds:F0}ms, parse={SearchParseTime?.TotalMilliseconds:F0}ms, files={SearchFilesParsed?.ToString() ?? "-"}, unique={SearchUniqueFilesParsed?.ToString() ?? "-"}, bytes={SearchBytesInflated?.ToString() ?? "-"})"
-                    : string.Empty)
-                  + $", extract={ExtractTime?.TotalMilliseconds:F0}ms"
-                : string.Empty;
+            string times = string.Empty;
+            if (PrintTimesEnabled)
+            {
+                var parts = new List<string>();
+                if (OpenTime.HasValue) parts.Add($"open={OpenTime.Value.TotalMilliseconds:F0}ms");
+                if (SearchTime.HasValue)
+                {
+                    var search = $"search={SearchTime.Value.TotalMilliseconds:F0}ms";
+                    var details = new List<string>();
+                    if (SearchExtractTime.HasValue) details.Add($"decomp={SearchExtractTime.Value.TotalMilliseconds:F0}ms");
+                    if (SearchExtractWallTime.HasValue) details.Add($"decomp_wall={SearchExtractWallTime.Value.TotalMilliseconds:F0}ms");
+                    if (SearchParseTime.HasValue) details.Add($"parse={SearchParseTime.Value.TotalMilliseconds:F0}ms");
+                    if (SearchFilesParsed.HasValue) details.Add($"files={SearchFilesParsed.Value}");
+                    if (SearchUniqueFilesParsed.HasValue) details.Add($"unique={SearchUniqueFilesParsed.Value}");
+                    if (SearchBytesInflated.HasValue) details.Add($"bytes={SearchBytesInflated.Value}");
+                    if (details.Count > 0)
+                    {
+                        search += " (" + string.Join(", ", details) + ")";
+                    }
+                    parts.Add(search);
+                }
+                if (ExtractTime.HasValue) parts.Add($"extract={ExtractTime.Value.TotalMilliseconds:F0}ms");
+                if (parts.Count > 0)
+                {
+                    times = " | " + string.Join(", ", parts);
+                }
+            }
             Console.WriteLine($"{extracted} extracted " +
                 $"({renamedFiles.Count} renamed, {modifiedFiles.Count} modified, {dumped} dumped), " +
                 $"{skipped} skipped, {duplicate} junk, {failed} failed" + times);
@@ -231,4 +253,5 @@ namespace Extractor.Deep
         }
     }
 }
+
 

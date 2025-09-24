@@ -64,14 +64,11 @@ namespace Extractor.Zip
             {
                 try
                 {
-                    if (!DryRun)
-                    {
-                        PrintExtractionMessage(entry.FileName, scsName);
-                    }
                     if (!substitutions.TryGetValue(entry.FileName, out string fileName))
-                    {
                         fileName = entry.FileName;
-                    }
+
+                    if (!DryRun)
+                        PrintExtractionMessage(entry.FileName, scsName);
                     ExtractEntry(entry, outputRoot, fileName);
                 }
                 catch (Exception ex)
@@ -174,11 +171,18 @@ namespace Extractor.Zip
 
         public override void PrintExtractionResult()
         {
-            var times = (OpenTime.HasValue || SearchTime.HasValue || ExtractTime.HasValue)
-                ? $" | open={OpenTime?.TotalMilliseconds:F0}ms, " +
-                  $"search={SearchTime?.TotalMilliseconds:F0}ms, " +
-                  $"extract={ExtractTime?.TotalMilliseconds:F0}ms"
-                : string.Empty;
+            string times = string.Empty;
+            if (PrintTimesEnabled)
+            {
+                var parts = new List<string>();
+                if (OpenTime.HasValue) parts.Add($"open={OpenTime.Value.TotalMilliseconds:F0}ms");
+                if (SearchTime.HasValue) parts.Add($"search={SearchTime.Value.TotalMilliseconds:F0}ms");
+                if (ExtractTime.HasValue) parts.Add($"extract={ExtractTime.Value.TotalMilliseconds:F0}ms");
+                if (parts.Count > 0)
+                {
+                    times = " | " + string.Join(", ", parts);
+                }
+            }
             Console.Error.WriteLine($"{extracted} extracted " +
                 $"({renamedFiles.Count} renamed, {modifiedFiles.Count} modified), " +
                 $"{skipped} skipped, {failed} failed" + times);
@@ -235,3 +239,4 @@ namespace Extractor.Zip
         }
     }
 }
+

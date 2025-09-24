@@ -35,6 +35,9 @@ namespace Extractor
             opt = new Options();
             opt.Parse(args);
 
+            // Configure sanitization behavior
+            PathUtils.LegacyReplaceMode = opt.LegacySanitize;
+
             if (opt.PrintHelp || args.Length == 0)
             {
                 Console.WriteLine($"Extractor {Version}\n");
@@ -85,6 +88,7 @@ namespace Extractor
                     continue;
 
                 extractor.DryRun = opt.DryRun;
+                extractor.PrintTimesEnabled = opt.Times;
                 if (extractor is HashFsDeepExtractor hdeep)
                 {
                     hdeep.SingleThreadedPathSearch = opt.SingleThread;
@@ -223,6 +227,7 @@ namespace Extractor
                 if (extractor is not null)
                 {
                     extractor.DryRun = opt.DryRun;
+                    extractor.PrintTimesEnabled = opt.Times;
                     if (extractor is HashFsDeepExtractor hd)
                     {
                         hd.SingleThreadedPathSearch = opt.SingleThread;
@@ -498,4 +503,5 @@ namespace Extractor
         }
     }
 }
+
 

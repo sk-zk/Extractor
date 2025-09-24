@@ -34,6 +34,7 @@ namespace Extractor
         public bool DryRun { get; set; } = false;
         public bool Benchmark { get; set; } = false;
         public int IoReaders { get; set; } = 0; // 0 = auto
+        public bool LegacySanitize { get; set; } = false;
 
         public Options()
         {
@@ -109,6 +110,9 @@ namespace Extractor
                 { "io-readers=",
                     "[HashFS + --deep] Number of parallel readers to use for IO/decompression (default: number of logical CPUs).",
                     x => { if (int.TryParse(x, out var n)) IoReaders = Math.Max(0, n); } },
+                { "legacy-sanitize",
+                    "Use legacy replacement for invalid chars (xNN hex). Disables whole-name counter rule.",
+                    x => { LegacySanitize = true; } },
                 { "?|h|help",
                     $"Prints this message and exits.",
                     x => { PrintHelp = true; } },
@@ -150,3 +154,4 @@ namespace Extractor
         }
     }
 }
+

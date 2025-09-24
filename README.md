@@ -55,6 +55,11 @@ extractor path... [options]
 </tr>
 <tr>
   <td></td>
+  <td><code>--legacy-sanitize</code></td>
+  <td>Use legacy invalid-character replacement (<code>xNN</code> hex per char). Disables whole-name counter renaming.</td>
+ </tr>
+<tr>
+  <td></td>
   <td><code>--list-all</code></td>
   <td>Lists all paths referenced by files in the archive, even if they are not contained in it.
   (Implicitly activates <code>--deep</code>.)</td>

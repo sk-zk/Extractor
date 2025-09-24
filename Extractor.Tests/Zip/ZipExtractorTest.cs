@@ -33,10 +33,11 @@ namespace Extractor.Tests.Zip
         [Fact]
         public void DeterminePathSubstitutions()
         {
+            PathUtils.ResetNameCounter();
             var zip = ZipReader.Open("Data/ZipExtractorTest/test.zip");
             var entries = ZipExtractor.GetEntriesToExtract(zip, ["/"]);
             var subst = ZipExtractor.DeterminePathSubstitutions(entries);
-            Assert.Equal("blax3F.txt", subst["bla?.txt"]);
+            Assert.Matches("^F\\d{8}\\.txt$", subst["bla?.txt"]);
         }
     }
 }

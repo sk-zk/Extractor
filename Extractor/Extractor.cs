@@ -77,6 +77,11 @@ namespace Extractor
         public int? SearchUniqueFilesParsed { get; set; }
 
         /// <summary>
+        /// Whether to include timing in output (set from --times).
+        /// </summary>
+        public bool PrintTimesEnabled { get; set; } = false;
+
+        /// <summary>
         /// Files which were renamed because they contained invalid characters.
         /// </summary>
         protected List<(string ArchivePath, string SanitizedPath)> renamedFiles = [];
@@ -174,3 +179,4 @@ namespace Extractor
         }
     }
 }
+

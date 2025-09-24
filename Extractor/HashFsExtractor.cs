@@ -431,16 +431,33 @@ namespace Extractor
 
         public override void PrintExtractionResult()
         {
-            var times = (OpenTime.HasValue || SearchTime.HasValue || ExtractTime.HasValue)
-                ? $" | open={OpenTime?.TotalMilliseconds:F0}ms" +
-                  (SearchTime.HasValue
-                    ? $", search={SearchTime?.TotalMilliseconds:F0}ms" +
-                      (SearchExtractTime.HasValue || SearchParseTime.HasValue || SearchFilesParsed.HasValue || SearchBytesInflated.HasValue
-                        ? $" (decomp={SearchExtractTime?.TotalMilliseconds:F0}ms, parse={SearchParseTime?.TotalMilliseconds:F0}ms, files={SearchFilesParsed?.ToString() ?? "-"}, bytes={SearchBytesInflated?.ToString() ?? "-"})"
-                        : string.Empty)
-                    : string.Empty)
-                  + $", extract={ExtractTime?.TotalMilliseconds:F0}ms"
-                : string.Empty;
+            string times = string.Empty;
+            if (PrintTimesEnabled)
+            {
+                var parts = new List<string>();
+                if (OpenTime.HasValue) parts.Add($"open={OpenTime.Value.TotalMilliseconds:F0}ms");
+                if (SearchTime.HasValue)
+                {
+                    var search = $"search={SearchTime.Value.TotalMilliseconds:F0}ms";
+                    var details = new List<string>();
+                    if (SearchExtractTime.HasValue) details.Add($"decomp={SearchExtractTime.Value.TotalMilliseconds:F0}ms");
+                    if (SearchExtractWallTime.HasValue) details.Add($"decomp_wall={SearchExtractWallTime.Value.TotalMilliseconds:F0}ms");
+                    if (SearchParseTime.HasValue) details.Add($"parse={SearchParseTime.Value.TotalMilliseconds:F0}ms");
+                    if (SearchFilesParsed.HasValue) details.Add($"files={SearchFilesParsed.Value}");
+                    if (SearchUniqueFilesParsed.HasValue) details.Add($"unique={SearchUniqueFilesParsed.Value}");
+                    if (SearchBytesInflated.HasValue) details.Add($"bytes={SearchBytesInflated.Value}");
+                    if (details.Count > 0)
+                    {
+                        search += " (" + string.Join(", ", details) + ")";
+                    }
+                    parts.Add(search);
+                }
+                if (ExtractTime.HasValue) parts.Add($"extract={ExtractTime.Value.TotalMilliseconds:F0}ms");
+                if (parts.Count > 0)
+                {
+                    times = " | " + string.Join(", ", parts);
+                }
+            }
             Console.Error.WriteLine($"{extracted} extracted " +
                 $"({renamedFiles.Count} renamed, {modifiedFiles.Count} modified), " +
                 $"{skipped} skipped, {notFound} not found, {duplicate} junk, {failed} failed" +
@@ -528,3 +545,4 @@ namespace Extractor
         }
     }
 }
+

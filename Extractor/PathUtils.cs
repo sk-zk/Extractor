@@ -2,14 +2,24 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace Extractor
 {
     public static class PathUtils
     {
+        // Sanitization configuration
+        public static bool LegacyReplaceMode { get; set; } = false; // true = legacy hex (xNN) replacements
+        public static double NameCounterThreshold { get; set; } = 0.10; // 10% invalid chars
+        public static string CounterPrefix { get; set; } = "F";
+        public static int CounterWidth { get; set; } = 8;
+        private static int GlobalNameCounter = 0;
+        private static readonly ConcurrentDictionary<string, int> NameIdMap = new();
+
         private static readonly char[] ProblematicControlChars =
             [(char)0x07, (char)0x08, (char)0x09, (char)0x0a, (char)0x0d, (char)0x1b, '\u200b'];
 
@@ -53,27 +63,75 @@ namespace Extractor
         /// <returns>The sanitized path.</returns>
         public static string SanitizePath(string path, char[] invalidPathChars = null, bool? isWindows = null)
         {
-            path = ReplaceCharsUnambiguously(path, invalidPathChars ?? InvalidPathChars);
+            var invalid = invalidPathChars ?? InvalidPathChars;
             isWindows ??= IsWindows;
 
             var parts = path.Split('/');
+            if (parts.Length == 0)
+                return path;
+
+            // Find last non-empty segment (file name); if none, treat as directory path
+            int lastIdx = parts.Length - 1;
+            while (lastIdx > 0 && parts[lastIdx].Length == 0)
+                lastIdx--;
+
+            bool hasFileName = parts[lastIdx].Length > 0;
+
             for (int i = 0; i < parts.Length; i++)
             {
                 // prevent traversing upwards with ".."
                 if (parts[i] == "..")
                 {
                     parts[i] = "__";
+                    continue;
                 }
-                // append underscore to reserved names in Windows
-                else if (isWindows.Value && ReservedNames.Contains(
+
+                bool replaceWholeSegment = false;
+                if (!LegacyReplaceMode)
+                {
+                    var seg = parts[i];
+                    int invalidCount = 0;
+                    foreach (var ch in seg)
+                    {
+                        if (Array.BinarySearch(invalid, ch) > -1)
+                            invalidCount++;
+                    }
+                    if (seg.Length > 0)
+                    {
+                        var ratio = (double)invalidCount / seg.Length;
+                        replaceWholeSegment = ratio >= NameCounterThreshold;
+                    }
+                }
+
+                if (replaceWholeSegment)
+                {
+                    if (i == lastIdx && hasFileName)
+                    {
+                        // Replace the entire file name with a counter, but preserve extension
+                        var baseName = Path.GetFileNameWithoutExtension(parts[i]);
+                        var ext = Path.GetExtension(parts[i]);
+                        parts[i] = GetTokenForKey(baseName, "F") + ext;
+                    }
+                    else
+                    {
+                        // Replace directory segment entirely with a D-prefixed counter
+                        parts[i] = GetTokenForKey(parts[i], "D");
+                    }
+                }
+                else
+                {
+                    parts[i] = ReplaceCharsUnambiguously(parts[i], invalid);
+                }
+
+                // append underscore to reserved names in Windows (after replacement)
+                if (isWindows.Value && ReservedNames.Contains(
                     Path.GetFileNameWithoutExtension(parts[i]).ToLowerInvariant()))
                 {
                     parts[i] = AppendBeforeExtension(parts[i], "_");
                 }
             }
-            path = string.Join('/', parts);
 
-            return path;
+            return string.Join('/', parts);
         }
 
         public static string ReplaceControlChars(string input)
@@ -94,6 +152,12 @@ namespace Extractor
 
         public static string ReplaceCharsUnambiguously(string input, char[] toReplace)
         {
+            // Below 10% threshold (or legacy mode), we always want the legacy per-char hex replacement.
+            return ReplaceCharsHex(input, toReplace);
+        }
+
+        private static string ReplaceCharsHex(string input, char[] toReplace)
+        {
             var output = new StringBuilder();
             foreach (char c in input)
             {
@@ -103,6 +167,21 @@ namespace Extractor
                     output.Append(c);
             }
             return output.ToString();
+        }
+
+
+        private static string GetTokenForKey(string key, string prefix)
+        {
+            // Thread-safe global counter shared across the whole process
+            var current = NameIdMap.GetOrAdd(key, _ => Interlocked.Increment(ref GlobalNameCounter) - 1);
+            return $"{prefix}{current.ToString($"D{CounterWidth}")}";
+        }
+
+        // For tests and controlled runs
+        public static void ResetNameCounter()
+        {
+            GlobalNameCounter = 0;
+            NameIdMap.Clear();
         }
 
         public static string RemoveInitialSlash(string path)
@@ -149,13 +228,13 @@ namespace Extractor
 
         public static string RemoveNonAsciiOrInvalidChars(string input)
         {
-            // TODO don't remove non-chicanery unicode chars like 'ß' etc.
+            // Preserve normal Unicode letters/digits and common punctuation.
+            // Remove only control characters and characters we explicitly mark as invalid
+            // (includes invisible/whitespace trickery and OS-invalid filename chars).
             var output = new StringBuilder();
             foreach (char c in input)
             {
                 if (char.IsControl(c))
-                    continue;
-                if (!char.IsAscii(c))
                     continue;
                 if (Array.IndexOf(InvalidPathChars, c) > -1)
                     continue;
@@ -323,3 +402,4 @@ namespace Extractor
         }
     }
 }
+
