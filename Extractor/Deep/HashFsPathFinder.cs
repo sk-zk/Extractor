@@ -65,7 +65,7 @@ namespace Extractor.Deep
         private readonly HashSet<IEntry> visitedEntries;
 
         /// <summary>
-        /// Junk entries identified by DeleteJunkEntries.
+        /// Entries which have been identified as containing junk data.
         /// </summary>
         private readonly Dictionary<ulong, IEntry> junkEntries;
 
@@ -251,8 +251,8 @@ namespace Extractor.Deep
 
         /// <summary>
         /// Searches for potential paths in the given files and directories.
-        /// All visited paths are added to <c>this.visited</c>, all visited paths that exist
-        /// in the archive are added to <c>this.foundFiles</c>, and all new potential paths
+        /// All visited paths are added to <see cref="visited"/>, all visited paths that exist
+        /// in the archive are added to <see cref="FoundFiles"/>, and all new potential paths
         /// that have been discovered are returned.
         /// </summary>
         /// <param name="inputPaths">The files and directories to search.</param>

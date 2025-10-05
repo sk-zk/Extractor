@@ -58,29 +58,29 @@ namespace Extractor
         /// <summary>
         /// The number of files which have been extracted successfully.
         /// </summary>
-        protected int extracted;
+        protected int numExtracted;
 
         /// <summary>
         /// The number of files which have been skipped because the output path
         /// already exists and <c>--skip-existing</c> was passed.
         /// </summary>
-        protected int skipped;
+        protected int numSkipped;
 
         /// <summary>
         /// The number of files which failed to extract.
         /// </summary>
-        protected int failed;
+        protected int numFailed;
 
         /// <summary>
         /// The number of paths passed by the user which were not found in the archive.
         /// </summary>
-        protected int notFound;
+        protected int numNotFound;
 
         /// <summary>
-        /// The number of files which were skipped because they pointed to
-        /// the same offset as another entry.
+        /// The number of files which were skipped because they have been identified
+        /// as junk data.
         /// </summary>
-        protected int duplicate;
+        protected int numJunk;
 
         public HashFsExtractor(string scsPath, bool overwrite) : this(scsPath, overwrite, null) 
         { 
@@ -129,7 +129,7 @@ namespace Extractor
                     {
                         Console.Error.WriteLine($"Path {ReplaceControlChars(nonexistent)} " +
                             $"was not found");
-                        notFound++;
+                        numNotFound++;
                     }
                 }
             );
@@ -206,7 +206,7 @@ namespace Extractor
 
             if (!Overwrite && File.Exists(outputPath))
             {
-                skipped++;
+                numSkipped++;
                 return;
             }
 
@@ -245,7 +245,7 @@ namespace Extractor
                     }
                 }
 
-                extracted++;
+                numExtracted++;
                 if (wasModified)
                     modifiedFiles.Add(archivePath);
             }
@@ -363,13 +363,13 @@ namespace Extractor
             void MarkAsConfirmedJunk(IEntry entry)
             {
                 junkEntries.Add(entry.Hash, entry);
-                duplicate++;
+                numJunk++;
             }
 
             void MarkAsMaybeJunk(IEntry entry)
             {
                 maybeJunkEntries.Add(entry.Hash, entry);
-                duplicate++;
+                numJunk++;
             }
         }
 
@@ -421,9 +421,9 @@ namespace Extractor
 
         public override void PrintExtractionResult()
         {
-            Console.Error.WriteLine($"{extracted} extracted " +
+            Console.Error.WriteLine($"{numExtracted} extracted " +
                 $"({renamedFiles.Count} renamed, {modifiedFiles.Count} modified), " +
-                $"{skipped} skipped, {notFound} not found, {duplicate} junk, {failed} failed");
+                $"{numSkipped} skipped, {numNotFound} not found, {numJunk} junk, {numFailed} failed");
             PrintRenameSummary(renamedFiles.Count, modifiedFiles.Count);
         }
 
@@ -431,7 +431,7 @@ namespace Extractor
         {
             Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(archivePath)}:");
             Console.Error.WriteLine(errorMessage);
-            failed++;
+            numFailed++;
         }
 
         public override void PrintPaths(IList<string> pathFilter, bool includeAll)

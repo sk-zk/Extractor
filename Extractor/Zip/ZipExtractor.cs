@@ -33,18 +33,18 @@ namespace Extractor.Zip
         /// <summary>
         /// The number of files which have been extracted successfully.
         /// </summary>
-        private int extracted;
+        private int numExtracted;
 
         /// <summary>
         /// The number of files which have been skipped because the output path
         /// already exists and <c>--skip-existing</c> was passed.
         /// </summary>
-        private int skipped;
+        private int numSkipped;
 
         /// <summary>
         /// The number of files which failed to extract.
         /// </summary>
-        private int failed;
+        private int numFailed;
 
         public ZipExtractor(string scsPath, bool overwrite) 
             : base(scsPath, overwrite)
@@ -75,7 +75,7 @@ namespace Extractor.Zip
                 {
                     Console.Error.WriteLine($"Unable to extract {ReplaceControlChars(entry.FileName)}:");
                     Console.Error.WriteLine(ex.Message);
-                    failed++;
+                    numFailed++;
                 }
             }
 
@@ -132,7 +132,7 @@ namespace Extractor.Zip
             var outputPath = Path.Combine(outputRoot, fileName);
             if (File.Exists(outputPath) && !Overwrite)
             {
-                skipped++;
+                numSkipped++;
                 return;
             }
 
@@ -152,7 +152,7 @@ namespace Extractor.Zip
             var wasModified = ExtractWithSubstitutionsIfRequired(entry.FileName, outputPath, 
                 ms.ToArray(), substitutions);
 
-            extracted++;
+            numExtracted++;
             if (wasModified)
                 modifiedFiles.Add(entry.FileName);
         }
@@ -165,9 +165,9 @@ namespace Extractor.Zip
 
         public override void PrintExtractionResult()
         {
-            Console.Error.WriteLine($"{extracted} extracted " +
+            Console.Error.WriteLine($"{numExtracted} extracted " +
                 $"({renamedFiles.Count} renamed, {modifiedFiles.Count} modified), " +
-                $"{skipped} skipped, {failed} failed");
+                $"{numSkipped} skipped, {numFailed} failed");
             PrintRenameSummary(renamedFiles.Count, modifiedFiles.Count);
         }
 

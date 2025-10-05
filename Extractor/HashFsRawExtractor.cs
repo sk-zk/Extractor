@@ -33,7 +33,7 @@ namespace Extractor
 
         public override void PrintExtractionResult()
         {
-            Console.WriteLine($"{extracted} extracted, {skipped} skipped, {duplicate} junk, {failed} failed");
+            Console.WriteLine($"{numExtracted} extracted, {numSkipped} skipped, {numJunk} junk, {numFailed} failed");
         }
 
         public override void PrintPaths(IList<string> pathFilter, bool includeAll)

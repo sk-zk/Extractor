@@ -40,7 +40,7 @@ namespace Extractor.Deep
         /// The number of files whose paths were not discovered and therefore have been
         /// dumped to <see cref="DumpDirectory"/>.
         /// </summary>
-        private int dumped;
+        private int numDumped;
 
         private HashFsPathFinder finder;
 
@@ -145,12 +145,12 @@ namespace Extractor.Deep
                 Console.WriteLine($"Dumping {fileName} ...");
                 if (!Overwrite && File.Exists(outputPath))
                 {
-                    skipped++;
+                    numSkipped++;
                 }
                 else
                 {
                     ExtractToDisk(entry, $"/{DumpDirectory}/{fileName}", outputPath);
-                    dumped++;
+                    numDumped++;
                 }
             }
         }
@@ -171,9 +171,9 @@ namespace Extractor.Deep
 
         public override void PrintExtractionResult()
         {
-            Console.WriteLine($"{extracted} extracted " +
-                $"({renamedFiles.Count} renamed, {modifiedFiles.Count} modified, {dumped} dumped), " +
-                $"{skipped} skipped, {duplicate} junk, {failed} failed");
+            Console.WriteLine($"{numExtracted} extracted " +
+                $"({renamedFiles.Count} renamed, {modifiedFiles.Count} modified, {numDumped} dumped), " +
+                $"{numSkipped} skipped, {numJunk} junk, {numFailed} failed");
             PrintRenameSummary(renamedFiles.Count, modifiedFiles.Count);
         }
 
