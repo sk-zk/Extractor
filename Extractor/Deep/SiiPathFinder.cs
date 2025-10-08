@@ -28,8 +28,7 @@ namespace Extractor.Deep
             "default_name", "stamp_name",
 
             // city
-            "city_name", "city_names", "city_name_localized", "short_city_name",
-            "truck_lp_template",
+            "city_name", "city_name_localized", "short_city_name", "truck_lp_template",
 
             // curve_model
             "variation", "vegetation", "overlay", "no_stretch_start", "no_stretch_end",
@@ -116,6 +115,12 @@ namespace Extractor.Deep
 
             foreach (var unit in sii.Units)
             {
+                if (unit.Class == "company_permanent")
+                {
+                    var companyUnitName = unit.Name.Split('.')[^1];
+                    potentialPaths.Add($"/material/ui/company/small/{companyUnitName}.mat", null);
+                }
+
                 foreach (var attrib in unit.Attributes)
                 {
                     ProcessSiiUnitAttribute(unit.Class, attrib, potentialPaths);
@@ -161,7 +166,7 @@ namespace Extractor.Deep
                         var matches = uiHtmlPathRegex().Matches(str);
                         foreach (Match match in matches)
                         {
-                            potentialPaths.Add(match.Groups[1].Value, []);
+                            potentialPaths.Add(match.Groups[1].Value, null);
                         }
                     }
                 }
@@ -172,13 +177,13 @@ namespace Extractor.Deep
                 {
                     if (attrib.Key == "sounds" || attrib.Key == "sound_path")
                     {
-                        potentialPaths.Add(GetSoundPath(str), []);
+                        potentialPaths.Add(GetSoundPath(str), null);
                     }
                     else if (attrib.Key == "adr_info_icon" || attrib.Key == "fallback")
                     {
                         var parts = str.Split("|");
                         if (parts.Length == 2)
-                            potentialPaths.Add(parts[1], []);
+                            potentialPaths.Add(parts[1], null);
                         else
                             Debugger.Break();
                     }
@@ -186,13 +191,21 @@ namespace Extractor.Deep
                     {
                         var parts = str.Split("|");
                         if (parts.Length == 2)
-                            potentialPaths.Add(parts[1], []);
+                            potentialPaths.Add(parts[1], null);
                         else
                             Debugger.Break();
                     }
+                    else if (unitClass == "overlay_def")
+                    {
+                        potentialPaths.Add($"/material/overlay/{str}.mat", null);
+                        if (attrib.Key == "road_names")
+                        {
+                            potentialPaths.Add($"/material/ui/map/road/road_{str}.mat", null);
+                        }
+                    }
                     else
                     {
-                        potentialPaths.Add(str, []);
+                        potentialPaths.Add(str, null);
                     }
                 }
             }
@@ -231,7 +244,7 @@ namespace Extractor.Deep
                 var matches = Regex.Matches(attrib.Value, @"(?:src|face)=(\S*)");
                 foreach (Match match in matches)
                 {
-                    potentialPaths.Add(match.Groups[1].Value, []);
+                    potentialPaths.Add(match.Groups[1].Value, null);
                 }
             }
             else if (attrib.Key == "icon" && unitClass != "mod_package")
@@ -243,15 +256,15 @@ namespace Extractor.Deep
                 {
                     iconPath += ".mat";
                 }
-                potentialPaths.Add(iconPath, []);
+                potentialPaths.Add(iconPath, null);
             }
             else if (attrib.Key == "sound_path" || attrib.Key == "sound_sfx" || attrib.Key == "scene_music")
             {
-                potentialPaths.Add(GetSoundPath(str), []);
+                potentialPaths.Add(GetSoundPath(str), null);
             }
             else
             {
-                potentialPaths.Add(str, []);
+                potentialPaths.Add(str, null);
             }
         }
     }

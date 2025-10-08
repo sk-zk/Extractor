@@ -24,7 +24,7 @@ namespace Extractor.Deep
         /// <param name="visited">The set of paths which have been visited so far.</param>
         public void Add(string str, HashSet<string> visited)
         {
-            if (visited.Contains(str) || !ResemblesPath(str))
+            if ((visited is not null && visited.Contains(str)) || !ResemblesPath(str))
             {
                 return;
             }
