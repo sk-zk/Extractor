@@ -120,6 +120,11 @@ namespace Extractor.Deep
                     var companyUnitName = unit.Name.Split('.')[^1];
                     potentialPaths.Add($"/material/ui/company/small/{companyUnitName}.mat", null);
                 }
+                else if (unit.Class == "country_data")
+                {
+                    var countryUnitName = unit.Name.Split('.')[^1];
+                    potentialPaths.Add($"/font/license_plate/{countryUnitName}.font", null);
+                }
 
                 foreach (var attrib in unit.Attributes)
                 {
