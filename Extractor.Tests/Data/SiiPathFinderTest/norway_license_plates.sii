@@ -1,0 +1,196 @@
+SiiNunit
+{
+# For modders: Please do not modify this file if you want to add a new entry. Create in
+# this directory a new file "<base_name>.<idofyourmod>.sii" where <base_name> is name of
+# base file without the extension (e.g. "city" for "/def/city.sii") and <idofyourmod> is
+# some string which is unlikely to conflict with other mod.
+#
+# Warning: Even if the units are specified in more than one source file, they share the
+# same namespace so suffixes or prefixes should be used to avoid conflicts.
+
+
+license_plate_data : .lp.car
+{
+	type: car
+
+	templates[]:"200 111113"
+
+	def0[]:"A"
+	def0[]:"B"
+	def0[]:"C"
+	def0[]:"D"
+	def0[]:"E"
+	def0[]:"F"
+	def0[]:"G"
+	def0[]:"H"
+	def0[]:"J"
+	def0[]:"K"
+	def0[]:"L"
+	def0[]:"N"
+	def0[]:"P"
+	def0[]:"R"
+	def0[]:"S"
+	def0[]:"T"
+	def0[]:"U"
+	def0[]:"V"
+	def0[]:"W"
+	def0[]:"X"
+	def0[]:"Y"
+	def0[]:"Z"
+	
+
+	def1[]:"0"
+	def1[]:"1"
+	def1[]:"2"
+	def1[]:"3"
+	def1[]:"4"
+	def1[]:"5"
+	def1[]:"6"
+	def1[]:"7"
+	def1[]:"8"
+	def1[]:"9"
+
+	def2[]: "<img src=/material/ui/white.mat color=00000000 width=1 height=1><br offset=-25><color value=FF000000><align right=145><font xscale=1.1 yscale=1.1>"
+	def3[]: "</font></align>"
+
+}
+
+license_plate_data : .lp.rigid
+{
+	type: rigid
+
+	background_front: rigid
+	background_rear: rigid
+
+	templates[]:"200 111113"
+
+	def0[]:"A"
+	def0[]:"B"
+	def0[]:"C"
+	def0[]:"D"
+	def0[]:"E"
+	def0[]:"F"
+	def0[]:"G"
+	def0[]:"H"
+	def0[]:"J"
+	def0[]:"K"
+	def0[]:"L"
+	def0[]:"N"
+	def0[]:"P"
+	def0[]:"R"
+	def0[]:"S"
+	def0[]:"T"
+	def0[]:"U"
+	def0[]:"V"
+	def0[]:"W"
+	def0[]:"X"
+	def0[]:"Y"
+	def0[]:"Z"
+	
+
+	def1[]:"0"
+	def1[]:"1"
+	def1[]:"2"
+	def1[]:"3"
+	def1[]:"4"
+	def1[]:"5"
+	def1[]:"6"
+	def1[]:"7"
+	def1[]:"8"
+	def1[]:"9"
+
+	def2[]: "<img src=/material/ui/white.mat color=00000000 width=1 height=1><br offset=-25><color value=FF000000><align right=145><font xscale=1.1 yscale=1.1>"
+	def3[]: "</font></align>"
+
+}
+license_plate_data : .lp.trailer
+{
+	type: trailer
+
+	templates[]:"200 11113"
+
+	def0[]:"A"
+	def0[]:"B"
+	def0[]:"C"
+	def0[]:"D"
+	def0[]:"E"
+	def0[]:"F"
+	def0[]:"G"
+	def0[]:"H"
+	def0[]:"J"
+	def0[]:"K"
+	def0[]:"L"
+	def0[]:"N"
+	def0[]:"P"
+	def0[]:"R"
+	def0[]:"S"
+	def0[]:"T"
+	def0[]:"U"
+	def0[]:"V"
+	def0[]:"W"
+	def0[]:"X"
+	def0[]:"Y"
+	def0[]:"Z"
+	
+
+	def1[]:"0"
+	def1[]:"1"
+	def1[]:"2"
+	def1[]:"3"
+	def1[]:"4"
+	def1[]:"5"
+	def1[]:"6"
+	def1[]:"7"
+	def1[]:"8"
+	def1[]:"9"
+
+	def2[]: "<img src=/material/ui/white.mat color=00000000 width=1 height=1><br offset=-25><color value=FF000000><align right=145><font xscale=1.2 yscale=1.2>"
+	def3[]: "</font></align>"
+
+}
+license_plate_data : .lp.tractor
+{
+	type: tractor
+
+	templates[]:"200 11113"
+
+	def0[]:"A"
+	def0[]:"B"
+	def0[]:"C"
+	def0[]:"D"
+	def0[]:"E"
+	def0[]:"F"
+	def0[]:"G"
+	def0[]:"H"
+	def0[]:"J"
+	def0[]:"K"
+	def0[]:"L"
+	def0[]:"N"
+	def0[]:"P"
+	def0[]:"R"
+	def0[]:"S"
+	def0[]:"T"
+	def0[]:"U"
+	def0[]:"V"
+	def0[]:"W"
+	def0[]:"X"
+	def0[]:"Y"
+	def0[]:"Z"
+	
+
+	def1[]:"0"
+	def1[]:"1"
+	def1[]:"2"
+	def1[]:"3"
+	def1[]:"4"
+	def1[]:"5"
+	def1[]:"6"
+	def1[]:"7"
+	def1[]:"8"
+	def1[]:"9"
+
+	def2[]: "<img src=/material/ui/white.mat color=00000000 width=1 height=1><br offset=-25><color value=FF000000><align right=145><font xscale=1.2 yscale=1.2>"
+	def3[]: "</font></align>"
+
+}
+}

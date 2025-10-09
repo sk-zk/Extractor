@@ -86,7 +86,7 @@ namespace Extractor.Deep
             try
             {
                 var sii = SiiFile.Load(fileBuffer, siiDirectory, fs, true);
-                return FindPathsInSii(sii);
+                return FindPathsInSii(sii, fs);
             }
             catch (ParseException)
             {
@@ -101,7 +101,7 @@ namespace Extractor.Deep
             }
         }
 
-        private static PotentialPaths FindPathsInSii(SiiFile sii)
+        private static PotentialPaths FindPathsInSii(SiiFile sii, IFileSystem fs)
         {
             PotentialPaths potentialPaths = [];
 
@@ -122,17 +122,80 @@ namespace Extractor.Deep
                 }
                 else if (unit.Class == "country_data")
                 {
-                    var countryUnitName = unit.Name.Split('.')[^1];
-                    potentialPaths.Add($"/font/license_plate/{countryUnitName}.font", null);
+                    var country = unit.Name.Split('.')[^1];
+                    potentialPaths.Add($"/font/license_plate/{country}.font", null);
+                    ConstructLicensePlateMatPaths(country, potentialPaths, fs);
                 }
 
                 foreach (var attrib in unit.Attributes)
                 {
                     ProcessSiiUnitAttribute(unit.Class, attrib, potentialPaths);
-                }
+                } 
             }
 
             return potentialPaths;
+        }
+
+        private static void ConstructLicensePlateMatPaths(string country, PotentialPaths potentialPaths, 
+            IFileSystem fs)
+        {
+            potentialPaths.Add($"/material/ui/lp/{country}/trailer.mat", null);
+
+            var licensePlateSiiPath = $"/def/country/{country}/license_plates.sii";
+            if (!fs.FileExists(licensePlateSiiPath))
+                return;
+
+            try
+            {
+                var licensePlates = SiiFile.Open(licensePlateSiiPath, fs);
+                ConstructLicensePlateMatPaths(country, potentialPaths, licensePlates);
+            }
+            catch
+            {
+                Debugger.Break();
+            }
+        }
+
+        internal static void ConstructLicensePlateMatPaths(string country, PotentialPaths potentialPaths, 
+            SiiFile licensePlates)
+        {
+            // See https://modding.scssoft.com/wiki/Games/ETS2/Modding_guides/1.36#Traffic_data.
+
+            potentialPaths.Add($"/material/ui/lp/{country}/trailer.mat");
+            potentialPaths.Add($"/material/ui/lp/{country}/truck_front.mat");
+            potentialPaths.Add($"/material/ui/lp/{country}/truck_rear.mat");
+            potentialPaths.Add($"/material/ui/lp/{country}/police_front.mat");
+            potentialPaths.Add($"/material/ui/lp/{country}/police_rear.mat");
+
+            foreach (var lp in licensePlates.Units)
+            {
+                if (!lp.Attributes.TryGetValue("type", out var type))
+                    continue;
+
+                // special case, handled above
+                if (type == "trailer")
+                    continue;
+
+                var typePrefix = type == "car" ? "" : type + "_";
+
+                if (lp.Attributes.TryGetValue("background_front", out var bgFront))
+                {
+                    potentialPaths.Add($"/material/ui/lp/{country}/{bgFront}.mat", null);
+                }
+                else
+                {
+                    potentialPaths.Add($"/material/ui/lp/{country}/{typePrefix}front.mat", null);
+                }
+
+                if (lp.Attributes.TryGetValue("background_rear", out var bgRear))
+                {
+                    potentialPaths.Add($"/material/ui/lp/{country}/{bgRear}.mat", null);
+                }
+                else
+                {
+                    potentialPaths.Add($"/material/ui/lp/{country}/{typePrefix}rear.mat", null);
+                }
+            }
         }
 
         internal static void ProcessSiiUnitAttribute(string unitClass, 
