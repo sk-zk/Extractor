@@ -204,16 +204,7 @@ namespace Extractor
             {
                 var c = str[i];
 
-                if (c == '/')
-                {
-                    if (i > 0 && str[i - 1] == '/')
-                    {
-                        // don't allow "//"
-                        return false;
-                    }
-                    hasSlashOrDot = true;
-                }
-                else if (c == '.')
+                if (c == '/' || c == '.')
                 {
                     hasSlashOrDot = true;
                 }
