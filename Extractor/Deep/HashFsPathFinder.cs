@@ -112,6 +112,9 @@ namespace Extractor.Deep
             var morePaths = FindPathsInUnvisited();
             ExplorePotentialPaths(morePaths);
 
+            VisitMapSectorPaths("europe");
+            VisitMapSectorPaths("usa");
+
             FoundDecoyFiles = FindDecoyPaths();
         }
 
@@ -340,6 +343,49 @@ namespace Extractor.Deep
                 fileType = FileTypeHelper.Infer(fileBuffer);
             }
             return fpf.FindPathsInFile(fileBuffer, filePath, fileType);
+        }
+
+        private void VisitMapSectorPaths(string mapName)
+        {
+            const int extent = 60;
+            for (int z = -extent; z < extent + 1; z++)
+            {
+                for (int x = -extent; x < extent + 1; x++)
+                {
+                    VisitSector(x, z, mapName);
+                }
+            }
+
+            void VisitSector(int x, int z, string mapName)
+            {
+                var sectorName = $"sec{x:+0000;-0000;+0000}{z:+0000;-0000;+0000}";
+                var basePath = $"/map/{mapName}/{sectorName}.base";
+
+                if (!visited.Add(basePath))
+                {
+                    return;
+                }
+
+                if (reader.TryGetEntry(basePath, out var baseEntry) != EntryType.File)
+                {
+                    return;
+                }
+
+                visitedEntries.Add(baseEntry);
+                FoundFiles.Add(basePath);
+
+                string[] extensions = ["aux", "snd", "data", "desc", "layer"];
+                foreach (var extension in extensions)
+                {
+                    var path = Path.ChangeExtension(basePath, extension);
+                    visited.Add(path);
+                    if (reader.TryGetEntry(path, out var entry) == EntryType.File)
+                    {
+                        visitedEntries.Add(entry);
+                        FoundFiles.Add(path);
+                    }
+                }
+            }
         }
 
         private void AddDirToDirsToSearchForRelativeTobj(string filePath)
