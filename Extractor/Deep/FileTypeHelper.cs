@@ -38,6 +38,7 @@ namespace Extractor.Deep
             { FileType.Tobj, IsTobjFile },
             { FileType.GimpXcf, IsXcfFile },
             { FileType.ZlibBlob, IsZlibBlob },
+            { FileType._7z, Is7zFile },
             { FileType.SoundRef, IsSoundRefFile },
         };
 
@@ -275,6 +276,15 @@ namespace Extractor.Deep
             return fileBuffer[0] == 0x42 && fileBuffer[1] == 0x4D;
         }
 
+        private static bool Is7zFile(byte[] fileBuffer)
+        {
+            if (fileBuffer.Length < 6) // 37 7A BC AF 27 1C
+                return false;
+
+            byte[] magic = [0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C];
+            return magic.SequenceEqual(fileBuffer[0..6]);
+        }
+
         public static FileType PathToFileType(string filePath)
         {
             var extension = Path.GetExtension(filePath).ToLowerInvariant();
@@ -293,6 +303,7 @@ namespace Extractor.Deep
 
             return extension switch
             {
+                ".7z" => FileType._7z,
                 ".bank" => FileType.SoundBank,
                 ".bmp" => FileType.Bmp,
                 ".dds" => FileType.Dds,
@@ -386,6 +397,7 @@ namespace Extractor.Deep
                 FileType.Tobj => ".tobj",
                 FileType.GimpXcf => ".xcf",
                 FileType.WxWidgetsResource => ".xrc",
+                FileType._7z => ".7z",
                 FileType.MapRoot => ".mbd",
                 FileType.MapBase => ".base",
                 FileType.MapAux => ".aux",

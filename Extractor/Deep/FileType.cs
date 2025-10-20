@@ -51,5 +51,6 @@
         Vso,
         WxWidgetsResource,
         ZlibBlob,
+        _7z,
     }
 }
