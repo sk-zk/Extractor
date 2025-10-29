@@ -32,7 +32,7 @@ extractor path... [options]
 <thead>
   <tr>
     <td><b>Short</b></td>
-    <td><b>Long</b></td>
+    <td><b>Long&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b></td>
     <td><b>Description</b></td>
   </tr>
 </thead>
@@ -114,7 +114,7 @@ extractor path... [options]
 <thead>
   <tr>
     <td><b>Short</b></td>
-    <td><b>Long</b></td>
+    <td><b>Long&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b></td>
     <td><b>Description</b></td>
   </tr>
 </thead>
@@ -157,41 +157,41 @@ extractor path... [options]
 
 ### Examples
 Normal extraction:
-```
+```sh
 extractor "path\to\file.scs"
 ```
 
 Extract two .scs files at once:
-```
+```sh
 extractor "path\to\file1.scs" "path\to\file2.scs"
 ```
 
 Extract all .scs files in a directory:
-```
+```sh
 extractor "path\to\directory" --all
 ```
 
 Extract `def` and `manifest.sii` only:
-```
+```sh
 extractor "path\to\file.scs" --partial=/def,/manifest.sii
 ```
 
 Extract model files only:
-```
+```sh
 extractor "path\to\file.scs" --filter=*.pm?,*.ppd
 ```
 
 Extract with deep mode:
-```
+```sh
 extractor "path\to\file.scs" --deep
 ```
 
 Extract with deep mode when the mod is split into multiple archives:
-```
+```sh
 extractor "file1.scs" "file2.scs" "file3.scs" --deep --separate
 ```
 
 Alternatively:
-```
+```sh
 extractor "path\to\mod\directory" --all --deep --separate
 ```
