@@ -43,7 +43,7 @@ namespace Extractor
                 PauseIfNecessary();
                 return;
             }
-            if (opt.InputPaths.Count == 0)
+            if (opt.InputPaths is null || opt.InputPaths.Count == 0)
             {
                 Console.Error.WriteLine("No input paths specified.");
                 PauseIfNecessary();

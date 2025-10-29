@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using static Extractor.PathUtils;
 using Extractor.Deep;
+using Microsoft.Extensions.FileSystemGlobbing;
 
 namespace Extractor
 {
@@ -177,10 +178,25 @@ namespace Extractor
 
         public void Parse(string[] args)
         {
-            InputPaths = OptionSet.Parse(args);
-            if (InputPaths.Count == 0 && ExtractAllInDir)
+            var inputPaths = OptionSet.Parse(args);
+            ProcessInputPaths(inputPaths);
+        }
+
+        private void ProcessInputPaths(List<string> inputPaths)
+        {
+            if (inputPaths.Count == 0 && ExtractAllInDir)
             {
-                InputPaths.Add(".");
+                InputPaths = ["."];
+            }
+            else if (OperatingSystem.IsWindows() && inputPaths.Any(p => p.Contains('*')))
+            {
+                var matcher = new Matcher();
+                matcher.AddIncludePatterns(inputPaths);
+                InputPaths = matcher.GetResultsInFullPath(Environment.CurrentDirectory).ToList();
+            }
+            else
+            {
+                InputPaths = inputPaths;
             }
         }
 
