@@ -49,11 +49,15 @@ extractor path... [options]
 <tr>
   <td><code>-f</code></td>
   <td><code>--filter</code></td>
-  <td><p>Expects a comma-separated list of wildcard patterns, where <code>?</code> matches one character and <code>*</code> matches zero or more characters.
-  Extraction is limited to paths matching at least one of the patterns. Examples:</p>
-  <p><code>*volvo_fh_2024*</code>: extract files or directories containing the string "volvo_fh_2024" only<br>
-  <code>*.sii,*.sui</code>: extract files with the extension .sii or .sui only<br>
-  <code>/def/vehicle/truck/*/engine/*</code>: extract engine definitions for trucks only</p>
+  <td><p>Limits extraction to files whose paths match one or more of the specified filter patterns. A filter pattern can be a simple wildcard pattern, 
+  where <code>?</code> matches one character and <code>*</code> matches zero or more characters, or a regex enclosed in <code>r/.../</code>.</p>
+  <p>Examples:<br>
+  <code>-f=*volvo_fh_2024*</code>: extract files or directories containing the string "volvo_fh_2024"<br>
+  <code>-f=*volvo*,*scania*</code>: extract files or directories containing the string "volvo" or "scania"<br>
+  <code>-f=/def/vehicle/truck/*/engine/*</code>: extract engine definitions for trucks</code><br>
+  <code>-f=r/\.p(m[acdg]|d)$/</code>: extract model files (.pmd, .pmg, ...)</code>
+  </p>
+  <p>When using regex, remember to insert escape characters where necessary.</p>
   </td>
 </tr>
 <tr>
@@ -70,8 +74,9 @@ extractor path... [options]
 <tr>
   <td><code>-p</code></td>
   <td><code>--partial</code></td>
-  <td><p>Limits extraction to the comma-separated list of files and/or directories specified. Examples:</p>
-  <p><code>-p=/locale</code><br>
+  <td><p>Limits extraction to the comma-separated list of files and/or directories specified.</p>
+  <p>Examples:<br>
+  <code>-p=/locale</code><br>
   <code>-p=/def,/map</code><br>
   <code>-p=/def/world/road.sii</code></p>
   <p>When extracting a HashFS archive (without <code>--deep</code>), <b>directory traversal begins at the given paths</b>, allowing for

@@ -210,10 +210,15 @@ namespace Extractor
             List<Regex> filters = new(patterns.Length);
             foreach (var pattern in patterns)
             {
-                var regex = TextUtils.WildcardStringToRegex(pattern);
+                var regex = IsRegexPattern(pattern) 
+                    ? new Regex(pattern[2..^1]) 
+                    : TextUtils.WildcardStringToRegex(pattern);
                 filters.Add(regex);
             }
             return filters;
+
+            static bool IsRegexPattern(string pattern) => 
+                pattern.Length >= 3 && pattern.StartsWith("r/") && pattern.EndsWith('/');
         }
 
         private static List<string> LoadPathsFromFile(string file)
