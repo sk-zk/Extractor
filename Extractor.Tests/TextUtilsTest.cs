@@ -99,5 +99,21 @@ namespace Extractor.Tests
             Assert.Equal(expected, actual);
             Assert.False(modified);
         }
+
+        [Fact]
+        public void WildcardStringToRegex()
+        {
+            var input = "a*b?(c).p??";
+            var regex = TextUtils.WildcardStringToRegex(input);
+            Assert.Equal(@"^a.*b.\(c\)\.p..$", regex.ToString());
+            Assert.Matches(regex, "axxbx(c).pmd");
+            Assert.Matches(regex, "axxbx(c).ppd");
+            Assert.Matches(regex, "abx(c).pmd");
+            Assert.DoesNotMatch(regex, "axxbxX(c).pmd");
+            Assert.DoesNotMatch(regex, "ab(c).pmg");
+            Assert.DoesNotMatch(regex, "Xaxxbx(c).pmd");
+            Assert.DoesNotMatch(regex, "axxbx(c).pmgX");
+            Assert.DoesNotMatch(regex, "axxbx(c).jpg");
+        }
     }
 }

@@ -5,10 +5,12 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TruckLib;
 using static Extractor.ConsoleUtils;
 using static Extractor.PathUtils;
+using static Extractor.TextUtils;
 
 [assembly: InternalsVisibleTo("Extractor.Tests")]
 namespace Extractor.Zip
@@ -46,17 +48,16 @@ namespace Extractor.Zip
         /// </summary>
         private int numFailed;
 
-        public ZipExtractor(string scsPath, bool overwrite) 
-            : base(scsPath, overwrite)
+        public ZipExtractor(string scsPath, Options opt) : base(scsPath, opt)
         {
             Reader = ZipReader.Open(scsPath);
             PrintContentSummary();
         }
 
         /// <inheritdoc/>
-        public override void Extract(IList<string> pathFilter, string outputRoot)
+        public override void Extract(string outputRoot)
         {
-            var entriesToExtract = GetEntriesToExtract(Reader, pathFilter);
+            var entriesToExtract = GetEntriesToExtract(Reader, opt.StartPaths, opt.Filters);
             substitutions = DeterminePathSubstitutions(entriesToExtract);
 
             var scsName = Path.GetFileName(ScsPath);
@@ -100,11 +101,11 @@ namespace Extractor.Zip
         }
 
         internal static List<CentralDirectoryFileHeader> GetEntriesToExtract(
-            ZipReader zip, IList<string> pathFilter)
+            ZipReader zip, IList<string> startPaths, IList<Regex> filters)
         {
-            bool pathFilterUsed = !pathFilter.SequenceEqual(["/"]);
-            if (pathFilterUsed)
-                RemoveInitialSlash(pathFilter);
+            bool startPathsUsed = !startPaths.SequenceEqual(["/"]);
+            if (startPathsUsed)
+                RemoveInitialSlash(startPaths);
 
             List<CentralDirectoryFileHeader> entriesToExtract = [];
             foreach (var (_, entry) in zip.Entries)
@@ -113,7 +114,10 @@ namespace Extractor.Zip
                 if (entry.FileName.EndsWith('/'))
                     continue;
 
-                if (pathFilterUsed && !pathFilter.Any(entry.FileName.StartsWith))
+                if (startPathsUsed && !startPaths.Any(entry.FileName.StartsWith))
+                    continue;
+
+                if (!MatchesFilters(filters, entry.FileName))
                     continue;
 
                 entriesToExtract.Add(entry);
@@ -171,7 +175,7 @@ namespace Extractor.Zip
             PrintRenameSummary(renamedFiles.Count, modifiedFiles.Count);
         }
 
-        public override void PrintPaths(IList<string> pathFilter, bool includeAll)
+        public override void PrintPaths(bool includeAll)
         {
             if (includeAll)
             {
@@ -179,38 +183,34 @@ namespace Extractor.Zip
                 var finder = new ZipPathFinder(Reader);
                 finder.Find();
                 var all = finder.ReferencedFiles.Union(Reader.Entries.Keys.Select(p => '/' + p)).Order();
-                foreach (var path in all)
-                {
-                    Console.WriteLine(ReplaceControlChars(path));
-                }
-            } 
+                PrintPathsMatchingFilters(all, opt.StartPaths, opt.Filters);
+            }
             else
             {
-                foreach (var (_, entry) in Reader.Entries)
-                {
-                    Console.WriteLine('/' + ReplaceControlChars(entry.FileName));
-                }
+                PrintPathsMatchingFilters(
+                    Reader.Entries.Select(x => '/' + x.Value.FileName).Order(), 
+                    opt.StartPaths, opt.Filters);
             }
         }
 
-        public override List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter)
+        public override List<Tree.Directory> GetDirectoryTree()
         {
-            RemoveInitialSlash(pathFilter);
+            RemoveInitialSlash(opt.StartPaths);
 
             var paths = Reader.Entries
                 .Where(e => e.Value.UncompressedSize > 0) // filter out directory metadata
                 .Select(e => e.Value.FileName);
-            var trees = pathFilter
+            var trees = opt.StartPaths
                 .Select(startPath => PathListToTree(startPath, paths))
                 .ToList();
             return trees;
         }
 
-        private static void RemoveInitialSlash(IList<string> pathFilter)
+        private static void RemoveInitialSlash(IList<string> startPaths)
         {
-            for (int i = 0; i < pathFilter.Count; i++)
+            for (int i = 0; i < startPaths.Count; i++)
             { 
-                pathFilter[i] = PathUtils.RemoveInitialSlash(pathFilter[i]);
+                startPaths[i] = PathUtils.RemoveInitialSlash(startPaths[i]);
             }
         }
 

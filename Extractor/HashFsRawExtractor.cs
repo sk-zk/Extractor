@@ -9,12 +9,11 @@ namespace Extractor
 {
     public class HashFsRawExtractor : HashFsExtractor
     {
-        public HashFsRawExtractor(string scsPath, bool overwrite, ushort? salt) 
-            : base(scsPath, overwrite, salt)
+        public HashFsRawExtractor(string scsPath, Options opt) : base(scsPath, opt)
         {
         }
 
-        public override void Extract(IList<string> pathFilter, string destination)
+        public override void Extract(string destination)
         {
             var scsName = Path.GetFileName(ScsPath);
             Console.Out.WriteLine($"Extracting {scsName} ...");
@@ -36,7 +35,7 @@ namespace Extractor
             Console.WriteLine($"{numExtracted} extracted, {numSkipped} skipped, {numJunk} junk, {numFailed} failed");
         }
 
-        public override void PrintPaths(IList<string> pathFilter, bool includeAll)
+        public override void PrintPaths(bool includeAll)
         {
             Console.WriteLine("--list and --raw cannot be combined.");
         }

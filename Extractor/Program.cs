@@ -88,7 +88,7 @@ namespace Extractor
                 }
                 else if (opt.ListPaths)
                 {
-                    extractor.PrintPaths(opt.PathFilter, opt.ListAll);
+                    extractor.PrintPaths(opt.ListAll);
                 }
                 else if (opt.PrintTree)
                 {
@@ -98,14 +98,14 @@ namespace Extractor
                     }
                     else
                     {
-                        var trees = extractor.GetDirectoryTree(opt.PathFilter);
+                        var trees = extractor.GetDirectoryTree();
                         var scsName = Path.GetFileName(extractor.ScsPath);
                         Tree.TreePrinter.Print(trees, scsName);
                     }
                 }
                 else
                 {
-                    extractor.Extract(opt.PathFilter, GetDestination(scsPath));
+                    extractor.Extract(GetDestination(scsPath));
                     extractor.PrintExtractionResult();
                 }
             }
@@ -149,7 +149,7 @@ namespace Extractor
                 }
                 else
                 {
-                    extractor = new ZipExtractor(scsPath, !opt.SkipIfExists);
+                    extractor = new ZipExtractor(scsPath, opt);
                 }
             }
             catch (InvalidDataException)
@@ -161,6 +161,16 @@ namespace Extractor
                 Console.Error.WriteLine($"Unable to open {scsPath}: {ex.Message}");
             }
             return extractor;
+        }
+
+        private static Extractor CreateHashFsExtractor(string scsPath)
+        {
+            if (opt.UseRawExtractor)
+                return new HashFsRawExtractor(scsPath, opt);
+            else if (opt.UseDeepExtractor)
+                return new HashFsDeepExtractor(scsPath, opt);
+            else
+                return new HashFsExtractor(scsPath, opt);
         }
 
         private static void DoMultiDeepExtraction(string[] scsPaths)
@@ -205,27 +215,24 @@ namespace Extractor
 
                 if (opt.ListPaths)
                 {
-                    foreach (var path in existing.Order())
-                    {
-                        Console.WriteLine(ReplaceControlChars(path));
-                    }
+                    ConsoleUtils.PrintPathsMatchingFilters(existing.Order(), opt.StartPaths, opt.Filters);
                 }
                 else if (opt.PrintTree)
                 {
-                    var trees = opt.PathFilter
+                    var trees = opt.StartPaths
                         .Select(startPath => PathListToTree(startPath, existing))
                         .ToList();
                     Tree.TreePrinter.Print(trees, Path.GetFileName(extractor.ScsPath));
                 }
                 else
                 {
-                    if (extractor is HashFsDeepExtractor hashFs)
+                    if (extractor is HashFsDeepExtractor deep)
                     {
-                        hashFs.Extract(existing.ToArray(), opt.PathFilter, GetDestination(extractor.ScsPath), true);
+                        deep.Extract(existing.ToArray(), GetDestination(extractor.ScsPath), true);
                     }
                     else
                     {
-                        extractor.Extract(opt.PathFilter, GetDestination(extractor.ScsPath));
+                        extractor.Extract(GetDestination(extractor.ScsPath));
                     }
                 }
             }
@@ -238,32 +245,6 @@ namespace Extractor
                     extractor.PrintExtractionResult();
                 }
             }
-        }
-
-        private static Extractor CreateHashFsExtractor(string scsPath)
-        {
-            if (opt.UseRawExtractor)
-            {
-                return new HashFsRawExtractor(scsPath, !opt.SkipIfExists, opt.Salt)
-                {
-                    ForceEntryTableAtEnd = opt.ForceEntryTableAtEnd,
-                    PrintNotFoundMessage = !opt.ExtractAllInDir,
-                };
-            }
-            else if (opt.UseDeepExtractor)
-            {
-                return new HashFsDeepExtractor(scsPath, !opt.SkipIfExists, opt.Salt)
-                {
-                    ForceEntryTableAtEnd = opt.ForceEntryTableAtEnd,
-                    PrintNotFoundMessage = !opt.ExtractAllInDir,
-                    AdditionalStartPaths = opt.AdditionalStartPaths,
-                };
-            }
-            return new HashFsExtractor(scsPath, !opt.SkipIfExists, opt.Salt)
-            {
-                ForceEntryTableAtEnd = opt.ForceEntryTableAtEnd,
-                PrintNotFoundMessage = !opt.ExtractAllInDir,
-            };
         }
 
         private static void ListEntries(Extractor extractor)

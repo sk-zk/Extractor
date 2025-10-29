@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Extractor
@@ -150,6 +151,62 @@ namespace Extractor
             }
 
             return (text, modified);
+        }
+
+        /// <summary>
+        /// Converts a wildcard expression containing * and ? to a <see cref="Regex"/>.
+        /// </summary>
+        /// <param name="input">The wildcard expression.</param>
+        /// <returns>The equivalent <see cref="Regex"/>.</returns>
+        public static Regex WildcardStringToRegex(string input)
+        {
+            var sb = new StringBuilder();
+            sb.Append('^');
+            foreach (var c in input)
+            {
+                switch (c)
+                {
+                    case '?':
+                        sb.Append('.');
+                        break;
+                    case '*':
+                        sb.Append(".*");
+                        break;
+                    case '^':
+                    case '$':
+                    case '(':
+                    case ')':
+                    case '[':
+                    case ']':
+                    case '{':
+                    case '}':
+                    case '.':
+                    case '+':
+                    case '|':
+                    case '\\':
+                        sb.Append('\\');
+                        sb.Append(c);
+                        break;
+                    default:
+                        sb.Append(c);
+                        break;
+                }
+            }
+            sb.Append('$');
+            return new Regex(sb.ToString());
+        }
+
+        public static bool MatchesFilters(IList<Regex> filters, string str)
+        {
+            if (filters is null)
+                return true;
+
+            foreach (var filter in filters)
+            {
+                if (filter.IsMatch(str))
+                    return true;
+            }
+            return false;
         }
     }
 }

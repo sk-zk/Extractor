@@ -2,7 +2,7 @@
   "profiles": {
     "Extractor": {
       "commandName": "Project",
-      "commandLineArgs": "\"C:\\Users\\Daniel\\Desktop\\scs\\_just_no_root\\Neoplan_Tourliner_C13_1_49_X\\tourliner13.scs\" --deep"
+      "commandLineArgs": "\"D:\\SteamLibrary\\steamapps\\common\\Euro Truck Simulator 2\\dlc_it.scs\""
     }
   }
 }

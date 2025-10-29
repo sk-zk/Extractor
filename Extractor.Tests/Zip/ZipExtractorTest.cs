@@ -13,7 +13,7 @@ namespace Extractor.Tests.Zip
         public void GetEntriesToExtract()
         {
             var zip = ZipReader.Open("Data/ZipExtractorTest/test.zip");
-            var entries = ZipExtractor.GetEntriesToExtract(zip, ["/"]).
+            var entries = ZipExtractor.GetEntriesToExtract(zip, ["/"], null).
                 OrderBy(x => x.FileName).ToList();
             Assert.Equal(3, entries.Count);
             Assert.Equal("bla?.txt", entries[0].FileName);
@@ -25,7 +25,7 @@ namespace Extractor.Tests.Zip
         public void GetEntriesToExtractWithPathFilter()
         {
             var zip = ZipReader.Open("Data/ZipExtractorTest/test.zip");
-            var entries = ZipExtractor.GetEntriesToExtract(zip, ["/def/"]).ToList();
+            var entries = ZipExtractor.GetEntriesToExtract(zip, ["/def/"], null).ToList();
             Assert.Single(entries);
             Assert.Equal("def/nothing.sii", entries[0].FileName);
         }
@@ -34,7 +34,7 @@ namespace Extractor.Tests.Zip
         public void DeterminePathSubstitutions()
         {
             var zip = ZipReader.Open("Data/ZipExtractorTest/test.zip");
-            var entries = ZipExtractor.GetEntriesToExtract(zip, ["/"]);
+            var entries = ZipExtractor.GetEntriesToExtract(zip, ["/"], null);
             var subst = ZipExtractor.DeterminePathSubstitutions(entries);
             Assert.Equal("blax3F.txt", subst["bla?.txt"]);
         }

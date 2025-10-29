@@ -68,7 +68,7 @@ namespace Extractor.Tests
                 "/model2/building/osm_proto/rail.pmd",
                 "/model2/building/osm_proto/rail.pmg",
                 ];
-            var actual = HashFsExtractor.GetPathsToExtract(reader, ["/"], (_) => { });
+            var actual = HashFsExtractor.GetPathsToExtract(reader, ["/"], null, (_) => { });
             actual.Sort();
             Assert.Equal(expected, actual);
 
@@ -76,7 +76,7 @@ namespace Extractor.Tests
                 "/def/world/curve_model.osm_proto.sii",
                 "/material/special/placeholder_01.tobj",
                 ];
-            actual = HashFsExtractor.GetPathsToExtract(reader, ["/def", "/material"], (_) => { });
+            actual = HashFsExtractor.GetPathsToExtract(reader, ["/def", "/material"], null, (_) => { });
             actual.Sort();
             Assert.Equal(expected, actual);
         }

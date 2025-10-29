@@ -1,6 +1,7 @@
 # Extractor
 A cross-platform .scs extractor for both HashFS and ZIP.
 
+
 ## Features
 * Supports HashFS v1 and v2 as well as ZIP (including "locked" ZIP files)
 * Can extract multiple archives at once
@@ -8,6 +9,7 @@ A cross-platform .scs extractor for both HashFS and ZIP.
 * Raw dumps
 * Built-in path-finding mode for HashFS archives without directory listings
 * Automatic conversion of 3nK-encoded and encrypted SII files
+
 
 ## Build
 A Windows executable is available on the Releases page. On other platforms, install the
@@ -18,6 +20,7 @@ git clone https://github.com/sk-zk/Extractor.git
 cd Extractor
 dotnet publish -c Release
 ```
+
 
 ## Usage
 ```
@@ -44,26 +47,37 @@ extractor path... [options]
   <td>Sets the output directory. Defaults to <code>./extracted</code>.</td>
 </tr>
 <tr>
+  <td><code>-f</code></td>
+  <td><code>--filter</code></td>
+  <td><p>Expects a comma-separated list of wildcard patterns, where <code>?</code> matches one character and <code>*</code> matches zero or more characters.
+  Extraction is limited to paths matching at least one of the patterns. Examples:</p>
+  <p><code>*volvo_fh_2024*</code>: extract files or directories containing the string "volvo_fh_2024" only<br>
+  <code>*.sii,*.sui</code>: extract files with the extension .sii or .sui only<br>
+  <code>/def/vehicle/truck/*/engine/*</code>: extract engine definitions for trucks only</p>
+  </td>
+</tr>
+<tr>
   <td></td>
   <td><code>--list</code></td>
-  <td>Lists paths contained in the archive. Can be combined with <code>--deep</code>.</td>
+  <td>Lists paths contained in the archive. Can be combined with <code>--all</code>, <code>--deep</code>, <code>--filter</code>, and <code>--partial</code>.</td>
 </tr>
 <tr>
   <td></td>
   <td><code>--list-all</code></td>
   <td>Lists all paths referenced by files in the archive, even if they are not contained in it.
-  (Implicitly activates <code>--deep</code>.)</td>
+  (Implicitly activates <code>--deep</code>.) Can be combined with <code>--all</code>, <code>--filter</code>, and <code>--partial</code>.</td>
 </tr>
 <tr>
   <td><code>-p</code></td>
   <td><code>--partial</code></td>
-  <td>Limits extraction to the comma-separated list of files and/or directories specified. Examples:<br>
-  <code>-p=/locale</code><br>
+  <td><p>Limits extraction to the comma-separated list of files and/or directories specified. Examples:</p>
+  <p><code>-p=/locale</code><br>
   <code>-p=/def,/map</code><br>
-  <code>-p=/def/world/road.sii</code><br>
-  When extracting a HashFS archive (without <code>--deep</code>), directory traversal begins at the given paths, allowing for
-  extraction of known directories and files not discoverable from the top level. In all other cases, extraction is limited to
-  files whose paths begin with any of the strings given to this parameter. 
+  <code>-p=/def/world/road.sii</code></p>
+  <p>When extracting a HashFS archive (without <code>--deep</code>), <b>directory traversal begins at the given paths</b>, allowing for
+  extraction of known directories and files not discoverable from the top level. This makes <code>--partial</code> distinctly different
+  from <code>--filter</code>. (In all other modes, extraction is limited to files whose paths begin with any of the strings given to 
+  this parameter.)</p>
   </td>
 </tr>
 <tr>
@@ -85,8 +99,7 @@ extractor path... [options]
 <tr>
   <td></td>
   <td><code>--tree</code></td>
-  <td>Prints the directory tree and exits. Can be combined with <code>--deep</code>, <code>--partial</code>, 
-  <code>--paths</code>, and <code>--all</code>.</td>
+  <td>Prints the archive's directory tree. Can be combined with <code>--all</code>, <code>--deep</code>, and <code>--partial</code>.</td>
 </tr>
 <tr>
   <td><code>-?</code>, <code>-h</code></td>
@@ -125,7 +138,7 @@ extractor path... [options]
 <tr>
   <td><code>-r</code></td>
   <td><code>--raw</code></td>
-  <td>Directly dumps the contained files with their hashed filenames rather than traversing
+  <td>Dumps the contained files with their hashed filenames rather than traversing
   the archive's directory tree.</td>
 </tr>
 <tr>
@@ -160,7 +173,12 @@ extractor "path\to\directory" --all
 
 Extract `def` and `manifest.sii` only:
 ```
-extractor "path\to\file.scs" -p=/def,/manifest.sii
+extractor "path\to\file.scs" --partial=/def,/manifest.sii
+```
+
+Extract model files only:
+```
+extractor "path\to\file.scs" --filter=*.pm?,*.ppd
 ```
 
 Extract with deep mode:

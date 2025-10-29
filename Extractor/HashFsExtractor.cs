@@ -5,11 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TruckLib.HashFs;
+using System.IO.Compression;
+using TruckLib;
+using System.Text.RegularExpressions;
 using static Extractor.PathUtils;
 using static Extractor.ConsoleUtils;
-using System.IO.Compression;
-using System.Diagnostics;
-using TruckLib;
+using static Extractor.TextUtils;
 
 namespace Extractor
 {
@@ -26,15 +27,8 @@ namespace Extractor
         public override IFileSystem FileSystem => Reader;
 
         /// <summary>
-        /// Gets or sets whether the entry table should be read from the end of the file
-        /// regardless of where the header says it is located.
-        /// </summary>
-        /// <remarks>Solves #1.</remarks>
-        public bool ForceEntryTableAtEnd { get; set; } = false;
-
-        /// <summary>
-        /// Gets or sets whether a "not found" message should be printed
-        /// if a start path does not exist in the archive.
+        /// Whether a "not found" message should be printed if a start path
+        /// does not exist in the archive.
         /// </summary>
         public bool PrintNotFoundMessage { get; set; } = true;
 
@@ -82,17 +76,15 @@ namespace Extractor
         /// </summary>
         protected int numJunk;
 
-        public HashFsExtractor(string scsPath, bool overwrite) : this(scsPath, overwrite, null) 
-        { 
-        }
-
-        public HashFsExtractor(string scsPath, bool overwrite, ushort? salt) : base(scsPath, overwrite)
+        public HashFsExtractor(string scsPath, Options opt) : base(scsPath, opt)
         {
-            Reader = HashFsReader.Open(scsPath, ForceEntryTableAtEnd);
+            PrintNotFoundMessage = !opt.ExtractAllInDir;
+
+            Reader = HashFsReader.Open(scsPath, opt.ForceEntryTableAtEnd);
             PrintContentSummary();
 
-            if (salt is not null)
-                Reader.Salt = salt.Value;
+            if (opt.Salt is not null)
+                Reader.Salt = opt.Salt.Value;
             else
                 FixSaltIfNecessary();
 
@@ -100,29 +92,15 @@ namespace Extractor
         }
 
         /// <inheritdoc/>
-        public override void Extract(IList<string> pathFilter, string outputRoot)
+        public override void Extract(string outputRoot)
         {
-            if (pathFilter.Count == 1 && pathFilter[0] == "/")
+            if (opt.StartPaths.Count == 1 && opt.StartPaths[0] == "/" 
+                && IsRootMissingOrEmpty())
             {
-                if (Reader.EntryExists("/") == EntryType.Directory)
-                {
-                    var listing = Reader.GetDirectoryListing("/");
-                    if (listing.Subdirectories.Count == 0 && listing.Files.Count == 0)
-                    {
-                        Console.Error.WriteLine("Top level directory is empty; " +
-                            "use --deep to scan contents for paths before extraction " +
-                            "or --partial to extract known paths");
-                        return;
-                    }
-                }
-                else
-                {
-                    PrintNoTopLevelError();
-                    return;
-                }
+                return;
             }
 
-            var pathsToExtract = GetPathsToExtract(Reader, pathFilter,
+            var pathsToExtract = GetPathsToExtract(Reader, opt.StartPaths, opt.Filters,
                 (nonexistent) =>
                 {
                     if (PrintNotFoundMessage)
@@ -139,6 +117,27 @@ namespace Extractor
 
             WriteRenamedSummary(outputRoot);
             WriteModifiedSummary(outputRoot);
+        }
+
+        private bool IsRootMissingOrEmpty()
+        {
+            if (Reader.EntryExists("/") == EntryType.Directory)
+            {
+                var listing = Reader.GetDirectoryListing("/");
+                if (listing.Subdirectories.Count == 0 && listing.Files.Count == 0)
+                {
+                    Console.Error.WriteLine("Top level directory is empty; " +
+                        "use --deep to scan contents for paths before extraction " +
+                        "or --partial to extract known paths");
+                    return true;
+                }
+            }
+            else
+            {
+                PrintNoTopLevelError();
+                return true;
+            }
+            return false;
         }
 
         protected void ExtractFiles(IList<string> pathsToExtract, string outputRoot, bool ignoreMissing = false)
@@ -163,19 +162,21 @@ namespace Extractor
             return substitutions;
         }
 
-        internal static List<string> GetPathsToExtract(IHashFsReader reader, IList<string> pathFilter, 
-            Action<string> onVisitNonexistent)
+        internal static List<string> GetPathsToExtract(IHashFsReader reader, IList<string> startPaths, 
+            IList<Regex> filters, Action<string> onVisitNonexistent)
         {
             List<string> pathsToExtract = [];
-            foreach (var path in pathFilter)
+            foreach (var path in startPaths)
             {
                 reader.Traverse(path, 
                     (_) => { }, 
-                    (file) => 
-                    { 
-                        if (file != "/")
-                            pathsToExtract.Add(file); 
-                    }, 
+                    (file) =>
+                    {
+                        if (file != "/" && MatchesFilters(filters, file))
+                        {
+                            pathsToExtract.Add(file);
+                        }
+                    },
                     onVisitNonexistent);
             }
             return pathsToExtract;
@@ -377,7 +378,7 @@ namespace Extractor
         {
             const string fileToTest = "manifest.sii";
 
-            if (Reader.TryGetEntry(fileToTest, out var entry) == EntryType.NotFound)
+            if (Reader.TryGetEntry(fileToTest, out var _) == EntryType.NotFound)
             {
                 // No manifest => don't need to run this
                 return;
@@ -434,13 +435,25 @@ namespace Extractor
             numFailed++;
         }
 
-        public override void PrintPaths(IList<string> pathFilter, bool includeAll)
+        public override void PrintPaths(bool includeAll)
         {
-            foreach (var path in pathFilter)
+            foreach (var path in opt.StartPaths)
             {
                 Reader.Traverse(path,
-                    (dir) => Console.WriteLine(ReplaceControlChars(dir)),
-                    (file) => Console.WriteLine(ReplaceControlChars(file)),
+                    (dir) => 
+                    {
+                        if (MatchesFilters(opt.Filters, dir))
+                        {
+                            Console.WriteLine(ReplaceControlChars(dir));
+                        }
+                    },
+                    (file) =>
+                    {
+                        if (MatchesFilters(opt.Filters, file))
+                        {
+                            Console.WriteLine(ReplaceControlChars(file));
+                        }
+                    },
                     (nonexistent) =>
                     {
                         if (nonexistent == "/")
@@ -456,9 +469,9 @@ namespace Extractor
             }
         }
 
-        public override List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter)
+        public override List<Tree.Directory> GetDirectoryTree()
         {
-            var trees = pathFilter
+            var trees = opt.StartPaths
                 .Select(GetDirectoryTree)
                 .ToList();
             return trees;
@@ -504,6 +517,7 @@ namespace Extractor
         public override void Dispose()
         {
             Reader.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

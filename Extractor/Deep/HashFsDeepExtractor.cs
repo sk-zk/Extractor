@@ -6,11 +6,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static Extractor.PathUtils;
-using static Extractor.ConsoleUtils;
-using TruckLib.Sii;
 using System.Data;
 using TruckLib.HashFs;
+using static Extractor.PathUtils;
+using static Extractor.ConsoleUtils;
+using static Extractor.TextUtils;
 
 namespace Extractor.Deep
 {
@@ -20,11 +20,6 @@ namespace Extractor.Deep
     /// </summary>
     public class HashFsDeepExtractor : HashFsExtractor
     {
-        /// <summary>
-        /// Additional start paths which the user specified with the <c>--additional</c> parameter.
-        /// </summary>
-        public IList<string> AdditionalStartPaths { get; set; } = [];
-
         /// <summary>
         /// The directory to which files whose paths were not discovered
         /// will be written.
@@ -46,47 +41,55 @@ namespace Extractor.Deep
 
         private bool hasSearchedForPaths;
 
-        public HashFsDeepExtractor(string scsPath, bool overwrite, ushort? salt) 
-            : base(scsPath, overwrite, salt)
+        public HashFsDeepExtractor(string scsPath, Options opt) : base(scsPath, opt)
         {
             IdentifyJunkEntries();
         }
 
         /// <inheritdoc/>
-        public override void Extract(IList<string> pathFilter, string outputRoot)
+        public override void Extract(string outputRoot)
         {
             Console.WriteLine("Searching for paths ...");
             FindPaths();
-            var foundFiles = finder.FoundFiles.Order().ToArray();
-            Extract(foundFiles, pathFilter, outputRoot, false);
+            Extract(finder.FoundFiles.Order().ToArray(), outputRoot, false);
         }
 
-        public void Extract(string[] foundFiles, IList<string> pathFilter, string outputRoot, bool ignoreMissing)
+        public void Extract(IList<string> foundFiles, string outputRoot, bool ignoreMissing)
         {
-            bool filtersSet = !pathFilter.SequenceEqual(["/"]);
+            bool startPathsSet = !opt.StartPaths.SequenceEqual(["/"]);
 
             substitutions = DeterminePathSubstitutions(foundFiles);
 
-            if (filtersSet)
-            {
-                foundFiles = foundFiles
-                    .Where(f => pathFilter.Any(f.StartsWith)).ToArray();
-            }
-            ExtractFiles(foundFiles, outputRoot, ignoreMissing);
+            // Extract regular files
+            var filteredFoundFiles = foundFiles
+                .Where(p =>
+                {
+                    if (startPathsSet && !opt.StartPaths.Any(p.StartsWith))
+                        return false;
+                    return MatchesFilters(opt.Filters, p);
+                })
+                .Order()
+                .ToArray();
+            ExtractFiles(filteredFoundFiles, outputRoot, ignoreMissing);
 
-            var foundDecoyFiles = finder.FoundDecoyFiles.Order().ToArray();
-            if (filtersSet)
-            {
-                foundDecoyFiles = foundDecoyFiles
-                    .Where(f => pathFilter.Any(f.StartsWith)).ToArray();
-            }
+            // Extract decoy files
+            var foundDecoyFiles = finder.FoundDecoyFiles
+                .Where(p =>
+                {
+                    if (startPathsSet && !opt.StartPaths.Any(p.StartsWith))
+                        return false;
+                    return MatchesFilters(opt.Filters, p);
+                })
+                .Order()
+                .ToArray();
             var decoyDestination = Path.Combine(outputRoot, DecoyDirectory);
             foreach (var decoyFile in foundDecoyFiles)
             {
                 ExtractFile(decoyFile, decoyDestination);
             }
 
-            if (!filtersSet)
+            // Extract files whose paths could not be recovered
+            if (!(startPathsSet || opt.Filters?.Count > 0))
             {
                 DumpUnrecovered(outputRoot, foundFiles.Concat(foundDecoyFiles));
             }
@@ -99,7 +102,7 @@ namespace Extractor.Deep
         {
             if (!hasSearchedForPaths)
             {
-                finder = new HashFsPathFinder(Reader, AdditionalStartPaths, junkEntries);
+                finder = new HashFsPathFinder(Reader, opt.AdditionalStartPaths, junkEntries);
                 finder.Find();
                 hasSearchedForPaths = true;
             }
@@ -131,11 +134,11 @@ namespace Extractor.Deep
 
             foreach (var entry in notRecovered)
             {
-                if (junkEntries.ContainsKey(entry.Hash))
+                if (junkEntries.ContainsKey(entry.Hash) ||
+                    maybeJunkEntries.ContainsKey(entry.Hash))
+                {
                     continue;
-
-                if (maybeJunkEntries.ContainsKey(entry.Hash))
-                    continue;
+                }
 
                 var fileBuffer = Reader.Extract(entry, "")[0];
                 var fileType = FileTypeHelper.Infer(fileBuffer);
@@ -155,7 +158,7 @@ namespace Extractor.Deep
             }
         }
 
-        public override void PrintPaths(IList<string> pathFilter, bool includeAll)
+        public override void PrintPaths(bool includeAll)
         {
             var finder = new HashFsPathFinder(Reader);
             finder.Find();
@@ -163,10 +166,7 @@ namespace Extractor.Deep
                 ? finder.FoundFiles.Union(finder.ReferencedFiles) 
                 : finder.FoundFiles).Order();
 
-            foreach (var path in paths)
-            {
-                Console.WriteLine(ReplaceControlChars(path));
-            }
+            PrintPathsMatchingFilters(paths, opt.StartPaths, opt.Filters);
         }
 
         public override void PrintExtractionResult()
@@ -177,12 +177,12 @@ namespace Extractor.Deep
             PrintRenameSummary(renamedFiles.Count, modifiedFiles.Count);
         }
 
-        public override List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter)
+        public override List<Tree.Directory> GetDirectoryTree()
         {
             var finder = new HashFsPathFinder(Reader);
             finder.Find();
 
-            var trees = pathFilter
+            var trees = opt.StartPaths
                 .Select(startPath => PathListToTree(startPath, finder.FoundFiles))
                 .ToList();
             return trees;

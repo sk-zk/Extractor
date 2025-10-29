@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using TruckLib;
-using TruckLib.Models;
 using TruckLib.Sii;
 using static Extractor.PathSubstitution;
 
@@ -37,22 +37,27 @@ namespace Extractor
         /// </summary>
         protected List<string> modifiedFiles = [];
 
-        public Extractor(string scsPath, bool overwrite) 
+        /// <summary>
+        /// The command line options set by the user.
+        /// </summary>
+        protected Options opt;
+
+        public Extractor(string scsPath, Options opt) 
         { 
             ScsPath = scsPath;
-            Overwrite = overwrite; 
+            Overwrite = !opt.SkipIfExists;
+            this.opt = opt;
         }
 
         /// <summary>
         /// Extracts the archive to the given directory.
         /// </summary>
-        /// <param name="pathFilter">A list of paths to extract. Pass ["/"] to extract the entire archive.</param>
         /// <param name="destination">The directory to which the extracted files will be written.</param>
-        public abstract void Extract(IList<string> pathFilter, string destination);
+        public abstract void Extract(string destination);
 
-        public abstract List<Tree.Directory> GetDirectoryTree(IList<string> pathFilter);
+        public abstract List<Tree.Directory> GetDirectoryTree();
 
-        public abstract void PrintPaths(IList<string> pathFilter, bool includeAll);
+        public abstract void PrintPaths(bool includeAll);
 
         public abstract void PrintContentSummary();
 
