@@ -127,7 +127,8 @@ namespace Extractor
                     $"The output directory.\nDefault: {Destination}",
                     x => { Destination = x; } },
                 { "f=|filter=",
-                    $"allan please add details",
+                    $"Limits extraction to files whose paths match one or more of the specified filter patterns. " +
+                    $"See the readme for details.",
                     x => { Filters = ParseFilters(x); } },
                 { "list",
                     "Lists paths contained in the archive.",
