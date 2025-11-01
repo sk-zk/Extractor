@@ -347,7 +347,7 @@ namespace Extractor.Deep
 
         private void VisitMapSectorPaths(string mapName)
         {
-            const int extent = 60;
+            const int extent = 70;
             for (int z = -extent; z < extent + 1; z++)
             {
                 for (int x = -extent; x < extent + 1; x++)
