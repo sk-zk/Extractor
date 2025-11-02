@@ -183,7 +183,7 @@ extractor "path\to\file.scs" --partial=/def,/manifest.sii
 
 Extract model files only:
 ```sh
-extractor "path\to\file.scs" --filter=*.pm?,*.ppd
+extractor "path\to\file.scs" --filter=r/\.p(m[acdg]|d)$/
 ```
 
 Extract with deep mode:
