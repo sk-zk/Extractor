@@ -6,6 +6,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using TruckLib;
+using TruckLib.HashFs;
 using static Extractor.PathUtils;
 
 namespace Extractor
@@ -185,20 +187,22 @@ namespace Extractor
                     extractors.Add(extractor);
             }
 
+            var multiModWrapper = new AssetLoader(extractors.Select(x => x.FileSystem).ToArray());
+
             HashSet<string> everything = [];
             foreach (var extractor in extractors)
             {
                 Console.Error.WriteLine($"Searching for paths in {Path.GetFileName(extractor.ScsPath)} ...");
                 if (extractor is HashFsDeepExtractor hashFs)
                 {
-                    var (found, referenced) = hashFs.FindPaths();
+                    var (found, referenced) = hashFs.FindPaths(multiModWrapper);
                     everything.UnionWith(found);
                     everything.UnionWith(referenced);
                 }
                 else if (extractor is ZipExtractor zip)
                 {
                     var finder = new ZipPathFinder(zip.Reader);
-                    finder.Find();
+                    finder.Find(multiModWrapper);
                     var paths = finder.ReferencedFiles
                         .Union(zip.Reader.Entries.Keys.Select(p => '/' + p));
                     everything.UnionWith(paths);

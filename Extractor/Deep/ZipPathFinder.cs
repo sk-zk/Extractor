@@ -6,6 +6,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TruckLib;
+using TruckLib.HashFs;
 
 namespace Extractor.Deep
 {
@@ -30,14 +32,16 @@ namespace Extractor.Deep
         {
             this.reader = reader;
             ReferencedFiles = [];
-            fpf = new FilePathFinder([], ReferencedFiles, [], reader);
         }
 
         /// <summary>
         /// Scans the archive for path references and writes the results to <see cref="ReferencedFiles"/>.
         /// </summary>
-        public void Find()
+        public void Find(AssetLoader multiModWrapper = null)
         {
+            IFileSystem fsToUse = multiModWrapper is null ? reader : multiModWrapper;
+            var fpf = new FilePathFinder(fsToUse, [], ReferencedFiles, []);
+
             foreach (var (_, entry) in reader.Entries)
             {
                 // Directory metadata; ignore

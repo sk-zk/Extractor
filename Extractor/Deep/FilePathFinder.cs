@@ -89,7 +89,8 @@ namespace Extractor.Deep
         private readonly HashSet<string> dirsToSearchForRelativeTobj;
 
         /// <summary>
-        /// The archive which is being analyzed.
+        /// The archive (or the <see cref="TruckLib.HashFs.AssetLoader">AssetLoader</see>
+        /// for a multi-mod archive) which is being analyzed.
         /// </summary>
         private readonly IFileSystem fs;
 

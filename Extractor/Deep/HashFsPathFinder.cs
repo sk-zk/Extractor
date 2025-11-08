@@ -83,7 +83,7 @@ namespace Extractor.Deep
         private readonly HashSet<string> dirsToSearchForRelativeTobj;
 
         public HashFsPathFinder(IHashFsReader reader, IList<string> additionalStartPaths = null, 
-            Dictionary<ulong, IEntry> junkEntries = null)
+            Dictionary<ulong, IEntry> junkEntries = null, AssetLoader multiModWrapper = null)
         {
             this.reader = reader;
             this.additionalStartPaths = additionalStartPaths;
@@ -95,7 +95,9 @@ namespace Extractor.Deep
             dirsToSearchForRelativeTobj = [];
             ReferencedFiles = [];
 
-            fpf = new FilePathFinder(visited, ReferencedFiles, dirsToSearchForRelativeTobj, reader);
+            IFileSystem fsToUse = multiModWrapper is null ? reader : multiModWrapper;
+            fpf = new FilePathFinder(fsToUse, visited, ReferencedFiles, 
+                dirsToSearchForRelativeTobj);
         }
 
         /// <summary>
