@@ -190,14 +190,16 @@ namespace Extractor
             var multiModWrapper = new AssetLoader(extractors.Select(x => x.FileSystem).ToArray());
 
             HashSet<string> everything = [];
+            HashSet<string> consumedSuis = [];
             foreach (var extractor in extractors)
             {
                 Console.Error.WriteLine($"Searching for paths in {Path.GetFileName(extractor.ScsPath)} ...");
                 if (extractor is HashFsDeepExtractor hashFs)
                 {
-                    var (found, referenced) = hashFs.FindPaths(multiModWrapper);
-                    everything.UnionWith(found);
-                    everything.UnionWith(referenced);
+                    var finder = hashFs.FindPaths(multiModWrapper);
+                    everything.UnionWith(finder.FoundFiles);
+                    everything.UnionWith(finder.ReferencedFiles);
+                    consumedSuis.UnionWith(finder.ConsumedSuis);
                 }
                 else if (extractor is ZipExtractor zip)
                 {
@@ -206,12 +208,15 @@ namespace Extractor
                     var paths = finder.ReferencedFiles
                         .Union(zip.Reader.Entries.Keys.Select(p => '/' + p));
                     everything.UnionWith(paths);
+                    consumedSuis.UnionWith(finder.ConsumedSuis);
                 }
                 else
                 {
                     throw new ArgumentException("Unhandled extractor type");
                 }
             }
+
+            SiiPathFinder.FindPathsInUnconsumedSuis(consumedSuis, everything, multiModWrapper);
 
             foreach (var extractor in extractors)
             {

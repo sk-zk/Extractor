@@ -16,7 +16,7 @@ namespace Extractor.Deep
         /// <summary>
         /// File paths that are referenced by files in this archive.
         /// </summary>
-        public HashSet<string> ReferencedFiles { get; private set; }
+        public HashSet<string> ReferencedFiles { get; init; } = [];
 
         /// <summary>
         /// The ZIP archive.
@@ -28,10 +28,11 @@ namespace Extractor.Deep
         /// </summary>
         private readonly FilePathFinder fpf;
 
+        public HashSet<string> ConsumedSuis { get; init; } = [];
+
         public ZipPathFinder(ZipReader reader) 
         {
             this.reader = reader;
-            ReferencedFiles = [];
         }
 
         /// <summary>
@@ -40,7 +41,7 @@ namespace Extractor.Deep
         public void Find(AssetLoader multiModWrapper = null)
         {
             IFileSystem fsToUse = multiModWrapper is null ? reader : multiModWrapper;
-            var fpf = new FilePathFinder(fsToUse, [], ReferencedFiles, []);
+            var fpf = new FilePathFinder(fsToUse, [], ReferencedFiles, [], ConsumedSuis);
 
             foreach (var (_, entry) in reader.Entries)
             {
@@ -62,7 +63,8 @@ namespace Extractor.Deep
                     reader.GetEntry(entry, ms);
                     var buffer = ms.ToArray();
 
-                    var paths = fpf.FindPathsInFile(buffer, entry.FileName, fileType);
+                    var path = '/' + entry.FileName;
+                    var paths = fpf.FindPathsInFile(buffer, path, fileType);
                     ReferencedFiles.UnionWith(paths);
                 }
                 catch (Exception)
@@ -71,5 +73,6 @@ namespace Extractor.Deep
                 }
             }
         }
+
     }
 }

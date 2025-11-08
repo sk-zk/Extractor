@@ -98,16 +98,23 @@ namespace Extractor.Deep
             WriteModifiedSummary(outputRoot);
         }
 
-        public (HashSet<string> FoundFiles, HashSet<string> ReferencedFiles) FindPaths(
-            AssetLoader multiModWrapper = null)
+        public (HashSet<string> FoundFiles, HashSet<string> ReferencedFiles) FindPaths()
         {
             if (!hasSearchedForPaths)
             {
-                finder = new HashFsPathFinder(Reader, opt.AdditionalStartPaths, junkEntries, multiModWrapper);
+                finder = new HashFsPathFinder(Reader, opt.AdditionalStartPaths, junkEntries);
                 finder.Find();
                 hasSearchedForPaths = true;
             }
             return (finder.FoundFiles, finder.ReferencedFiles);
+        }
+
+        public HashFsPathFinder FindPaths(AssetLoader multiModWrapper)
+        {
+            finder = new HashFsPathFinder(Reader, opt.AdditionalStartPaths, junkEntries, multiModWrapper);
+            finder.Find();
+            hasSearchedForPaths = true;
+            return finder;
         }
 
         /// <summary>

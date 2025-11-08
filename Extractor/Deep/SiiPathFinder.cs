@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using TruckLib;
+using TruckLib.HashFs;
 using TruckLib.Sii;
 using static Extractor.PathUtils;
 
@@ -67,7 +68,8 @@ namespace Extractor.Deep
         /// <param name="filePath">The path of the file in the archive.</param>
         /// <param name="fs">The archive which is being read from as <see cref="IFileSystem"/>.</param>
         /// <returns>Paths referenced in the file.</returns>
-        public static PotentialPaths FindPathsInSii(byte[] fileBuffer, string filePath, IFileSystem fs)
+        public static (PotentialPaths Paths, HashSet<string> ConsumedSuis) FindPathsInSii(
+            byte[] fileBuffer, string filePath, IFileSystem fs)
         {
             var magic = Encoding.UTF8.GetString(fileBuffer[0..4]);
             if (!(magic == "SiiN" // regular sii
@@ -76,23 +78,43 @@ namespace Extractor.Deep
                 || magic.StartsWith("3nK") // 3nK-encoded sii
                 ))
             {
-            #if DEBUG
+#if DEBUG
                 Console.Error.WriteLine($"Not a sii file: {filePath}");
-            #endif
-                return [];
+#endif
+                return ([], []);
             }
 
             var siiDirectory = GetParent(filePath);
             try
             {
                 var sii = SiiFile.Load(fileBuffer, siiDirectory, fs, true);
-                return FindPathsInSii(sii, fs);
+                var paths = FindPathsInSii(sii, fs);
+                var suis = sii.Includes.ToHashSet();
+                return (paths, suis);
             }
             catch (ParseException)
             {
                 if (!filePath.StartsWith("/ui/template"))
                     Debugger.Break();
                 throw;
+            }
+            catch (Exception)
+            {
+                Debugger.Break();
+                throw;
+            }
+        }
+
+        public static (PotentialPaths Paths, HashSet<string> ConsumedSuis) FindPathsInSii(
+            string siiStr, string filePath, IFileSystem fs)
+        {
+            var siiDirectory = GetParent(filePath);
+            try
+            {
+                var sii = SiiFile.Load(siiStr, siiDirectory, fs, true);
+                var paths = FindPathsInSii(sii, fs);
+                var suis = sii.Includes.ToHashSet();
+                return (paths, suis);
             }
             catch (Exception)
             {
@@ -134,7 +156,7 @@ namespace Extractor.Deep
                 foreach (var attrib in unit.Attributes)
                 {
                     ProcessSiiUnitAttribute(unit.Class, attrib, potentialPaths);
-                } 
+                }
             }
 
             return potentialPaths;
@@ -161,7 +183,7 @@ namespace Extractor.Deep
             }
         }
 
-        private static void ConstructLicensePlateMatPaths(string country, PotentialPaths potentialPaths, 
+        private static void ConstructLicensePlateMatPaths(string country, PotentialPaths potentialPaths,
             IFileSystem fs)
         {
             potentialPaths.Add($"/material/ui/lp/{country}/trailer.mat", null);
@@ -181,7 +203,7 @@ namespace Extractor.Deep
             }
         }
 
-        internal static void ConstructLicensePlateMatPaths(string country, PotentialPaths potentialPaths, 
+        internal static void ConstructLicensePlateMatPaths(string country, PotentialPaths potentialPaths,
             SiiFile licensePlates)
         {
             // See https://modding.scssoft.com/wiki/Games/ETS2/Modding_guides/1.36#Traffic_data.
@@ -223,7 +245,7 @@ namespace Extractor.Deep
             }
         }
 
-        internal static void ProcessSiiUnitAttribute(string unitClass, 
+        internal static void ProcessSiiUnitAttribute(string unitClass,
             KeyValuePair<string, dynamic> attrib, PotentialPaths potentialPaths)
         {
             if (ignorableUnitClasses.Contains(unitClass))
@@ -320,7 +342,7 @@ namespace Extractor.Deep
             return soundPath;
         }
 
-        private static void ProcessStringAttribute(KeyValuePair<string, dynamic> attrib, 
+        private static void ProcessStringAttribute(KeyValuePair<string, dynamic> attrib,
             string unitClass, PotentialPaths potentialPaths)
         {
             string str = attrib.Value;
@@ -359,6 +381,50 @@ namespace Extractor.Deep
             {
                 potentialPaths.Add(str, null);
             }
+        }
+
+        public static void FindPathsInUnconsumedSuis(HashSet<string> consumedSuis,
+            HashSet<string> everything, AssetLoader multiModWrapper)
+        {
+            var allSuis = everything.Where(p => p.EndsWith(".sui"));
+            var unconsumedSuis = allSuis.Except(consumedSuis).ToList();
+            var paths = FindPathsInUnconsumedSuis(unconsumedSuis, multiModWrapper);
+            everything.UnionWith(paths);
+        }
+
+        public static PotentialPaths FindPathsInUnconsumedSuis(IEnumerable<string> unconsumedSuis, IFileSystem fs)
+        {
+            PotentialPaths paths = [];
+            foreach (var sui in unconsumedSuis)
+            {
+                if (!fs.FileExists(sui))
+                    continue;
+
+                var text = fs.ReadAllText(sui);
+                var siiText = string.Format("""
+                    SiiNunit 
+                    {{
+                        foo : bar 
+                        {{
+                    @include "{0}"
+                        }}
+                    }}
+                    """, sui);
+
+                try
+                {
+                    var (discovered, _) = FindPathsInSii(siiText, sui, fs);
+                    paths.UnionWith(discovered.Except([sui]));
+                }
+                catch (Exception ex)
+                {
+                    #if DEBUG
+                    Console.WriteLine(ex.ToString());
+                    Debugger.Break();
+                    #endif
+                }
+            }
+            return paths;
         }
     }
 }

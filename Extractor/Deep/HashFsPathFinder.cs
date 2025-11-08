@@ -8,6 +8,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TruckLib;
 using TruckLib.HashFs;
 using static Extractor.PathUtils;
 
@@ -16,7 +17,7 @@ namespace Extractor.Deep
     /// <summary>
     /// Searches the entries of a HashFS archive for paths contained in it.
     /// </summary>
-    internal class HashFsPathFinder
+    public class HashFsPathFinder
     {
         /// <summary>
         /// File paths that were discovered by <see cref="Find"/>.
@@ -74,6 +75,8 @@ namespace Extractor.Deep
         /// </summary>
         private readonly FilePathFinder fpf;
 
+        public HashSet<string> ConsumedSuis { get; init; } = [];
+
         /// <summary>
         /// Directories discovered during the first phase which might contain tobj files.
         /// This is used to find the absolute path of tobj files that are referenced in 
@@ -97,7 +100,7 @@ namespace Extractor.Deep
 
             IFileSystem fsToUse = multiModWrapper is null ? reader : multiModWrapper;
             fpf = new FilePathFinder(fsToUse, visited, ReferencedFiles, 
-                dirsToSearchForRelativeTobj);
+                dirsToSearchForRelativeTobj, ConsumedSuis);
         }
 
         /// <summary>
@@ -327,7 +330,7 @@ namespace Extractor.Deep
             visitedEntries.Add(fileEntry);
             AddDirToDirsToSearchForRelativeTobj(filePath);
 
-            // skip HashFS v2 tobj/dds entries because we don't need to scan those
+            // Skip HashFS v2 tobj/dds entries because we don't need to scan those
             if (fileEntry is EntryV2 v2 && v2.TobjMetadata is not null)
             {
                 return [];
