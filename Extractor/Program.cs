@@ -188,7 +188,7 @@ namespace Extractor
             HashSet<string> everything = [];
             foreach (var extractor in extractors)
             {
-                Console.WriteLine($"Searching for paths in {Path.GetFileName(extractor.ScsPath)} ...");
+                Console.Error.WriteLine($"Searching for paths in {Path.GetFileName(extractor.ScsPath)} ...");
                 if (extractor is HashFsDeepExtractor hashFs)
                 {
                     var (found, referenced) = hashFs.FindPaths();
