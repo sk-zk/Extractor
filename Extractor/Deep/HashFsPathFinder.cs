@@ -125,7 +125,7 @@ namespace Extractor.Deep
         private static PotentialPaths LoadStartPaths()
         {
             using var inMs = new MemoryStream(Resources.DeepStartPaths);
-            using var ds = new DeflateStream(inMs, CompressionMode.Decompress);
+            using var ds = new GZipStream(inMs, CompressionMode.Decompress);
             using var outMs = new MemoryStream();
             ds.CopyTo(outMs);
             var lines = Encoding.UTF8.GetString(outMs.ToArray());
