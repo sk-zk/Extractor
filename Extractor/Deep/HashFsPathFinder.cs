@@ -8,6 +8,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TruckLib;
 using TruckLib.HashFs;
 using static Extractor.PathUtils;
 
@@ -16,7 +17,7 @@ namespace Extractor.Deep
     /// <summary>
     /// Searches the entries of a HashFS archive for paths contained in it.
     /// </summary>
-    internal class HashFsPathFinder
+    public class HashFsPathFinder
     {
         /// <summary>
         /// File paths that were discovered by <see cref="Find"/>.
@@ -74,6 +75,8 @@ namespace Extractor.Deep
         /// </summary>
         private readonly FilePathFinder fpf;
 
+        public HashSet<string> ConsumedSuis { get; init; } = [];
+
         /// <summary>
         /// Directories discovered during the first phase which might contain tobj files.
         /// This is used to find the absolute path of tobj files that are referenced in 
@@ -83,7 +86,7 @@ namespace Extractor.Deep
         private readonly HashSet<string> dirsToSearchForRelativeTobj;
 
         public HashFsPathFinder(IHashFsReader reader, IList<string> additionalStartPaths = null, 
-            Dictionary<ulong, IEntry> junkEntries = null)
+            Dictionary<ulong, IEntry> junkEntries = null, AssetLoader multiModWrapper = null)
         {
             this.reader = reader;
             this.additionalStartPaths = additionalStartPaths;
@@ -95,7 +98,9 @@ namespace Extractor.Deep
             dirsToSearchForRelativeTobj = [];
             ReferencedFiles = [];
 
-            fpf = new FilePathFinder(visited, ReferencedFiles, dirsToSearchForRelativeTobj, reader);
+            IFileSystem fsToUse = multiModWrapper is null ? reader : multiModWrapper;
+            fpf = new FilePathFinder(fsToUse, visited, ReferencedFiles, 
+                dirsToSearchForRelativeTobj, ConsumedSuis);
         }
 
         /// <summary>
@@ -125,7 +130,7 @@ namespace Extractor.Deep
         private static PotentialPaths LoadStartPaths()
         {
             using var inMs = new MemoryStream(Resources.DeepStartPaths);
-            using var ds = new DeflateStream(inMs, CompressionMode.Decompress);
+            using var ds = new GZipStream(inMs, CompressionMode.Decompress);
             using var outMs = new MemoryStream();
             ds.CopyTo(outMs);
             var lines = Encoding.UTF8.GetString(outMs.ToArray());
@@ -325,7 +330,7 @@ namespace Extractor.Deep
             visitedEntries.Add(fileEntry);
             AddDirToDirsToSearchForRelativeTobj(filePath);
 
-            // skip HashFS v2 tobj/dds entries because we don't need to scan those
+            // Skip HashFS v2 tobj/dds entries because we don't need to scan those
             if (fileEntry is EntryV2 v2 && v2.TobjMetadata is not null)
             {
                 return [];

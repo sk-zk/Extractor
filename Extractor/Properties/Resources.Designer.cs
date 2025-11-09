@@ -60,9 +60,13 @@ namespace Extractor.Properties {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] DeepStartPaths {
             get {
-                return (byte[])ResourceManager.GetObject("DeepStartPaths", resourceCulture);
+                object obj = ResourceManager.GetObject("DeepStartPaths", resourceCulture);
+                return ((byte[])(obj));
             }
         }
     }

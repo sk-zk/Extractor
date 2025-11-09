@@ -6,13 +6,15 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using TruckLib;
+using TruckLib.HashFs;
 using static Extractor.PathUtils;
 
 namespace Extractor
 {
     class Program
     {
-        private const string Version = "2025-11-02";
+        private const string Version = "2025-11-09";
         private static bool launchedByExplorer = false;
         private static Options opt;
 
@@ -185,29 +187,36 @@ namespace Extractor
                     extractors.Add(extractor);
             }
 
+            var multiModWrapper = new AssetLoader(extractors.Select(x => x.FileSystem).ToArray());
+
             HashSet<string> everything = [];
+            HashSet<string> consumedSuis = [];
             foreach (var extractor in extractors)
             {
-                Console.WriteLine($"Searching for paths in {Path.GetFileName(extractor.ScsPath)} ...");
+                Console.Error.WriteLine($"Searching for paths in {Path.GetFileName(extractor.ScsPath)} ...");
                 if (extractor is HashFsDeepExtractor hashFs)
                 {
-                    var (found, referenced) = hashFs.FindPaths();
-                    everything.UnionWith(found);
-                    everything.UnionWith(referenced);
+                    var finder = hashFs.FindPaths(multiModWrapper);
+                    everything.UnionWith(finder.FoundFiles);
+                    everything.UnionWith(finder.ReferencedFiles);
+                    consumedSuis.UnionWith(finder.ConsumedSuis);
                 }
                 else if (extractor is ZipExtractor zip)
                 {
                     var finder = new ZipPathFinder(zip.Reader);
-                    finder.Find();
+                    finder.Find(multiModWrapper);
                     var paths = finder.ReferencedFiles
                         .Union(zip.Reader.Entries.Keys.Select(p => '/' + p));
                     everything.UnionWith(paths);
+                    consumedSuis.UnionWith(finder.ConsumedSuis);
                 }
                 else
                 {
                     throw new ArgumentException("Unhandled extractor type");
                 }
             }
+
+            SiiPathFinder.FindPathsInUnconsumedSuis(consumedSuis, everything, multiModWrapper);
 
             foreach (var extractor in extractors)
             {

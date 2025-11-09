@@ -109,6 +109,14 @@ namespace Extractor.Deep
             return (finder.FoundFiles, finder.ReferencedFiles);
         }
 
+        public HashFsPathFinder FindPaths(AssetLoader multiModWrapper)
+        {
+            finder = new HashFsPathFinder(Reader, opt.AdditionalStartPaths, junkEntries, multiModWrapper);
+            finder.Find();
+            hasSearchedForPaths = true;
+            return finder;
+        }
+
         /// <summary>
         /// Extracts files whose paths were not discovered.
         /// </summary>

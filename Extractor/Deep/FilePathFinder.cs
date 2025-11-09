@@ -57,7 +57,7 @@ namespace Extractor.Deep
             FileType.SoundBank,
             FileType.SoundBankGuids,
             FileType.SubstanceDesignerSource,
-            FileType.Sui, // handled by the including .sii files
+            FileType.Sui,
             FileType.Svg,
             FileType.TgaMask,
             FileType.Vso,
@@ -89,29 +89,35 @@ namespace Extractor.Deep
         private readonly HashSet<string> dirsToSearchForRelativeTobj;
 
         /// <summary>
-        /// The archive which is being analyzed.
+        /// The archive (or the <see cref="TruckLib.HashFs.AssetLoader">AssetLoader</see>
+        /// for a multi-mod archive) which is being analyzed.
         /// </summary>
         private readonly IFileSystem fs;
 
         [GeneratedRegex(@"image:(.*?),")]
         private static partial Regex fontImagePathRegex();
 
+        private readonly HashSet<string> consumedSuis;
+
         /// <summary>
         /// Instantiates a <c>FilePathFinder</c>.
         /// </summary>
+        /// <param name="fs">The archive (or the <see cref="TruckLib.HashFs.AssetLoader">AssetLoader</see>
+        /// for a multi-mod archive) which is being analyzed (of the parenting PathFinder).</param>
         /// <param name="visited">The set of visited paths (of the parenting PathFinder).</param>
-        /// <param name="referencedFiles">The set of files referenced in the archive (of the parenting PathFinder).</param>
+        /// <param name="referencedFiles">The set of files referenced in the archive 
+        /// (of the parenting PathFinder).</param>
         /// <param name="dirsToSearchForRelativeTobj">The set of dirs which may contain tobj files
-        ///     (of the parenting PathFinder).</param>
-        /// <param name="fs">The archive which is being analyzed as <see cref="IFileSystem"/>
-        ///     (of the parenting PathFinder).</param>
-        public FilePathFinder(HashSet<string> visited, HashSet<string> referencedFiles,
-            HashSet<string> dirsToSearchForRelativeTobj, IFileSystem fs)
+        /// (of the parenting PathFinder).</param>
+        public FilePathFinder(IFileSystem fs, HashSet<string> visited,
+            HashSet<string> referencedFiles, HashSet<string> dirsToSearchForRelativeTobj,
+            HashSet<string> consumedSuis)
         {
             this.visited = visited;
             this.dirsToSearchForRelativeTobj = dirsToSearchForRelativeTobj;
             this.referencedFiles = referencedFiles;
             this.fs = fs;
+            this.consumedSuis = consumedSuis;
             finders = new Dictionary<FileType, FinderFunc>()
             {
                 { FileType.Sii, FindPathsInSii },
@@ -167,7 +173,8 @@ namespace Extractor.Deep
         /// <returns>Discovered paths.</returns>
         private PotentialPaths FindPathsInSii(byte[] fileBuffer, string filePath)
         {
-            var potentialPaths = SiiPathFinder.FindPathsInSii(fileBuffer, filePath, fs);
+            var (potentialPaths, newSuis) = SiiPathFinder.FindPathsInSii(fileBuffer, filePath, fs);
+            consumedSuis.UnionWith(newSuis);
             potentialPaths.ExceptWith(visited);
             return potentialPaths;
         }
