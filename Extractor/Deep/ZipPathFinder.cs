@@ -23,11 +23,6 @@ namespace Extractor.Deep
         /// </summary>
         private readonly ZipReader reader;
 
-        /// <summary>
-        /// The <see cref="FilePathFinder"/> instance.
-        /// </summary>
-        private readonly FilePathFinder fpf;
-
         public HashSet<string> ConsumedSuis { get; init; } = [];
 
         public ZipPathFinder(ZipReader reader) 
