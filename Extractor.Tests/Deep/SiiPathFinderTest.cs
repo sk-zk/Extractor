@@ -45,5 +45,30 @@ namespace Extractor.Tests.Deep
             Assert.Contains("/material/ui/lp/norway/truck_front.mat", paths);
             Assert.Contains("/material/ui/lp/norway/truck_rear.mat", paths);
         }
+
+        [Fact]
+        public void ConstructAccessoryIconPath()
+        {
+            var siiStr =
+                """
+                SiiNunit 
+                {
+                accessory_hookup_data : foo01.addon_hookup
+                {
+                    name: "Foo"
+                    price: 727	
+                    icon: "hello/test.foo"	
+                    model: "/vehicle/truck/upgrade/foo.pmd"
+                    suitable_for[]: "foo"
+                    electric_type: aux_light
+                    unlock: 0
+                }
+                }
+                """;
+
+            var (paths, _) = SiiPathFinder.FindPathsInSii(siiStr, "", null);
+
+            Assert.Contains("/material/ui/accessory/hello/test.foo.mat", paths);
+        }
     }
 }
