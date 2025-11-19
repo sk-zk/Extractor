@@ -78,9 +78,9 @@ namespace Extractor.Deep
                 || magic.StartsWith("3nK") // 3nK-encoded sii
                 ))
             {
-#if DEBUG
+                #if DEBUG
                 Console.Error.WriteLine($"Not a sii file: {filePath}");
-#endif
+                #endif
                 return ([], []);
             }
 
@@ -290,11 +290,12 @@ namespace Extractor.Deep
             {
                 foreach (var str in strings)
                 {
-                    if (attrib.Key == "sounds" || attrib.Key == "sound_path")
+                    var key = attrib.Key;
+                    if (key == "sounds" || key == "sound_path")
                     {
                         potentialPaths.Add(GetSoundPath(str), null);
                     }
-                    else if (attrib.Key == "adr_info_icon" || attrib.Key == "fallback")
+                    else if (key == "adr_info_icon" || key == "fallback")
                     {
                         var parts = str.Split("|");
                         if (parts.Length == 2)
@@ -302,7 +303,7 @@ namespace Extractor.Deep
                         else
                             Debugger.Break();
                     }
-                    else if (unitClass == "company_permanent" && attrib.Key == "sound")
+                    else if (unitClass == "company_permanent" && key == "sound")
                     {
                         var parts = str.Split("|");
                         if (parts.Length == 2)
@@ -346,13 +347,14 @@ namespace Extractor.Deep
             string unitClass, PotentialPaths potentialPaths)
         {
             string str = attrib.Value;
+            string key = attrib.Key;
 
             if (unitClass == "ui::text"
                 || unitClass == "ui::text_template"
                 || unitClass == "ui::text_common"
                 || unitClass == "ui_text_bar"
-                || (unitClass == "sign_template_text" && attrib.Key == "text")
-                || attrib.Key == "offence_message")
+                || (unitClass == "sign_template_text" && key == "text")
+                || key == "offence_message")
             {
                 // Extract paths from img and font tags of the faux-HTML
                 // used in UI strings.
@@ -362,18 +364,14 @@ namespace Extractor.Deep
                     potentialPaths.Add(match.Groups[1].Value, null);
                 }
             }
-            else if (attrib.Key == "icon" && unitClass != "mod_package")
+            else if (key == "icon" && unitClass != "mod_package")
             {
                 // See https://modding.scssoft.com/wiki/Documentation/Engine/Units/trailer_configuration
                 // and https://modding.scssoft.com/wiki/Documentation/Engine/Units/accessory_data
-                var iconPath = $"/material/ui/accessory/{attrib.Value}";
-                if (Path.GetExtension(iconPath) == "")
-                {
-                    iconPath += ".mat";
-                }
+                var iconPath = $"/material/ui/accessory/{attrib.Value}.mat";
                 potentialPaths.Add(iconPath, null);
             }
-            else if (attrib.Key == "sound_path" || attrib.Key == "sound_sfx" || attrib.Key == "scene_music")
+            else if (key == "sound_path" || key == "sound_sfx" || key == "scene_music")
             {
                 potentialPaths.Add(GetSoundPath(str), null);
             }
