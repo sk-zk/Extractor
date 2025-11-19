@@ -160,7 +160,17 @@ namespace Extractor
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Unable to open {scsPath}: {ex.Message}");
+                // In case this is actually a ZIP file that has been modified
+                // to start with "SCS#", we'll try to create a ZIP extractor first.
+                // If that also fails, print the original HashFS error message.
+                try
+                {
+                    extractor = new ZipExtractor(scsPath, opt);
+                }
+                catch
+                {
+                    Console.Error.WriteLine($"Unable to open {scsPath}: {ex.Message}");
+                }
             }
             return extractor;
         }
