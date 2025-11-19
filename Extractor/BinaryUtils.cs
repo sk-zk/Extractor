@@ -13,38 +13,47 @@ namespace Extractor
         /// Searches for the last occurrence of a byte sequence in a stream.
         /// </summary>
         /// <param name="reader">The <see cref="BinaryReader"/> to read from.</param>
-        /// <param name="bytes">The byte sequence to search for.</param>
+        /// <param name="pattern">The byte sequence to search for.</param>
         /// <param name="limit">The maximum number of bytes to check from the end of the stream.
         /// Defaults to -1, which means that there is no maximum.</param>
         /// <returns>The offset from the start of the last occurrence of the sequence in the stream,
         /// or -1 if the sequence was not found.</returns>
-        public static long FindBytesBackwards(BinaryReader reader, byte[] bytes, int limit = -1)
+        public static long FindBytesBackwards(BinaryReader reader, byte[] pattern)
         {
-            long endPos = limit < 0 
+            const int bufferSize = 8192;
+            var buffer = new byte[bufferSize];
+
+            long startPos = reader.BaseStream.Length < bufferSize 
                 ? 0 
-                : Math.Max(0, reader.BaseStream.Length - limit - 1);
-            int seqIdx = bytes.Length - 1;
+                : reader.BaseStream.Length - bufferSize;
+            int seqIdx = pattern.Length - 1;
             long offset = -1;
 
-            reader.BaseStream.Seek(-bytes.Length, SeekOrigin.End);
-            while (reader.BaseStream.Position > endPos)
+            do
             {
-                var current = reader.ReadByte();
-                if (bytes[seqIdx] == current)
+                reader.BaseStream.Position = startPos;
+                reader.Read(buffer, 0, buffer.Length);
+
+                for (int i = buffer.Length - 1; i >= 0; i--)
                 {
-                    seqIdx--;
-                    if (seqIdx < 0)
+                    var current = buffer[i];
+                    if (pattern[seqIdx] == current)
                     {
-                        offset = reader.BaseStream.Seek(-1, SeekOrigin.Current);
-                        break;
+                        seqIdx--;
+                        if (seqIdx < 0)
+                        {
+                            offset = startPos + i;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        seqIdx = pattern.Length - 1;
                     }
                 }
-                else
-                {
-                    seqIdx = bytes.Length - 1;
-                }
-                reader.BaseStream.Seek(-2, SeekOrigin.Current);
-            }
+
+                startPos = Math.Max(0, startPos - bufferSize);
+            } while (startPos > 0 && offset < 0);
             return offset;
         }
 

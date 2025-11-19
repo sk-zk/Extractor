@@ -23,24 +23,5 @@ namespace Extractor.Tests
             Assert.Equal(-1, BinaryUtils.FindBytesBackwards(reader, [0x55, 0x66]));
             Assert.Equal(8, BinaryUtils.FindBytesBackwards(reader, [0x11, 0x22]));
         }
-
-        [Fact]
-        public void FindBytesBackwardsWithMaximum()
-        {
-            byte[] bytes = [0x00, 0x42, 0x00, 0x00, 0x00, 0x00];
-            using var ms = new MemoryStream(bytes);
-            using var reader = new BinaryReader(ms);
-            Assert.Equal(-1, BinaryUtils.FindBytesBackwards(reader, [0x42], 4));
-            Assert.Equal(1, BinaryUtils.FindBytesBackwards(reader, [0x42], 5));
-        }
-
-        [Fact]
-        public void FindBytesBackwardsWithMaximumLargerThanStream()
-        {
-            byte[] bytes = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
-            using var ms = new MemoryStream(bytes);
-            using var reader = new BinaryReader(ms);
-            Assert.Equal(-1, BinaryUtils.FindBytesBackwards(reader, [0x42], 999));
-        }
     }
 }
