@@ -22,7 +22,10 @@ namespace Extractor
 
         public static void PrintExtractionMessage(string path, string scsName)
         {
-            Console.WriteLine($"Extracting {ReplaceControlChars(Combine(scsName, path))} ...");
+            if (Options.QuietExtractionFlag == false)
+            {
+                Console.WriteLine($"Extracting {ReplaceControlChars(Combine(scsName, path))} ...");
+            };
         }
 
         public static void PrintNoTopLevelError()
