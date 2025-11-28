@@ -53,11 +53,11 @@ jobs:
             -c Release \
             -r ${{ matrix.rid }} \
             --self-contained true \
-            /p:PublishSingleFile=true \
-            /p:EnableCompressionInSingleFile=true \
-            /p:DebugType=None \
-            /p:IncludeNativeLibrariesForSelfExtract=true \
-            /p:StripSymbols=true \
+            -p:PublishSingleFile=true \
+            -p:EnableCompressionInSingleFile=true \
+            -p:DebugType=None \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:StripSymbols=true \
             -o bin/publish/${{ matrix.rid }}
           echo "Published to bin/publish/${{ matrix.rid }}"
           ls -al bin/publish/${{ matrix.rid }}
