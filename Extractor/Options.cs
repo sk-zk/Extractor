@@ -108,6 +108,11 @@ namespace Extractor
         /// </summary>
         public bool UseRawExtractor { get; set; } = false;
 
+        /// <summary>
+        /// Quiet mode, doesn't print on every extracted file.
+        /// </summary>
+        public bool QuietExtractionFlag { get; set; } = false;
+
         public Options()
         {
             OptionSet = new OptionSet()
@@ -171,6 +176,9 @@ namespace Extractor
                 { "tree",
                     "Prints the archive's directory tree.",
                     x => { PrintTree = true; } },
+                { "q|quiet",
+                    "Quiet mode, doesn't print on every extracted file.",
+                    x => { QuietExtractionFlag = true; } },
                 { "?|h|help",
                     $"Prints this message and exits.",
                     x => { PrintHelp = true; } },
