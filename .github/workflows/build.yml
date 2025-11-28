@@ -1,0 +1,106 @@
+name: Build Extractor
+
+on:
+  push:
+    branches:
+      - master
+      - feature/builds # Temporary branch for testing builds
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    name: Build (${{ matrix.rid }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: windows-latest
+            rid: win-x64
+          - os: macos-latest
+            rid: osx-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore Extractor/Extractor.csproj
+
+      - name: Publish self-contained
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Base self-contained publish - no .NET runtime required
+          dotnet publish Extractor/Extractor.csproj \
+            -c Release \
+            -r ${{ matrix.rid }} \
+            --self-contained true \
+            /p:PublishSingleFile=true \
+            /p:EnableCompressionInSingleFile=true \
+            /p:DebugType=None \
+            /p:IncludeNativeLibrariesForSelfExtract=true \
+            /p:StripSymbols=true \
+            -o bin/publish/${{ matrix.rid }}
+          echo "Published to bin/publish/${{ matrix.rid }}"
+          ls -al bin/publish/${{ matrix.rid }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extractor-${{ matrix.rid }}
+          path: bin/publish/${{ matrix.rid }}
+          if-no-files-found: error
+
+  release-assets:
+    name: Attach Release Assets
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Add Windows file suffix
+        run: |
+          set -euo pipefail
+          if [ -d "dist/win-x64" ]; then
+            mv "dist/win-x64" "dist/win-x64-windows.exe"
+          fi
+
+      - name: Zip artifacts
+        run: |
+          set -euo pipefail
+          cd dist
+          for dir in *; do
+            if [ -d "$dir" ]; then
+              zip -r "${dir}.zip" "$dir"
+            fi
+          done
+          ls -al
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
