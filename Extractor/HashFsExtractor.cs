@@ -203,7 +203,10 @@ namespace Extractor
             }
 
             var scsName = Path.GetFileName(ScsPath);
-            PrintExtractionMessage(archivePath, scsName);
+            if (opt.QuietExtractionFlag == false)
+            {
+                PrintExtractionMessage(archivePath, scsName);
+            };
 
             if (!Overwrite && File.Exists(outputPath))
             {

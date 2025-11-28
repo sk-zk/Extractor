@@ -65,7 +65,10 @@ namespace Extractor.Zip
             {
                 try
                 {
-                    PrintExtractionMessage(entry.FileName, scsName);
+                    if (opt.QuietExtractionFlag == false)
+                    {
+                            PrintExtractionMessage(entry.FileName, scsName);
+                    };
                     if (!substitutions.TryGetValue(entry.FileName, out string fileName))
                     {
                         fileName = entry.FileName;

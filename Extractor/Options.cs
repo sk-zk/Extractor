@@ -111,7 +111,7 @@ namespace Extractor
         /// <summary>
         /// Quiet mode, doesn't print on every extracted file.
         /// </summary>
-        public static bool QuietExtractionFlag { get; set; } = false;
+        public bool QuietExtractionFlag { get; set; } = false;
 
         public Options()
         {
