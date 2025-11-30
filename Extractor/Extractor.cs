@@ -65,8 +65,7 @@ namespace Extractor
 
         public abstract void Dispose();
 
-        internal static bool ExtractWithSubstitutionsIfRequired(string archivePath, string outputPath,
-            byte[] buffer, Dictionary<string, string> substitutions)
+        protected static bool PerformSubstitutionIfRequired(string archivePath, ref byte[] buffer, Dictionary<string, string> substitutions)
         {
             var wasModified = false;
 
@@ -90,13 +89,15 @@ namespace Extractor
                 }
             }
 
-            File.WriteAllBytes(outputPath, buffer);
             return wasModified;
         }
 
         protected void WriteRenamedSummary(string outputRoot)
         {
             if (renamedFiles.Count == 0)
+                return;
+
+            if (opt.DryRun)
                 return;
 
             var path = Path.Combine(outputRoot, "_renamed.txt");
@@ -112,6 +113,9 @@ namespace Extractor
         protected void WriteModifiedSummary(string outputRoot)
         {
             if (modifiedFiles.Count == 0)
+                return;
+
+            if (opt.DryRun)
                 return;
 
             var path = Path.Combine(outputRoot, "_modified.txt");

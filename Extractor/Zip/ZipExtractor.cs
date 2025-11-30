@@ -148,16 +148,20 @@ namespace Extractor.Zip
                 renamedFiles.Add((entry.FileName, fileName));
             }
 
-            var outputDir = Path.GetDirectoryName(outputPath);
-            if (outputDir != null)
-            {
-                Directory.CreateDirectory(outputDir);
-            }
-
             using var ms = new MemoryStream();
             Reader.GetEntry(entry, ms);
-            var wasModified = ExtractWithSubstitutionsIfRequired(entry.FileName, outputPath, 
-                ms.ToArray(), substitutions);
+            var buffer = ms.ToArray();
+            var wasModified = PerformSubstitutionIfRequired(entry.FileName, ref buffer, substitutions);
+
+            if (!opt.DryRun)
+            {
+                var outputDir = Path.GetDirectoryName(outputPath);
+                if (outputDir != null)
+                {
+                    Directory.CreateDirectory(outputDir);
+                }
+                File.WriteAllBytes(outputPath, buffer);
+            }
 
             numExtracted++;
             if (wasModified)

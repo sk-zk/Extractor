@@ -17,8 +17,12 @@ namespace Extractor
         {
             var scsName = Path.GetFileName(ScsPath);
             Console.Out.WriteLine($"Extracting {scsName} ...");
+
             var outputDir = Path.Combine(destination, scsName);
-            Directory.CreateDirectory(outputDir);
+            if (!opt.DryRun)
+            {
+                Directory.CreateDirectory(outputDir);
+            }
 
             foreach (var (key, entry) in Reader.Entries)
             {

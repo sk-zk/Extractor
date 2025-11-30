@@ -229,10 +229,14 @@ namespace Extractor
             {
                 var buffers = Reader.Extract(entry, archivePath);
 
-                Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-                var wasModified = ExtractWithSubstitutionsIfRequired(archivePath, outputPath, buffers[0], substitutions);
+                var wasModified = PerformSubstitutionIfRequired(archivePath, ref buffers[0], substitutions);
+                if (!opt.DryRun)
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
+                    File.WriteAllBytes(outputPath, buffers[0]);
+                }
 
-                if (entry is EntryV2 v2 && v2.TobjMetadata is not null)
+                if (!opt.DryRun && entry is EntryV2 v2 && v2.TobjMetadata is not null)
                 {
                     var ddsPath = Path.ChangeExtension(outputPath, "dds");
                     if (Overwrite || !File.Exists(ddsPath))

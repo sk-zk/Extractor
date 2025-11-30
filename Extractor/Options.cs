@@ -27,6 +27,11 @@ namespace Extractor
         public string Destination { get; set; } = "./extracted";
 
         /// <summary>
+        /// Don't write anything to disk.
+        /// </summary>
+        public bool DryRun { get; set; }
+
+        /// <summary>
         /// If true, the input path(s) are expected to be directories,
         /// and all .scs files in these directories are extracted.
         /// </summary>
@@ -131,6 +136,9 @@ namespace Extractor
                 { "d=|dest=",
                     $"The output directory.\nDefault: {Destination}",
                     x => { Destination = x; } },
+                 { "dry-run",
+                    $"Don't write anything to disk.",
+                    x => { DryRun = true; } },
                 { "f=|filter=",
                     $"Limits extraction to files whose paths match one or more of the specified filter patterns. " +
                     $"See the readme for details.",
