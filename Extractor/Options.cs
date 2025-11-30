@@ -29,7 +29,7 @@ namespace Extractor
         /// <summary>
         /// Don't write anything to disk.
         /// </summary>
-        public bool DryRun { get; set; }
+        public bool DryRun { get; set; } = false;
 
         /// <summary>
         /// If true, the input path(s) are expected to be directories,
@@ -82,6 +82,11 @@ namespace Extractor
         public bool PrintTree { get; set; } = false;
 
         /// <summary>
+        /// Quiet mode, doesn't print on every extracted file.
+        /// </summary>
+        public bool Quiet { get; set; } = false;
+
+        /// <summary>
         /// If not null, the salt to use for hashing paths instead of the one
         /// specified in the archive header.
         /// </summary>
@@ -112,11 +117,6 @@ namespace Extractor
         /// Whether the archive should be extracted with <see cref="HashFsRawExtractor"/>.
         /// </summary>
         public bool UseRawExtractor { get; set; } = false;
-
-        /// <summary>
-        /// Quiet mode, doesn't print on every extracted file.
-        /// </summary>
-        public bool QuietExtractionFlag { get; set; } = false;
 
         public Options()
         {
@@ -164,6 +164,9 @@ namespace Extractor
                     "Same as --partial, but expects a text file containing paths to extract, " +
                     "separated by line breaks.",
                     x => { StartPaths = LoadPathsFromFile(x); } },
+                { "q|quiet",
+                    "Don't print paths of extracted files.",
+                    x => { Quiet = true; } },
                 { "r|raw",
                     "[HashFS] Dumps the contained files with their hashed " +
                     "filenames rather than traversing the archive's directory tree.",
@@ -184,9 +187,6 @@ namespace Extractor
                 { "tree",
                     "Prints the archive's directory tree.",
                     x => { PrintTree = true; } },
-                { "q|quiet",
-                    "Quiet mode, doesn't print on every extracted file.",
-                    x => { QuietExtractionFlag = true; } },
                 { "?|h|help",
                     $"Prints this message and exits.",
                     x => { PrintHelp = true; } },

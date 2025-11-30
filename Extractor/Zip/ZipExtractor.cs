@@ -39,7 +39,7 @@ namespace Extractor.Zip
 
         /// <summary>
         /// The number of files which have been skipped because the output path
-        /// already exists and <c>--skip-existing</c> was passed.
+        /// already exists and <see cref="Options.SkipIfExists"/> is set.
         /// </summary>
         private int numSkipped;
 
@@ -65,10 +65,10 @@ namespace Extractor.Zip
             {
                 try
                 {
-                    if (opt.QuietExtractionFlag == false)
+                    if (!opt.Quiet)
                     {
-                            PrintExtractionMessage(entry.FileName, scsName);
-                    };
+                        PrintExtractionMessage(entry.FileName, scsName);
+                    }
                     if (!substitutions.TryGetValue(entry.FileName, out string fileName))
                     {
                         fileName = entry.FileName;

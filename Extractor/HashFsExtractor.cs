@@ -56,7 +56,7 @@ namespace Extractor
 
         /// <summary>
         /// The number of files which have been skipped because the output path
-        /// already exists and <c>--skip-existing</c> was passed.
+        /// already exists and <see cref="Options.SkipIfExists"/> is set.
         /// </summary>
         protected int numSkipped;
 
@@ -202,11 +202,11 @@ namespace Extractor
                 renamedFiles.Add((archivePath, filePath));
             }
 
-            var scsName = Path.GetFileName(ScsPath);
-            if (opt.QuietExtractionFlag == false)
+            if (!opt.Quiet)
             {
+                var scsName = Path.GetFileName(ScsPath);
                 PrintExtractionMessage(archivePath, scsName);
-            };
+            }
 
             if (!Overwrite && File.Exists(outputPath))
             {
