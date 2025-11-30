@@ -55,7 +55,7 @@ extractor path... [options]
   <code>-f=*volvo_fh_2024*</code>: extract files or directories containing the string "volvo_fh_2024"<br>
   <code>-f=*volvo*,*scania*</code>: extract files or directories containing the string "volvo" or "scania"<br>
   <code>-f=/def/vehicle/truck/*/engine/*</code>: extract engine definitions for trucks</code><br>
-  <code>-f=r/\.p(m[acdg]|d)$/</code>: extract model files (.pmd, .pmg, ...)</code>
+  <code>-f=r/\.p(m[acdg]|pd)$/</code>: extract model files (.pmd, .pmg, ...)</code>
   </p>
   <p>When using regex, remember to insert escape characters where necessary.</p>
   </td>
@@ -183,7 +183,7 @@ extractor "path\to\file.scs" --partial=/def,/manifest.sii
 
 Extract model files only:
 ```sh
-extractor "path\to\file.scs" --filter=r/\.p(m[acdg]|d)$/
+extractor "path\to\file.scs" --filter=r/\.p(m[acdg]|pd)$/
 ```
 
 Extract with deep mode:
