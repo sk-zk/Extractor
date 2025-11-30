@@ -47,6 +47,11 @@ extractor path... [options]
   <td>Sets the output directory. Defaults to <code>./extracted</code>.</td>
 </tr>
 <tr>
+  <td></td>
+  <td><code>--dry-run</code></td>
+  <td>Don't write anything to disk.</td>
+</tr>
+<tr>
   <td><code>-f</code></td>
   <td><code>--filter</code></td>
   <td><p>Limits extraction to files whose paths match one or more of the specified filter patterns. A filter pattern can be a simple wildcard pattern, 
@@ -90,6 +95,11 @@ extractor path... [options]
   <td><code>--paths</code></td>
   <td>Same as <code>--partial</code>, but expects a text file containing paths to extract, separated by
   line breaks.</td>
+</tr>
+<tr>
+  <td><code>-q</code></td>
+  <td><code>--quiet</code></td>
+  <td>Don't print paths of extracted files.</td>
 </tr>
 <tr>
   <td><code>-S</code></td>
