@@ -65,7 +65,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: extractor-${{ matrix.rid }}
+          name: extractor-${{ github.event.release.tag_name }}-${{ matrix.rid }}
           path: bin/publish/${{ matrix.rid }}
           if-no-files-found: error
 
