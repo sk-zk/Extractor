@@ -85,7 +85,7 @@ namespace Extractor
                     }
                     else
                     {
-                        Console.Error.WriteLine("--list can only be used with HashFS archives.");
+                        Console.Error.WriteLine("--list-entries can only be used with HashFS archives.");
                     }
                 }
                 else if (opt.ListPaths)
