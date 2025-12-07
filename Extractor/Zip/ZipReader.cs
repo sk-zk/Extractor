@@ -186,7 +186,7 @@ namespace Extractor.Zip
         {
             RemoveInitialSlash(ref path);
             var entry = Entries[path];
-            using var ms = new MemoryStream();
+            var ms = new MemoryStream();
             GetEntry(entry, ms);
             ms.Position = 0;
             return ms;
