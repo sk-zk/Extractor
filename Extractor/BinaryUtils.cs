@@ -14,8 +14,6 @@ namespace Extractor
         /// </summary>
         /// <param name="reader">The <see cref="BinaryReader"/> to read from.</param>
         /// <param name="pattern">The byte sequence to search for.</param>
-        /// <param name="limit">The maximum number of bytes to check from the end of the stream.
-        /// Defaults to -1, which means that there is no maximum.</param>
         /// <returns>The offset from the start of the last occurrence of the sequence in the stream,
         /// or -1 if the sequence was not found.</returns>
         public static long FindBytesBackwards(BinaryReader reader, byte[] pattern)
