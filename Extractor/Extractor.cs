@@ -65,7 +65,8 @@ namespace Extractor
 
         public abstract void Dispose();
 
-        protected static bool PerformSubstitutionIfRequired(string archivePath, ref byte[] buffer, Dictionary<string, string> substitutions)
+        protected static bool PerformSubstitutionIfRequired(string archivePath, ref byte[] buffer, 
+            Dictionary<string, string> substitutions)
         {
             var wasModified = false;
 
