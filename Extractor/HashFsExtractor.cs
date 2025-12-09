@@ -94,10 +94,9 @@ namespace Extractor
         /// <inheritdoc/>
         public override void Extract(string outputRoot)
         {
-            if (opt.StartPaths.Count == 1 && opt.StartPaths[0] == "/" 
-                && IsRootMissingOrEmpty())
+            if (opt.StartPaths.Count == 1 && opt.StartPaths[0] == "/")
             {
-                return;
+                AssertRootNotMissingOrEmpty();
             }
 
             var pathsToExtract = GetPathsToExtract(Reader, opt.StartPaths, opt.Filters,
@@ -119,25 +118,20 @@ namespace Extractor
             WriteModifiedSummary(outputRoot);
         }
 
-        private bool IsRootMissingOrEmpty()
+        private void AssertRootNotMissingOrEmpty()
         {
             if (Reader.EntryExists("/") == EntryType.Directory)
             {
                 var listing = Reader.GetDirectoryListing("/");
                 if (listing.Subdirectories.Count == 0 && listing.Files.Count == 0)
                 {
-                    Console.Error.WriteLine("Top level directory is empty; " +
-                        "use --deep to scan contents for paths before extraction " +
-                        "or --partial to extract known paths");
-                    return true;
+                    throw new RootEmptyException();
                 }
             }
             else
             {
-                PrintNoTopLevelError();
-                return true;
+                throw new RootMissingException();
             }
-            return false;
         }
 
         protected void ExtractFiles(IList<string> pathsToExtract, string outputRoot, bool ignoreMissing = false)
@@ -465,7 +459,7 @@ namespace Extractor
                     {
                         if (nonexistent == "/")
                         {
-                            PrintNoTopLevelError();
+                            PrintRootMissingError();
                         }
                         else if (PrintNotFoundMessage)
                         {
@@ -527,4 +521,8 @@ namespace Extractor
             GC.SuppressFinalize(this);
         }
     }
+
+    internal class RootMissingException : Exception { }
+
+    internal class RootEmptyException : Exception { }
 }

@@ -243,7 +243,7 @@ namespace Extractor
             if (!File.Exists(file))
             {
                 Console.Error.WriteLine($"File {file} does not exist.");
-                Environment.Exit(1);
+                Environment.Exit((int)ExitCode.PathFileNotFound);
             }
 
             List<string> paths = [];

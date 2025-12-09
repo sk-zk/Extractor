@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using TruckLib;
 using TruckLib.HashFs;
 using static Extractor.PathUtils;
 
@@ -18,7 +17,7 @@ namespace Extractor
         private static bool launchedByExplorer = false;
         private static Options opt;
 
-        public static void Main(string[] args)
+        public static int Main(string[] args)
         {
             if (OperatingSystem.IsWindows())
             {
@@ -38,79 +37,171 @@ namespace Extractor
 
             if (opt.PrintHelp || args.Length == 0)
             {
-                Console.WriteLine($"Extractor {Version}\n");
-                Console.WriteLine("Usage:\n  extractor path... [options]\n");
-                Console.WriteLine("Options:");
-                opt.OptionSet.WriteOptionDescriptions(Console.Out);
-                PauseIfNecessary();
-                return;
+                PrintUsage();
+                return (int)ExitCode.Success;
             }
+
+            ValidateOptions();
+
+            var exitCode = Run();
+            PauseIfNecessary();
+            return (int)exitCode;
+        }
+
+        private static void PrintUsage()
+        {
+            Console.WriteLine($"Extractor {Version}\n");
+            Console.WriteLine("Usage:\n  extractor path... [options]\n");
+            Console.WriteLine("Options:");
+            opt.OptionSet.WriteOptionDescriptions(Console.Out);
+            PauseIfNecessary();
+        }
+
+        private static void ValidateOptions()
+        {
             if (opt.InputPaths is null || opt.InputPaths.Count == 0)
             {
                 Console.Error.WriteLine("No input paths specified.");
                 PauseIfNecessary();
-                return;
+                Environment.Exit((int)ExitCode.NoInput);
             }
 
-            Run();
-            PauseIfNecessary();
+            Dictionary<string, bool> modeSwitches = new()
+            {
+                { "list", opt.ListPaths },
+                { "list-entries", opt.ListEntries },
+                { "raw", opt.UseRawExtractor },
+                { "tree", opt.PrintTree },
+            };
+            var combinations = modeSwitches.SelectMany(
+                (x, i) => modeSwitches.Skip(i + 1), 
+                (x, y) => (X: x, Y: y)
+            );
+            foreach (var (X, Y) in combinations)
+            {
+                if (X.Value && Y.Value)
+                {
+                    Console.Error.WriteLine($"--{X.Key} and --{Y.Key} cannot be combined.");
+                    Environment.Exit((int)ExitCode.IncompatibleOptions);
+                }
+            }
         }
 
-        private static void Run()
+        private static ExitCode Run()
         {
             var scsPaths = GetScsPathsFromArgs();
             if (scsPaths.Length == 0)
             {
                 Console.Error.WriteLine("No .scs files were found.");
-                return;
+                return ExitCode.NoInput;
             }
 
             if (opt.UseDeepExtractor && scsPaths.Length > 1)
             {
-                DoMultiDeepExtraction(scsPaths);
-                return;
+                return DoMultiDeepExtraction(scsPaths);
             }
 
+            List<ExtractionResult> results = new(scsPaths.Length);
             foreach (var scsPath in scsPaths)
             {
-                var extractor = CreateExtractor(scsPath);
-                if (extractor is null)
+                Extractor extractor;
+                try
+                {
+                    extractor = CreateExtractor(scsPath);
+                }
+                catch (FileNotFoundException)
+                {
+                    results.Add(ExtractionResult.NotFound);
                     continue;
+                }
+                catch (InvalidDataException)
+                {
+                    results.Add(ExtractionResult.FailedToOpen);
+                    continue;
+                }
+                catch (Exception)
+                {
+                    results.Add(ExtractionResult.FailedToOpen);
+                    continue;
+                }
 
                 if (opt.ListEntries)
                 {
-                    if (extractor is HashFsExtractor)
+                    if (extractor is HashFsExtractor hEx)
                     {
-                        ListEntries(extractor);
+                        ListEntries(hEx);
+                        results.Add(ExtractionResult.Success);
                     }
                     else
                     {
                         Console.Error.WriteLine("--list-entries can only be used with HashFS archives.");
+                        results.Add(ExtractionResult.IncompatibleOptions);
                     }
                 }
                 else if (opt.ListPaths)
                 {
                     extractor.PrintPaths(opt.ListAll);
+                    results.Add(ExtractionResult.Success);
                 }
                 else if (opt.PrintTree)
                 {
-                    if (opt.UseRawExtractor)
-                    {
-                        Console.Error.WriteLine("--tree and --raw cannot be combined.");
-                    }
-                    else
-                    {
-                        var trees = extractor.GetDirectoryTree();
-                        var scsName = Path.GetFileName(extractor.ScsPath);
-                        Tree.TreePrinter.Print(trees, scsName);
-                    }
+                    var trees = extractor.GetDirectoryTree();
+                    var scsName = Path.GetFileName(extractor.ScsPath);
+                    Tree.TreePrinter.Print(trees, scsName);
+                    results.Add(ExtractionResult.Success);
                 }
                 else
                 {
-                    extractor.Extract(GetDestination(scsPath));
+                    try
+                    {
+                        extractor.Extract(GetDestination(scsPath));
+                        results.Add(ExtractionResult.Success);
+                    }
+                    catch (RootMissingException)
+                    {
+                        ConsoleUtils.PrintRootMissingError();
+                        results.Add(ExtractionResult.RootMissing);
+                    }
+                    catch (RootEmptyException)
+                    {
+                        ConsoleUtils.PrintRootEmptyError();
+                        results.Add(ExtractionResult.RootEmpty);
+                    }
                     extractor.PrintExtractionResult();
                 }
             }
+
+            return DetermineExitCode(results);
+        }
+
+        private static ExitCode DetermineExitCode(List<ExtractionResult> results)
+        {
+            if (results.All(x => x == ExtractionResult.Success))
+            {
+                return ExitCode.Success;
+            }
+            if (results.Any(x => x == ExtractionResult.Success))
+            {
+                return ExitCode.PartialSuccess;
+            }
+            else if (results.All(x => x == ExtractionResult.NotFound))
+            {
+                return ExitCode.NotFound;
+            }
+            else if (results.All(x => x is ExtractionResult.RootEmpty
+                or ExtractionResult.RootMissing))
+            {
+                return ExitCode.NoRoot;
+            }
+            else if (results.All(x => x == ExtractionResult.FailedToOpen))
+            {
+                return ExitCode.FailedToOpen;
+            }
+            else if (results.All(x => x == ExtractionResult.IncompatibleOptions))
+            {
+                return ExitCode.IncompatibleOptions;
+            }
+            return ExitCode.AllFailed;
         }
 
         private static string GetDestination(string scsPath)
@@ -129,10 +220,10 @@ namespace Extractor
             if (!File.Exists(scsPath))
             {
                 Console.Error.WriteLine($"{scsPath} is not a file or does not exist.");
-                return null;
+                throw new FileNotFoundException();
             }
 
-            Extractor extractor = null;
+            Extractor extractor;
             try
             {
                 // Check if the file begins with "SCS#", the magic bytes of a HashFS file.
@@ -157,6 +248,7 @@ namespace Extractor
             catch (InvalidDataException)
             {
                 Console.Error.WriteLine($"Unable to open {scsPath}: Not a HashFS or ZIP archive");
+                throw;
             }
             catch (Exception ex)
             {
@@ -170,6 +262,7 @@ namespace Extractor
                 catch
                 {
                     Console.Error.WriteLine($"Unable to open {scsPath}: {ex.Message}");
+                    throw;
                 }
             }
             return extractor;
@@ -185,17 +278,38 @@ namespace Extractor
                 return new HashFsExtractor(scsPath, opt);
         }
 
-        private static void DoMultiDeepExtraction(string[] scsPaths)
+        private static ExitCode DoMultiDeepExtraction(string[] scsPaths)
         {
             // If you're reading this ... maybe don't.
 
-            List<Extractor> extractors = [];
+            List<ExtractionResult> results = new(scsPaths.Length);
+            List<Extractor> extractors = new(scsPaths.Length);
             foreach (var scsPath in scsPaths)
             {
-                var extractor = CreateExtractor(scsPath);
-                if (extractor is not null)
+                try
+                {
+                    var extractor = CreateExtractor(scsPath);
                     extractors.Add(extractor);
+                }
+                catch (FileNotFoundException)
+                {
+                    results.Add(ExtractionResult.NotFound);
+                    continue;
+                }
+                catch (InvalidDataException)
+                {
+                    results.Add(ExtractionResult.FailedToOpen);
+                    continue;
+                }
+                catch (Exception)
+                {
+                    results.Add(ExtractionResult.FailedToOpen);
+                    continue;
+                }
             }
+
+            if (extractors.Count == 0)
+                return DetermineExitCode(results);
 
             var multiModWrapper = new AssetLoader(extractors.Select(x => x.FileSystem).ToArray());
 
@@ -254,6 +368,8 @@ namespace Extractor
                         extractor.Extract(GetDestination(extractor.ScsPath));
                     }
                 }
+
+                results.Add(ExtractionResult.Success);
             }
 
             if (!opt.ListPaths && !opt.PrintTree)
@@ -264,18 +380,17 @@ namespace Extractor
                     extractor.PrintExtractionResult();
                 }
             }
+
+            return DetermineExitCode(results);
         }
 
-        private static void ListEntries(Extractor extractor)
+        private static void ListEntries(HashFsExtractor hExt)
         {
-            if (extractor is HashFsExtractor hExt)
+            Console.WriteLine($"  {"Offset",-10}  {"Hash",-16}  {"Cmp. Size",-10}  {"Uncmp.Size",-10}");
+            foreach (var (_, entry) in hExt.Reader.Entries)
             {
-                Console.WriteLine($"  {"Offset",-10}  {"Hash",-16}  {"Cmp. Size",-10}  {"Uncmp.Size",-10}");
-                foreach (var (_, entry) in hExt.Reader.Entries)
-                {
-                    Console.WriteLine($"{(entry.IsDirectory ? "*" : " ")} " +
-                        $"{entry.Offset,10}  {entry.Hash,16:x}  {entry.CompressedSize,10}  {entry.Size,10}");
-                }
+                Console.WriteLine($"{(entry.IsDirectory ? "*" : " ")} " +
+                    $"{entry.Offset,10}  {entry.Hash,16:x}  {entry.CompressedSize,10}  {entry.Size,10}");
             }
         }
 
