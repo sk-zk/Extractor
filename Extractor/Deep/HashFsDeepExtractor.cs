@@ -49,7 +49,7 @@ namespace Extractor.Deep
         /// <inheritdoc/>
         public override void Extract(string outputRoot)
         {
-            Console.WriteLine("Searching for paths ...");
+            Console.Error.WriteLine("Searching for paths ...");
             FindPaths();
             Extract(finder.FoundFiles.Order().ToArray(), outputRoot, false);
         }
