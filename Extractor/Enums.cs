@@ -56,6 +56,11 @@ namespace Extractor
         /// The extractor was not able to open any of the passed archives.
         /// </summary>
         FailedToOpen = 8,
+
+        /// <summary>
+        /// The value passed to <c>--salt</c> is not a valid ushort.
+        /// </summary>
+        InvalidSalt = 9,
     }
 
     public enum ExtractionResult

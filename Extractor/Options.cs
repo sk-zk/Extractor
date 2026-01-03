@@ -173,7 +173,7 @@ namespace Extractor
                     x => { UseRawExtractor = true; } },
                 { "salt=",
                     "[HashFS] Overrides the salt specified in the archive header with the given one.",
-                    x => { Salt = ushort.Parse(x); } },
+                    x => { Salt = ParseSalt(x); } },
                 { "S|separate",
                     "When extracting multiple archives, extract each archive to a separate directory.",
                     x => { Separate = true; } },
@@ -261,6 +261,16 @@ namespace Extractor
             }
 
             return paths;
+        }
+
+        private static ushort ParseSalt(string str)
+        {
+            if (!ushort.TryParse(str, out var salt))
+            {
+                Console.Error.WriteLine($"The salt must be a number between 0 and {ushort.MaxValue}.");
+                Environment.Exit((int)ExitCode.InvalidSalt);
+            }
+            return salt;
         }
     }
 }
