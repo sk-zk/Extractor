@@ -20,7 +20,9 @@ namespace Extractor.Zip
         /// </summary>
         public Dictionary<string, CentralDirectoryFileHeader> Entries { get; private set; }
 
-        char IFileSystem.DirectorySeparator => throw new NotImplementedException();
+        private static readonly char DirectorySeparator = '/';
+
+        char IFileSystem.DirectorySeparator => DirectorySeparator;
 
         private BinaryReader reader;
         private long endOfCentralDirOffset = -1;
@@ -153,8 +155,8 @@ namespace Extractor.Zip
         bool IFileSystem.DirectoryExists(string path)
         {
             RemoveInitialSlash(ref path);
-            if (!path.EndsWith('/'))
-                path += '/';
+            if (!path.EndsWith(DirectorySeparator))
+                path += DirectorySeparator;
 
             return Entries.TryGetValue(path, out var entry) 
                 && entry.UncompressedSize == 0;
