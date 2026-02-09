@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
-using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
 using TruckLib.HashFs;
@@ -32,7 +32,20 @@ namespace Extractor
                     if (!keepGoing)
                         return;
 
-                    var content = reader.GetDirectoryListing(path);
+                    DirectoryListing content;
+                    try
+                    {
+                        content = reader.GetDirectoryListing(path);
+                    }
+                    catch (InvalidDataException idex)
+                    {
+                        #if DEBUG
+                            Console.WriteLine($"Unable to read directory listing " +
+                                $"\"{PathUtils.ReplaceControlChars(path)}\": {idex.Message}");
+                        #endif
+                        return;
+                    }
+
                     foreach (var dir in content.Subdirectories)
                     {
                         // Some dir entries don't have the directory flag set,
