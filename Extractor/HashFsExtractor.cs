@@ -1,15 +1,17 @@
-﻿using System;
+﻿using Sprache;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using TruckLib.HashFs;
-using System.IO.Compression;
-using TruckLib;
 using System.Text.RegularExpressions;
-using static Extractor.PathUtils;
+using System.Threading.Tasks;
+using TruckLib;
+using TruckLib.HashFs;
 using static Extractor.ConsoleUtils;
+using static Extractor.PathUtils;
 using static Extractor.TextUtils;
 
 namespace Extractor
@@ -83,10 +85,24 @@ namespace Extractor
             Reader = HashFsReader.Open(scsPath, opt.ForceEntryTableAtEnd);
             PrintContentSummary();
 
+            bool hasSaltChanged = false;
             if (opt.Salt is not null)
+            {
                 Reader.Salt = opt.Salt.Value;
+                hasSaltChanged = true;
+            }
             else
-                FixSaltIfNecessary();
+            {
+                hasSaltChanged = FixSaltIfNecessary();
+            }
+
+            if (hasSaltChanged)
+            {
+                // ^ Used as a hint that a certain DRM packer
+                // may have packed this archive, requiring this method
+                // to run.
+                FixEntryOffsetsIfNecessary();
+            }
 
             IdentifyJunkEntries();
         }
@@ -269,7 +285,7 @@ namespace Extractor
             }
         }
 
-        protected void IdentifyJunkEntries()
+        private void IdentifyJunkEntries()
         {
             if (hasIdentifiedJunk)
                 return;
@@ -375,21 +391,21 @@ namespace Extractor
             }
         }
 
-        protected void FixSaltIfNecessary()
+        private bool FixSaltIfNecessary()
         {
             const string fileToTest = "manifest.sii";
-
+   
             if (Reader.TryGetEntry(fileToTest, out var _) == EntryType.NotFound)
             {
                 // No manifest => don't need to run this
-                return;
+                return false;
             }
 
             try
             {
                 // Decompresses correctly => no change needed
                 Reader.Extract(fileToTest);
-                return;
+                return false;
             }
             catch
             {
@@ -398,18 +414,133 @@ namespace Extractor
                 for (int i = 0; i < ushort.MaxValue; i++)
                 {
                     Reader.Salt = (ushort)i;
-                    if (Reader.EntryExists(fileToTest) == EntryType.File)
+                    if (Reader.EntryExists(fileToTest) != EntryType.NotFound)
                     {
                         try
                         {
                             Reader.Extract(fileToTest);
                             Console.Error.WriteLine($"Salt set to {i}");
-                            return;
+                            return true;
                         }
                         catch { /* Failed to decompress => continue */ }
                     }
                 }
                 Console.Error.WriteLine("Unable to find true salt");
+            }
+            return false;
+        }
+
+        private void FixEntryOffsetsIfNecessary()
+        {
+            // Archives packed by a certain DRM packer may contain entries
+            // for which the stated offset is incorrect and the actual start of
+            // the file is located ~100 bytes earlier or later.
+            // I don't know how this "nudge" is derived from the metadata
+            // (or if it can be derived from it at all - maybe these values are
+            // fetched from a remote server), so to fix the offsets of affected
+            // entries, I just scan the surrounding bytes for zlib headers to find the
+            // true offset of the file.
+
+            if (Reader.Version != 1)
+                return;
+
+            // The aforementioned "nudges" appear to always be one of these values:
+            sbyte[] offsets = [-91, -75, -59, -43, -27, 37, 53, 69, 85, 101];
+
+            var bufferSize = -offsets[0] + offsets[^1] + 2;
+            var buffer = new byte[bufferSize];
+            List<long> zlibHeaders = [];
+
+            foreach (var (key, entry) in Reader.Entries)
+            {
+                var entryV1 = (EntryV1)entry;
+                if (!entryV1.Flags[7] || !entry.IsCompressed)
+                {
+                    // ^ Non-standard flag set by the packer
+                    //   if it has tampered with the offset.
+                    continue;
+                }
+
+                var startOffset = (long)entry.Offset + offsets[0];
+                Reader.BaseReader.BaseStream.Position = startOffset;
+                Reader.BaseReader.BaseStream.ReadExactly(buffer, 0, bufferSize);
+                zlibHeaders.Clear();
+
+                foreach (var offset in offsets)
+                {
+                    var bufferIdx = offset - offsets[0];
+                    if (buffer[bufferIdx] == 0x78 && buffer[bufferIdx + 1] == 0x9c)
+                    {
+                        zlibHeaders.Add(offset);
+                    }
+                }
+
+                if (zlibHeaders.Count == 1)
+                {
+                    // There's only one zlib header in the target range,
+                    // so this is probably the file we're looking for.
+                    SetCorrectedOffset(entryV1, zlibHeaders[0]);
+                }
+                else if (zlibHeaders.Count > 1)
+                {
+                    // More than one zlib header in the target range - let's find out
+                    // which of the candidate streams is our entry.
+                    FindEntryInCandidates(zlibHeaders, entryV1);
+                }
+                else
+                {
+                    // I guess there's just nothing then.
+                }
+            }
+
+            void SetCorrectedOffset(EntryV1 entry, long nudge)
+            {
+                entry.Offset = (ulong)((long)entry.Offset + nudge);
+                Reader.Entries[entry.Hash] = entry;
+            }
+
+            void FindEntryInCandidates(List<long> zlibHeaders, EntryV1 entry)
+            {
+                for (int i = 0; i < zlibHeaders.Count - 1; i++)
+                {
+                    var maxPossibleSize = zlibHeaders[i + 1] - zlibHeaders[i];
+                    if (entry.CompressedSize <= maxPossibleSize)
+                    {
+                        var matches = SetCorrectedOffsetIfSizeMatches(entry, zlibHeaders[i]);
+                        if (matches) return;
+                    }
+                }
+                SetCorrectedOffsetIfSizeMatches(entry, zlibHeaders[^1]);
+            }
+
+            bool SetCorrectedOffsetIfSizeMatches(EntryV1 entry, long nudge)
+            {
+                var realSize = GetRealDecompressedSize(
+                    (long)entry.Offset + nudge,
+                    entry.Size);
+                if (realSize == entry.Size)
+                {
+                    SetCorrectedOffset(entry, nudge);
+                    return true;
+                }
+                return false;
+            }
+
+            long GetRealDecompressedSize(long streamPos, long decompressedSize)
+            {
+                try
+                {
+                    Reader.BaseReader.BaseStream.Position = streamPos;
+                    using var zlibStream = new ZLibStream(Reader.BaseReader.BaseStream,
+                        CompressionMode.Decompress, true);
+                    using var outputStream = new MemoryStream();
+                    BinaryUtils.CopyStream(zlibStream, outputStream, decompressedSize);
+                    return outputStream.Length;
+                }
+                catch (InvalidDataException)
+                {
+                    return -1;
+                }
             }
         }
 
