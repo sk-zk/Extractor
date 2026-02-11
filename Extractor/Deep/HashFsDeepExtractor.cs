@@ -43,7 +43,6 @@ namespace Extractor.Deep
 
         public HashFsDeepExtractor(string scsPath, Options opt) : base(scsPath, opt)
         {
-            IdentifyJunkEntries();
         }
 
         /// <inheritdoc/>
