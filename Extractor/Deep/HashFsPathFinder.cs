@@ -182,7 +182,7 @@ namespace Extractor.Deep
                 catch (InvalidDataException)
                 {
                     #if DEBUG
-                        Console.WriteLine($"Unable to decompress, likely junk: {entry.Hash:X16}");
+                        Console.WriteLine($"Unable to decompress, likely junk: {entry.Hash:X16} ({entry.Offset:X})");
                     #endif
                     junkEntries.TryAdd(entry.Hash, entry);
                     continue;
