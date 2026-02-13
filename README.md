@@ -13,7 +13,7 @@ A cross-platform .scs extractor for both HashFS and ZIP.
 
 ## Build
 For x64 Windows and Linux, a standalone executable is available on the Releases page. On other platforms, install the
-.NET 8 SDK and run the following:
+.NET 10 SDK and run the following:
 
 ```sh
 git clone https://github.com/sk-zk/Extractor.git
