@@ -419,7 +419,7 @@ namespace Extractor
 
         private static void PauseIfNecessary()
         {
-            if (launchedByExplorer)
+            if (launchedByExplorer && !opt.Quiet)
             {
                 Console.WriteLine("Press any key to continue ...");
                 Console.Read();
