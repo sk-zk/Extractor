@@ -99,7 +99,7 @@ extractor path... [options]
 <tr>
   <td><code>-q</code></td>
   <td><code>--quiet</code></td>
-  <td>Don't print paths of extracted files.</td>
+  <td>Don't print paths of extracted files, and don't wait for a keypress after extraction when running outside the command line.</td>
 </tr>
 <tr>
   <td><code>-S</code></td>

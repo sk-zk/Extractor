@@ -82,7 +82,8 @@ namespace Extractor
         public bool PrintTree { get; set; } = false;
 
         /// <summary>
-        /// Quiet mode, doesn't print on every extracted file.
+        /// Quiet mode, doesn't print on every extracted file, and doesn't wait
+        /// for a keypress after extraction.
         /// </summary>
         public bool Quiet { get; set; } = false;
 
