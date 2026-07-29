@@ -85,7 +85,7 @@ namespace Extractor
         {
             logger = Log.ForContext<HashFsExtractor>();
 
-            PrintNotFoundMessage = !opt.ExtractAllInDir;
+            PrintNotFoundMessage = !opt.ExtractAllInDir && !opt.Quiet;
 
             Reader = HashFsReader.Open(scsPath, opt.ForceEntryTableAtEnd);
             PrintContentSummary();
